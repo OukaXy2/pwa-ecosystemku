@@ -2,19 +2,20 @@
   "name": "Kronik — Jurnal & Legenda",
   "short_name": "Kronik",
   "description": "Jurnal pribadi dengan RPG vibe",
-  "start_url": "./index.html",
+  "start_url": "/kronik/",
+  "scope": "/kronik/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0d0c0a",
   "theme_color": "#0d0c0a",
   "icons": [
     {
-      "src": "./icons/icon-192.png",
+      "src": "/kronik/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "/kronik/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
