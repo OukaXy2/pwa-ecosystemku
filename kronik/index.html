@@ -603,32 +603,8 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
 }
 .rpg-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Auto-Journal Settings Row */
+/* Settings divider */
 .settings-divider { height: 1px; background: rgba(160,120,70,0.15); margin: 2px 0; }
-.settings-item-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 9px 12px;
-  font-family: 'Lora', serif; font-size: 11px; color: var(--ink);
-}
-.settings-toggle-wrap { display: flex; align-items: center; gap: 8px; }
-.settings-item-label { flex: 1; }
-.aj-toggle {
-  position: relative; width: 32px; height: 18px;
-  background: rgba(160,120,70,0.2); border: 1px solid rgba(160,120,70,0.3);
-  border-radius: 9px; cursor: pointer; transition: background 0.2s; flex-shrink: 0;
-}
-.aj-toggle.on { background: rgba(140,80,30,0.55); border-color: rgba(160,100,40,0.6); }
-.aj-toggle::after {
-  content: ''; position: absolute; top: 2px; left: 2px;
-  width: 12px; height: 12px; border-radius: 50%;
-  background: rgba(160,120,70,0.6); transition: transform 0.2s, background 0.2s;
-}
-.aj-toggle.on::after { transform: translateX(14px); background: var(--j-gold); }
-.aj-time-input {
-  background: rgba(245,237,218,0.7); border: 1px solid rgba(160,120,70,0.25); border-radius: 3px;
-  font-family: 'Lora', serif; font-size: 11px; color: var(--ink);
-  padding: 2px 6px; width: 64px; text-align: center; outline: none;
-}
 /* Refresh Stat button on Profile */
 .refresh-stat-btn {
   display: block; margin: 8px auto 0; width: calc(100% - 48px);
@@ -756,6 +732,112 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
 }
 .btn-mood-clear:hover { color: rgba(160,80,60,0.8); }
 
+/* ══════════════════════════════════════════════════════════════════
+   EDIT PROFILE OVERLAY
+══════════════════════════════════════════════════════════════════ */
+.edit-profile-overlay {
+  position: fixed; inset: 0; z-index: 600;
+  background: rgba(5,4,2,0.75);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease;
+  backdrop-filter: blur(4px);
+}
+.edit-profile-overlay.open { opacity: 1; pointer-events: all; }
+
+.edit-profile-panel {
+  width: 100%; max-width: 380px;
+  background: linear-gradient(160deg, #1c1608, #130f05);
+  border: 1px solid rgba(201,168,76,0.3);
+  box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 30px rgba(201,168,76,0.06);
+  padding: 24px 20px 20px;
+  position: relative;
+  transform: translateY(16px) scale(0.97);
+  transition: transform 0.28s cubic-bezier(0.34,1.56,0.64,1);
+}
+.edit-profile-overlay.open .edit-profile-panel { transform: translateY(0) scale(1); }
+
+.edit-profile-panel::before {
+  content: ''; position: absolute; inset: 4px;
+  border: 1px solid rgba(201,168,76,0.08); pointer-events: none;
+}
+
+.ep-title {
+  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 4px;
+  color: var(--gold-dim); text-transform: uppercase; text-align: center;
+  margin-bottom: 18px;
+}
+
+.ep-label {
+  font-family: 'Cinzel', serif; font-size: 8px; letter-spacing: 3px;
+  color: var(--rpg-text-dim); text-transform: uppercase; margin-bottom: 7px; display: block;
+}
+
+.ep-name-input {
+  width: 100%; background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(201,168,76,0.2);
+  color: var(--rpg-text); font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 15px; padding: 9px 12px; outline: none;
+  transition: border-color 0.2s; margin-bottom: 18px;
+  caret-color: var(--gold);
+}
+.ep-name-input:focus { border-color: rgba(201,168,76,0.5); }
+.ep-name-input::placeholder { color: var(--rpg-text-dim); font-style: italic; }
+
+.ep-avatar-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  margin-bottom: 20px;
+}
+
+.ep-avatar-opt {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(201,168,76,0.12);
+  cursor: pointer; transition: all 0.2s; position: relative;
+  padding: 8px;
+}
+.ep-avatar-opt:hover { background: rgba(201,168,76,0.08); border-color: rgba(201,168,76,0.3); }
+.ep-avatar-opt.selected {
+  background: rgba(201,168,76,0.1); border-color: var(--gold);
+  box-shadow: 0 0 12px rgba(201,168,76,0.15);
+}
+.ep-avatar-opt svg { width: 40px; height: 40px; display: block; }
+.ep-avatar-name {
+  position: absolute; bottom: 3px; left: 0; right: 0;
+  font-family: 'Cinzel', serif; font-size: 6px; letter-spacing: 1px;
+  color: var(--rpg-text-dim); text-align: center; text-transform: uppercase;
+}
+.ep-avatar-opt.selected .ep-avatar-name { color: var(--gold-dim); }
+
+.ep-btn-row {
+  display: flex; gap: 10px;
+}
+.ep-btn {
+  flex: 1; padding: 10px 12px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 9px; letter-spacing: 2px;
+  text-transform: uppercase; transition: all 0.2s; border: 1px solid;
+}
+.ep-btn-save {
+  background: rgba(201,168,76,0.15); border-color: var(--gold-dim);
+  color: var(--gold);
+}
+.ep-btn-save:hover { background: rgba(201,168,76,0.25); border-color: var(--gold); }
+.ep-btn-cancel {
+  background: transparent; border-color: rgba(201,168,76,0.15);
+  color: var(--rpg-text-dim);
+}
+.ep-btn-cancel:hover { border-color: rgba(201,168,76,0.3); color: var(--rpg-text); }
+
+/* Avatar ring — tap hint */
+.rpg-header { cursor: pointer; }
+.rpg-header:hover .avatar-ring::before { filter: brightness(1.3); }
+.ep-tap-hint {
+  font-size: 9px; letter-spacing: 2px; color: rgba(201,168,76,0.3);
+  font-family: 'Cinzel', serif; text-transform: uppercase;
+  text-align: center; margin-top: 4px; transition: color 0.2s;
+}
+.rpg-header:hover .ep-tap-hint { color: rgba(201,168,76,0.6); }
+
 </style>
 </head>
 
@@ -801,17 +883,6 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
                 <span class="settings-icon">↓</span> Import Data
                 <input type="file" accept=".json" style="display:none" onchange="importData(event)" />
               </label>
-              <div class="settings-divider"></div>
-              <div class="settings-item-row">
-                <span class="settings-icon">✦</span>
-                <span class="settings-item-label">Auto Journal</span>
-                <div class="aj-toggle" id="aj-toggle" onclick="ajToggle()"></div>
-              </div>
-              <div class="settings-item-row" id="aj-time-row" style="display:none">
-                <span class="settings-icon">⏱</span>
-                <span class="settings-item-label">Jam Auto Journal</span>
-                <input class="aj-time-input" id="aj-time-input" type="time" value="21:00" onchange="ajSaveSettings()" />
-              </div>
             </div>
             <ul class="toc-list" id="toc-list"></ul>
           </div>
@@ -870,12 +941,13 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
       <div class="corner corner-tr"></div>
       <div class="corner corner-bl"></div>
       <div class="corner corner-br"></div>
-      <div class="rpg-header">
+      <div class="rpg-header" onclick="openEditProfile()">
         <div class="class-badge" id="classBadge">◆ Petualang ◆</div>
         <div class="avatar-ring">
           <div class="avatar-inner" id="avatarEmoji">🧙</div>
         </div>
         <div class="char-name" id="charName">—</div>
+        <div class="ep-tap-hint">✦ tap untuk edit ✦</div>
         <div class="char-title" id="charTitle"></div>
         <div class="level-row">
           <div class="level-badge">LVL <span id="levelNum">1</span></div>
@@ -940,6 +1012,23 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
   </div>
 </div><!-- /panel-profile -->
 
+
+<!-- ── EDIT PROFILE OVERLAY ── -->
+<div class="edit-profile-overlay" id="edit-profile-overlay" onclick="editProfileOverlayClick(event)">
+  <div class="edit-profile-panel" id="edit-profile-panel">
+    <div class="ep-title">Edit Profil</div>
+    <label class="ep-label" for="ep-name-input">Nama Karakter</label>
+    <input class="ep-name-input" id="ep-name-input" type="text" maxlength="32" autocomplete="off" spellcheck="false">
+    <label class="ep-label">Pilih Avatar</label>
+    <div class="ep-avatar-grid" id="ep-avatar-grid">
+      <!-- Injected by JS -->
+    </div>
+    <div class="ep-btn-row">
+      <button class="ep-btn ep-btn-cancel" onclick="closeEditProfile()">Batal</button>
+      <button class="ep-btn ep-btn-save" onclick="saveEditProfile()">✦ Simpan</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── MOOD PICKER OVERLAY ── -->
 <div class="mood-overlay" id="mood-overlay" onclick="moodOverlayClick(event)">
@@ -1673,10 +1762,28 @@ function generateTraits(habitStats, stats, todoDone, todoTotal) {
 }
 
 function renderProfile(result, skipCache) {
-  document.getElementById('charName').textContent = 'Adventurer';
+  // Store class name for edit profile placeholder
+  _epCurrentClass = result.class || 'Adventurer';
+
+  // Apply saved customization (name/avatar) or defaults
+  const overlay = document.getElementById('edit-profile-overlay');
+  const savedName   = overlay ? overlay.dataset.savedName   : '';
+  const savedAvatar = overlay ? overlay.dataset.savedAvatar : '';
+
+  document.getElementById('charName').textContent = savedName || 'Adventurer';
   document.getElementById('charTitle').textContent = `"${result.title}"`;
   document.getElementById('classBadge').textContent = `◆ ${result.class} ◆`;
-  document.getElementById('avatarEmoji').textContent = result.avatar;
+
+  // Avatar: custom SVG atau emoji default
+  const avatarInner = document.getElementById('avatarEmoji');
+  const customAv = EP_AVATARS.find(a => a.id === savedAvatar);
+  if (customAv) {
+    avatarInner.innerHTML = customAv.svg;
+    avatarInner.style.padding = '4px';
+  } else {
+    avatarInner.textContent = result.avatar;
+    avatarInner.style.padding = '';
+  }
   document.getElementById('levelNum').textContent = result.level;
   document.getElementById('expText').textContent = `${result.xpRem} / ${result.xpNeeded}`;
 
@@ -1781,6 +1888,306 @@ function showRpgToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   EDIT PROFILE — Nama & Avatar
+════════════════════════════════════════════════════════════════════ */
+
+const EP_AVATARS = [
+  {
+    id: 'ksatria', name: 'Ksatria',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Helm -->
+      <path stroke-width="1.8" d="M22 22c0-5.5 4.5-10 10-10s10 4.5 10 10v4H22v-4z"/>
+      <path stroke-width="1.8" d="M20 26h24v3c0 1-0.5 2-1.5 2h-21C20.5 31 20 30 20 29v-3z"/>
+      <!-- Badan armor -->
+      <path stroke-width="1.8" d="M22 31v8l-4 6h28l-4-6v-8"/>
+      <path stroke-width="1.5" d="M28 31v6M36 31v6"/>
+      <!-- Garis detail armor -->
+      <path stroke-width="1.2" d="M24 36h16M25 39h14"/>
+      <!-- Pedang kanan -->
+      <line stroke-width="1.8" x1="46" y1="16" x2="54" y2="44"/>
+      <line stroke-width="2" x1="43" y1="28" x2="49" y2="28"/>
+      <path stroke-width="1.5" d="M53 42l2 4-3-1.5"/>
+      <!-- Perisai kiri -->
+      <path stroke-width="1.8" d="M14 24l-4 2v10c0 3 2 5 4 6l4-6V26z"/>
+      <path stroke-width="1.2" d="M12 30l4 4"/>
+    </svg>`
+  },
+  {
+    id: 'penyihir', name: 'Penyihir',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Topi runcing -->
+      <path stroke-width="1.8" d="M32 6l-8 18h16L32 6z"/>
+      <path stroke-width="1.5" d="M20 24h24"/>
+      <!-- Kepala -->
+      <circle stroke-width="1.8" cx="32" cy="30" r="6"/>
+      <!-- Jubah -->
+      <path stroke-width="1.8" d="M24 34l-6 18h28l-6-18"/>
+      <path stroke-width="1.4" d="M26 40l-2 8M38 40l2 8"/>
+      <!-- Tongkat sihir -->
+      <line stroke-width="1.8" x1="10" y1="52" x2="28" y2="28"/>
+      <!-- Bintang di tongkat -->
+      <polygon stroke-width="1.5" points="9,46 10.5,49.5 14,50 11.5,52.5 12.2,56 9,54.2 5.8,56 6.5,52.5 4,50 7.5,49.5"/>
+      <!-- Bintang kecil melayang -->
+      <path stroke-width="1.2" d="M48 14l1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/>
+      <path stroke-width="1.2" d="M54 22l0.7 1.5 1.5 0.7-1.5 0.7-0.7 1.5-0.7-1.5-1.5-0.7 1.5-0.7z"/>
+    </svg>`
+  },
+  {
+    id: 'healer', name: 'Healer',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Kepala dengan tudung -->
+      <path stroke-width="1.8" d="M20 24c0-6.6 5.4-12 12-12s12 5.4 12 12"/>
+      <path stroke-width="1.5" d="M18 24c0 0-2 2-2 5s2 5 2 5h28s2-2 2-5-2-5-2-5"/>
+      <!-- Wajah -->
+      <circle stroke-width="1.5" cx="32" cy="28" r="5"/>
+      <!-- Jubah panjang -->
+      <path stroke-width="1.8" d="M22 34l-4 20h28l-4-20"/>
+      <path stroke-width="1.4" d="M24 40h16M24 46h16"/>
+      <!-- Simbol salib cahaya di dada -->
+      <line stroke-width="2.2" x1="32" y1="36" x2="32" y2="44"/>
+      <line stroke-width="2.2" x1="28" y1="40" x2="36" y2="40"/>
+      <!-- Sinar cahaya -->
+      <line stroke-width="1.2" x1="32" y1="8" x2="32" y2="5"/>
+      <line stroke-width="1.2" x1="40" y1="10" x2="42" y2="8"/>
+      <line stroke-width="1.2" x1="24" y1="10" x2="22" y2="8"/>
+      <line stroke-width="1.2" x1="44" y1="16" x2="47" y2="14"/>
+      <line stroke-width="1.2" x1="20" y1="16" x2="17" y2="14"/>
+    </svg>`
+  },
+  {
+    id: 'pemanah', name: 'Pemanah',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Kepala -->
+      <circle stroke-width="1.8" cx="32" cy="18" r="7"/>
+      <!-- Ikat kepala -->
+      <path stroke-width="1.5" d="M25 16h14"/>
+      <!-- Badan -->
+      <path stroke-width="1.8" d="M26 25l-4 18h20l-4-18"/>
+      <!-- Lengan menarik busur -->
+      <line stroke-width="1.8" x1="26" y1="27" x2="12" y2="22"/>
+      <line stroke-width="1.8" x1="38" y1="27" x2="50" y2="22"/>
+      <!-- Busur -->
+      <path stroke-width="2" d="M10 14 Q6 22 10 30"/>
+      <line stroke-width="1.4" x1="10" y1="14" x2="10" y2="30"/>
+      <!-- Tali busur -->
+      <line stroke-width="1.2" x1="10" y1="14" x2="26" y2="22" stroke-dasharray="2,1"/>
+      <line stroke-width="1.2" x1="10" y1="30" x2="26" y2="22" stroke-dasharray="2,1"/>
+      <!-- Anak panah -->
+      <line stroke-width="1.8" x1="26" y1="22" x2="52" y2="22"/>
+      <path stroke-width="1.5" d="M52 22l-4-2v4z" fill="#c9a84c" stroke="none"/>
+      <!-- Bulu anak panah -->
+      <path stroke-width="1.2" d="M30 22l-1-2M30 22l-1 2"/>
+      <!-- Kaki -->
+      <line stroke-width="1.8" x1="28" y1="43" x2="25" y2="54"/>
+      <line stroke-width="1.8" x1="36" y1="43" x2="39" y2="54"/>
+    </svg>`
+  },
+  {
+    id: 'elf', name: 'Elf',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Kepala dengan telinga runcing -->
+      <path stroke-width="1.8" d="M22 28c0-5.5 4.5-10 10-10s10 4.5 10 10a10 10 0 01-10 10"/>
+      <path stroke-width="1.8" d="M22 28a10 10 0 0010 10"/>
+      <!-- Telinga runcing -->
+      <path stroke-width="1.8" d="M22 24l-5-3 2 7z"/>
+      <path stroke-width="1.8" d="M42 24l5-3-2 7z"/>
+      <!-- Mahkota daun -->
+      <path stroke-width="1.6" d="M24 22 Q26 16 32 18 Q38 16 40 22"/>
+      <path stroke-width="1.4" d="M26 21 Q28 14 32 16"/>
+      <path stroke-width="1.4" d="M38 21 Q36 14 32 16"/>
+      <path stroke-width="1.2" d="M32 16 Q30 12 32 10 Q34 12 32 16"/>
+      <!-- Badan jubah elegan -->
+      <path stroke-width="1.8" d="M24 38l-5 18h26l-5-18"/>
+      <!-- Detail jubah -->
+      <path stroke-width="1.3" d="M28 42 Q32 48 36 42"/>
+      <path stroke-width="1.3" d="M27 48 Q32 54 37 48"/>
+      <!-- Rambut panjang -->
+      <path stroke-width="1.5" d="M22 28 Q18 38 20 48"/>
+      <path stroke-width="1.5" d="M42 28 Q46 38 44 48"/>
+    </svg>`
+  },
+  {
+    id: 'rogue', name: 'Rogue',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Kepala dengan tudung gelap -->
+      <circle stroke-width="1.8" cx="32" cy="22" r="8"/>
+      <path stroke-width="1.8" d="M22 18 Q20 14 24 12 Q28 8 32 10 Q36 8 40 12 Q44 14 42 18"/>
+      <!-- Topeng (hanya mata) -->
+      <path stroke-width="1.8" d="M24 22 Q28 20 32 22 Q36 20 40 22"/>
+      <line stroke-width="1.5" x1="24" y1="22" x2="24" y2="25"/>
+      <line stroke-width="1.5" x1="40" y1="22" x2="40" y2="25"/>
+      <path stroke-width="1.5" d="M26 22c0 0 1.5-2 3 0M35 22c0 0 1.5-2 3 0"/>
+      <!-- Jubah gelap -->
+      <path stroke-width="1.8" d="M24 30l-6 24h28l-6-24"/>
+      <path stroke-width="1.4" d="M20 38 Q18 44 20 50M44 38 Q46 44 44 50"/>
+      <!-- Dua belati silang -->
+      <line stroke-width="2" x1="14" y1="32" x2="26" y2="46"/>
+      <line stroke-width="2" x1="50" y1="32" x2="38" y2="46"/>
+      <!-- Gagang belati -->
+      <line stroke-width="2" x1="12" y1="30" x2="16" y2="34"/>
+      <line stroke-width="2" x1="52" y1="30" x2="48" y2="34"/>
+      <path stroke-width="1.5" d="M10 30l4-2 2 4z M54 30l-4-2-2 4z"/>
+    </svg>`
+  },
+  {
+    id: 'samurai', name: 'Samurai',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Helm kabuto -->
+      <path stroke-width="1.8" d="M20 26c0-6.6 5.4-12 12-12s12 5.4 12 12"/>
+      <path stroke-width="1.8" d="M18 26h28"/>
+      <path stroke-width="1.6" d="M18 26 Q16 22 18 18 Q20 14 24 16"/>
+      <path stroke-width="1.6" d="M46 26 Q48 22 46 18 Q44 14 40 16"/>
+      <!-- Maedate (ornamen helm) -->
+      <path stroke-width="1.5" d="M32 14 Q34 10 32 7 Q30 10 32 14"/>
+      <!-- Wajah -->
+      <path stroke-width="1.8" d="M22 26v4c0 3.3 4.5 6 10 6s10-2.7 10-6v-4"/>
+      <!-- Badan armor do-maru -->
+      <path stroke-width="1.8" d="M22 36l-4 18h28l-4-18"/>
+      <path stroke-width="1.4" d="M20 40h24M20 45h24M20 50h24"/>
+      <!-- Sode (pelindung bahu) -->
+      <rect stroke-width="1.5" x="10" y="33" width="10" height="8" rx="1"/>
+      <rect stroke-width="1.5" x="44" y="33" width="10" height="8" rx="1"/>
+      <!-- Katana -->
+      <line stroke-width="2" x1="48" y1="10" x2="56" y2="46"/>
+      <line stroke-width="2" x1="45" y1="20" x2="51" y2="20"/>
+      <path stroke-width="1.5" d="M55 44l2 4-3-1"/>
+    </svg>`
+  },
+  {
+    id: 'druid', name: 'Druid',
+    svg: `<svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#c9a84c" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Kepala -->
+      <circle stroke-width="1.8" cx="32" cy="20" r="7"/>
+      <!-- Mahkota tanduk rusa / alam -->
+      <path stroke-width="1.5" d="M26 14 Q22 8 20 5 Q24 6 26 10"/>
+      <path stroke-width="1.5" d="M38 14 Q42 8 44 5 Q40 6 38 10"/>
+      <path stroke-width="1.3" d="M22 8 Q20 4 22 2"/>
+      <path stroke-width="1.3" d="M42 8 Q44 4 42 2"/>
+      <!-- Jubah alam -->
+      <path stroke-width="1.8" d="M24 27l-6 27h28l-6-27"/>
+      <!-- Pola daun di jubah -->
+      <path stroke-width="1.3" d="M26 33 Q30 30 34 34 Q30 38 26 33z"/>
+      <path stroke-width="1.3" d="M28 40 Q32 37 36 41 Q32 45 28 40z"/>
+      <path stroke-width="1.3" d="M27 47 Q31 44 35 48"/>
+      <!-- Simbol bulan sabit -->
+      <path stroke-width="2" d="M44 12 Q50 16 50 22 Q48 17 44 16 Q48 15 44 12z"/>
+      <!-- Tongkat kayu -->
+      <path stroke-width="1.8" d="M12 54 Q14 40 18 30"/>
+      <path stroke-width="1.4" d="M16 32 Q13 28 15 25 Q17 22 18 26"/>
+      <path stroke-width="1.4" d="M18 30 Q22 26 24 28"/>
+    </svg>`
+  }
+];
+
+let _epSelectedAvatar = null; // id string atau null
+let _epCurrentClass   = '';   // untuk placeholder nama
+
+function buildEpAvatarGrid() {
+  const grid = document.getElementById('ep-avatar-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  EP_AVATARS.forEach(av => {
+    const div = document.createElement('div');
+    div.className = 'ep-avatar-opt';
+    div.dataset.avId = av.id;
+    div.innerHTML = av.svg + `<span class="ep-avatar-name">${av.name}</span>`;
+    div.onclick = () => epSelectAvatar(av.id);
+    grid.appendChild(div);
+  });
+}
+
+function epSelectAvatar(id) {
+  _epSelectedAvatar = id;
+  document.querySelectorAll('.ep-avatar-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.avId === id);
+  });
+}
+
+function openEditProfile() {
+  const overlay = document.getElementById('edit-profile-overlay');
+  if (!overlay) return;
+  // Pre-fill nama
+  const nameInput = document.getElementById('ep-name-input');
+  const savedName = overlay.dataset.savedName || '';
+  nameInput.value = savedName;
+  nameInput.placeholder = _epCurrentClass || 'Adventurer';
+  // Pre-select avatar
+  const savedAv = overlay.dataset.savedAvatar || '';
+  _epSelectedAvatar = savedAv || null;
+  document.querySelectorAll('.ep-avatar-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.avId === savedAv);
+  });
+  overlay.classList.add('open');
+  setTimeout(() => nameInput.focus(), 280);
+}
+
+function closeEditProfile() {
+  document.getElementById('edit-profile-overlay').classList.remove('open');
+}
+
+function editProfileOverlayClick(e) {
+  if (e.target === document.getElementById('edit-profile-overlay')) closeEditProfile();
+}
+
+async function saveEditProfile() {
+  try {
+    const nameInput = document.getElementById('ep-name-input');
+    const name   = nameInput.value.trim();
+    const avatar = _epSelectedAvatar || '';
+
+    await kvSet('profile_name',   name);
+    await kvSet('profile_avatar', avatar);
+
+    // Update overlay dataset agar konsisten
+    const overlay = document.getElementById('edit-profile-overlay');
+    overlay.dataset.savedName   = name;
+    overlay.dataset.savedAvatar = avatar;
+
+    applyProfileCustomization(name, avatar);
+    closeEditProfile();
+    showRpgToast('Profil diperbarui ✦');
+  } catch(err) {
+    showRpgToast('Gagal menyimpan profil');
+    console.error('[EditProfile] save error:', err);
+  }
+}
+
+function applyProfileCustomization(name, avatarId) {
+  // Nama
+  const charNameEl = document.getElementById('charName');
+  if (charNameEl) {
+    charNameEl.textContent = name || _epCurrentClass || 'Adventurer';
+  }
+  // Avatar
+  const avatarInner = document.getElementById('avatarEmoji');
+  if (avatarInner) {
+    const av = EP_AVATARS.find(a => a.id === avatarId);
+    if (av) {
+      avatarInner.innerHTML = av.svg;
+      avatarInner.style.padding = '4px';
+    } else {
+      // Kembalikan ke emoji default (akan di-set lagi oleh renderProfile)
+      avatarInner.style.padding = '';
+    }
+  }
+}
+
+async function loadProfileCustomization() {
+  try {
+    const name   = await kvGet('profile_name');
+    const avatar = await kvGet('profile_avatar');
+    const overlay = document.getElementById('edit-profile-overlay');
+    if (overlay) {
+      overlay.dataset.savedName   = name   || '';
+      overlay.dataset.savedAvatar = avatar || '';
+    }
+    return { name: name || '', avatar: avatar || '' };
+  } catch(err) {
+    return { name: '', avatar: '' };
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2093,123 +2500,58 @@ try {
 } catch(e) { /* BroadcastChannel tidak tersedia */ }
 
 /* ════════════════════════════════════════════════════════════════════
-   FITUR 1 — AUTO JOURNAL
+   FITUR 1 — AUTO JOURNAL (boot-time, untuk kemarin)
 ════════════════════════════════════════════════════════════════════ */
 
-// Auto-journal settings helpers
-let _ajSettings = { enabled: false, time: '21:00' };
-
-async function ajLoadSettings() {
+async function ajBootGenerate() {
   try {
-    const saved = await kvGet('autojournal_settings');
-    if (saved) _ajSettings = { ..._ajSettings, ...saved };
-  } catch(e) {}
-  // Sync UI
-  const toggle   = document.getElementById('aj-toggle');
-  const timeRow  = document.getElementById('aj-time-row');
-  const timeInput = document.getElementById('aj-time-input');
-  if (toggle)    toggle.classList.toggle('on', _ajSettings.enabled);
-  if (timeRow)   timeRow.style.display = _ajSettings.enabled ? '' : 'none';
-  if (timeInput) timeInput.value = _ajSettings.time || '21:00';
-}
+    // 1. Hitung tanggal kemarin
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
 
-async function ajSaveSettings() {
-  const timeInput = document.getElementById('aj-time-input');
-  if (timeInput) _ajSettings.time = timeInput.value || '21:00';
-  try { await kvSet('autojournal_settings', _ajSettings); } catch(e) {}
-}
+    // 2. Cek apakah sudah ada auto entry untuk kemarin → skip jika sudah ada
+    const existing = entries.find(en => en.date === yesterdayStr && en.source === 'auto');
+    if (existing) {
+      console.log('[AutoJournal] Entry kemarin sudah ada, skip.');
+      return;
+    }
 
-async function ajToggle() {
-  _ajSettings.enabled = !_ajSettings.enabled;
-  const toggle  = document.getElementById('aj-toggle');
-  const timeRow = document.getElementById('aj-time-row');
-  if (toggle)  toggle.classList.toggle('on', _ajSettings.enabled);
-  if (timeRow) timeRow.style.display = _ajSettings.enabled ? '' : 'none';
-  await ajSaveSettings();
-}
-
-// Scheduler: check every minute if it's time to generate auto journal
-let _ajLastGenDate = null;
-
-async function _ajLoadLastGenDate() {
-  try {
-    const saved = await kvGet('aj_last_gen_date');
-    if (saved) _ajLastGenDate = saved;
-  } catch(e) {}
-}
-
-function ajStartScheduler() {
-  // Langsung check sekali saat boot (untuk kasus buka app setelah jam yang di-set)
-  ajCheckSchedule();
-  setInterval(ajCheckSchedule, 60 * 1000);
-}
-
-async function ajCheckSchedule() {
-  if (!_ajSettings.enabled) return;
-  const now   = new Date();
-  const today = todayStr();
-  if (_ajLastGenDate === today) return; // already generated today
-  const [hh, mm] = (_ajSettings.time || '21:00').split(':').map(Number);
-  if (now.getHours() < hh || (now.getHours() === hh && now.getMinutes() < mm)) return;
-  // Check if auto journal already exists for today
-  const existing = entries.find(en => en.date === today && en.source === 'auto');
-  if (existing) {
-    _ajLastGenDate = today;
-    try { await kvSet('aj_last_gen_date', today); } catch(e) {}
-    return;
-  }
-  // NOTE: _ajLastGenDate intentionally NOT set here — it's set inside
-  // ajGenerateEntry() only after successful save, so failures allow retry.
-  await ajGenerateEntry();
-}
-
-async function ajGenerateEntry() {
-  const today = todayStr();
-  try {
-    console.log('[AutoJournal] Memulai generate entry...');
-    // Selalu baca fresh dari IDB, fallback ke cache kalau gagal
+    // 3. Baca data dari dailyos_db (fallback ke cache jika gagal)
     let dosData;
     try { dosData = await readDailyOsData(); _dosDataCache = dosData; }
     catch(e) { dosData = _dosDataCache; }
     if (!dosData) { console.warn('[AutoJournal] Tidak ada dosData, skip.'); return; }
-    console.log('[AutoJournal] dosData OK:', { habits: dosData.habits?.length, todos: dosData.todos?.length });
 
-    // Habits completed today — history entry bisa string atau object {id, text}
+    // 4. Filter habits yang diselesaikan kemarin
     const habitsCompleted = (dosData.habits || []).filter(h => {
       if (h.archived) return false;
-      const log = h.history?.[today] || [];
+      const log = h.history?.[yesterdayStr] || [];
       return log.length > 0;
     }).map(h => h.name);
 
+    // 5. Filter todos yang sudah done (pakai flag done)
     const todosDone = (dosData.todos || []).filter(t => t.done).map(t => t.title);
 
-    // BLIND SPOT 1: Tidak ada aktivitas hari ini → skip, dan reset date biar besok tetap bisa generate
-    if (habitsCompleted.length === 0 && todosDone.length === 0) {
-      console.log('[AutoJournal] Tidak ada aktivitas hari ini, skip.');
-      // Reset supaya besok scheduler tetap bisa mencoba
-      _ajLastGenDate = null;
-      try { await kvSet('aj_last_gen_date', null); } catch(e) {}
-      return;
-    }
-
-    // XP hari ini saja (bukan total all-time)
-    let todayXP = 0;
+    // 6. Hitung XP kemarin
+    let yesterdayXP = 0;
     (dosData.habits || []).forEach(h => {
-      todayXP += (h.history?.[today] || []).length * 10;
+      yesterdayXP += (h.history?.[yesterdayStr] || []).length * 10;
     });
 
-    console.log('[AutoJournal] Data hari ini:', { habitsCompleted, todosDone, todayXP });
+    console.log('[AutoJournal] Data kemarin:', { yesterdayStr, habitsCompleted, todosDone, yesterdayXP });
 
-    const prompt = `Kamu adalah asisten jurnal pribadi. Berdasarkan data aktivitas berikut, tulis entri jurnal harian yang natural, reflektif, dan personal dalam Bahasa Indonesia (3-4 paragraf). Jangan sebut nama AI. Tulis seolah orang ini yang menulis sendiri.
-Data hari ini:
-- Habits selesai: ${habitsCompleted.length > 0 ? habitsCompleted.join(', ') : 'belum ada yang tercatat hari ini'}
-- Todos selesai: ${todosDone.length > 0 ? todosDone.join(', ') : 'tidak ada'}
-- XP didapat hari ini: ${todayXP}`;
+    // 7. Susun prompt berdasarkan ada/tidaknya aktivitas
+    let prompt;
+    if (habitsCompleted.length > 0 || todosDone.length > 0) {
+      prompt = `Kamu adalah asisten jurnal pribadi. Berdasarkan data aktivitas berikut, tulis entri jurnal harian yang natural, reflektif, dan personal dalam Bahasa Indonesia (3-4 paragraf). Jangan sebut nama AI. Tulis seolah orang ini yang menulis sendiri. Tanggal: ${yesterdayStr}. Habits selesai: ${habitsCompleted.join(', ')}. Todos selesai: ${todosDone.join(', ') || 'tidak ada'}. XP didapat: ${yesterdayXP}`;
+    } else {
+      prompt = `Tulis entri jurnal pribadi singkat dalam Bahasa Indonesia untuk hari tanpa aktivitas tercatat. Natural, reflektif, 1-2 paragraf. Jangan sebut nama AI. Bisa tentang istirahat, jeda, atau momen tenang.`;
+    }
 
-    // BUG 2: Toast feedback saat proses dimulai
-    showRpgToast('Sedang menulis jurnal harian... ✦');
+    showRpgToast('Sedang menulis jurnal kemarin... ✦');
 
-    console.log('[AutoJournal] Mengirim request ke Groq worker...');
+    // 8. Kirim ke Groq worker
     const res = await fetch('https://dailyos-ai.mywisnu238.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2219,49 +2561,47 @@ Data hari ini:
       })
     });
     const data = await res.json();
-    console.log('[AutoJournal] Raw response dari worker:', data);
-    const text = (data?.text || data?.choices?.[0]?.message?.content || data?.content?.[0]?.text || '').trim();
-    console.log('[AutoJournal] Teks yang diparsed:', text ? text.slice(0, 80) + '...' : '(kosong)');
+    console.log('[AutoJournal] Raw response:', data);
+
+    // Parse response — worker mengembalikan { text: "..." }
+    const text = (data?.text || '').trim();
     if (!text) { console.warn('[AutoJournal] Teks kosong, tidak jadi simpan.'); return; }
 
-    const habitsLogToday = entries
-      .filter(en => en.date === today)
-      .flatMap(en => en.habits_log || []);
-
+    // 9. Simpan entry kemarin
     const autoEntry = {
       id: genId(),
-      date: today,
-      title: 'Jurnal Harian (Auto)',
+      date: yesterdayStr,
+      title: 'Jurnal Harian',
       content: text,
       order: 0,
       mood: null,
-      habits_log: habitsLogToday,
+      habits_log: [],
       source: 'auto',
       generatedAt: new Date().toISOString()
     };
 
-    // BLIND SPOT 3: Tempatkan entry setelah entry manual hari ini (kalau ada),
-    // bukan selalu di paling atas
-    const todayIdx = entries.findIndex(en => en.date === today);
-    if (todayIdx >= 0) {
-      entries.splice(todayIdx + 1, 0, autoEntry);
+    // Sisipkan setelah entry manual kemarin (jika ada), atau di posisi kronologis yang tepat
+    const yesterdayIdx = entries.findIndex(en => en.date === yesterdayStr);
+    if (yesterdayIdx >= 0) {
+      entries.splice(yesterdayIdx + 1, 0, autoEntry);
     } else {
-      entries.unshift(autoEntry);
+      const insertIdx = entries.findIndex(en => en.date < yesterdayStr);
+      if (insertIdx >= 0) {
+        entries.splice(insertIdx, 0, autoEntry);
+      } else {
+        entries.push(autoEntry);
+      }
     }
     entries.forEach((x, i) => { x.order = i; });
 
     await dbPutEntry(autoEntry);
-
-    // BUG 1: Set _ajLastGenDate HANYA setelah entry berhasil disimpan ke IDB
-    _ajLastGenDate = today;
-    try { await kvSet('aj_last_gen_date', today); } catch(e) {}
-
     jRenderSpread();
-    // BUG 2: Toast sukses setelah berhasil
-    showRpgToast('Jurnal harian telah ditulis otomatis ✦');
+
+    // 10. Toast sukses
+    showRpgToast('Jurnal kemarin telah ditulis ✦');
+    console.log('[AutoJournal] Entry kemarin berhasil disimpan.');
   } catch(err) {
-    console.warn('Auto journal gagal:', err);
-    // Biarkan _ajLastGenDate tetap null/lama sehingga scheduler bisa retry
+    console.warn('[AutoJournal] Boot generate gagal:', err);
   }
 }
 
@@ -2272,6 +2612,30 @@ Data hari ini:
   try {
     await dbOpen();
     buildMoodGrid();
+    buildEpAvatarGrid();
+
+    // ── Load profile customization (name + avatar) ──
+    try {
+      const { name, avatar } = await loadProfileCustomization();
+      const overlay = document.getElementById('edit-profile-overlay');
+      if (overlay) {
+        overlay.dataset.savedName   = name;
+        overlay.dataset.savedAvatar = avatar;
+      }
+      // Apply ke charName sekarang kalau sudah ada (sebelum renderProfile)
+      if (name) {
+        const el = document.getElementById('charName');
+        if (el) el.textContent = name;
+      }
+      if (avatar) {
+        const avatarInner = document.getElementById('avatarEmoji');
+        const av = EP_AVATARS.find(a => a.id === avatar);
+        if (av && avatarInner) {
+          avatarInner.innerHTML = av.svg;
+          avatarInner.style.padding = '4px';
+        }
+      }
+    } catch(e) { /* ignore */ }
 
     // ── Migrate from old localStorage (buku_jurnal_v3 or v2) ──
     const idbEntries = await dbGetAllEntries();
@@ -2317,10 +2681,8 @@ Data hari ini:
       } catch(e) {}
     }
 
-    // ── Load auto-journal settings & start scheduler (Fitur 1) ──
-    await ajLoadSettings();
-    await _ajLoadLastGenDate();
-    ajStartScheduler();
+    // ── Auto Journal: generate jurnal kemarin saat boot ──
+    ajBootGenerate(); // fire-and-forget, tidak block render
 
   } catch(err) {
     console.error('Kronik boot error:', err);
