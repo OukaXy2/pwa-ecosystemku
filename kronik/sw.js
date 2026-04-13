@@ -2,7 +2,7 @@
 // Kronik — Service Worker
 // ============================================
 
-const CACHE_NAME = 'kronik-v2';
+const CACHE_NAME = 'kronik-v3';
 const ASSETS = [
   './index.html',
   './manifest.json',
