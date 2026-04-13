@@ -2030,6 +2030,8 @@ async function autoLoadDailyOsProfile() {
     _dosDataCache = data;
     const result = parseData(data);
     renderProfile(result, false);
+    // BLIND SPOT 2: Simpan ke cache supaya fallback offline tetap fresh
+    try { await kvSet('rpg_profile_cache', result); } catch(e) {}
     // Show Refresh Stat button; hide upload zone
     const uploadZone = document.getElementById('uploadZone');
     const refreshBtn = document.getElementById('refreshStatBtn');
@@ -2156,12 +2158,13 @@ async function ajCheckSchedule() {
     try { await kvSet('aj_last_gen_date', today); } catch(e) {}
     return;
   }
-  _ajLastGenDate = today;
-  try { await kvSet('aj_last_gen_date', today); } catch(e) {}
+  // NOTE: _ajLastGenDate intentionally NOT set here — it's set inside
+  // ajGenerateEntry() only after successful save, so failures allow retry.
   await ajGenerateEntry();
 }
 
 async function ajGenerateEntry() {
+  const today = todayStr();
   try {
     console.log('[AutoJournal] Memulai generate entry...');
     // Selalu baca fresh dari IDB, fallback ke cache kalau gagal
@@ -2171,7 +2174,6 @@ async function ajGenerateEntry() {
     if (!dosData) { console.warn('[AutoJournal] Tidak ada dosData, skip.'); return; }
     console.log('[AutoJournal] dosData OK:', { habits: dosData.habits?.length, todos: dosData.todos?.length });
 
-    const today = todayStr();
     // Habits completed today — history entry bisa string atau object {id, text}
     const habitsCompleted = (dosData.habits || []).filter(h => {
       if (h.archived) return false;
@@ -2180,6 +2182,15 @@ async function ajGenerateEntry() {
     }).map(h => h.name);
 
     const todosDone = (dosData.todos || []).filter(t => t.done).map(t => t.title);
+
+    // BLIND SPOT 1: Tidak ada aktivitas hari ini → skip, dan reset date biar besok tetap bisa generate
+    if (habitsCompleted.length === 0 && todosDone.length === 0) {
+      console.log('[AutoJournal] Tidak ada aktivitas hari ini, skip.');
+      // Reset supaya besok scheduler tetap bisa mencoba
+      _ajLastGenDate = null;
+      try { await kvSet('aj_last_gen_date', null); } catch(e) {}
+      return;
+    }
 
     // XP hari ini saja (bukan total all-time)
     let todayXP = 0;
@@ -2194,6 +2205,9 @@ Data hari ini:
 - Habits selesai: ${habitsCompleted.length > 0 ? habitsCompleted.join(', ') : 'belum ada yang tercatat hari ini'}
 - Todos selesai: ${todosDone.length > 0 ? todosDone.join(', ') : 'tidak ada'}
 - XP didapat hari ini: ${todayXP}`;
+
+    // BUG 2: Toast feedback saat proses dimulai
+    showRpgToast('Sedang menulis jurnal harian... ✦');
 
     console.log('[AutoJournal] Mengirim request ke Groq worker...');
     const res = await fetch('https://dailyos-ai.mywisnu238.workers.dev', {
@@ -2225,13 +2239,29 @@ Data hari ini:
       source: 'auto',
       generatedAt: new Date().toISOString()
     };
-    entries.unshift(autoEntry);
+
+    // BLIND SPOT 3: Tempatkan entry setelah entry manual hari ini (kalau ada),
+    // bukan selalu di paling atas
+    const todayIdx = entries.findIndex(en => en.date === today);
+    if (todayIdx >= 0) {
+      entries.splice(todayIdx + 1, 0, autoEntry);
+    } else {
+      entries.unshift(autoEntry);
+    }
     entries.forEach((x, i) => { x.order = i; });
+
     await dbPutEntry(autoEntry);
+
+    // BUG 1: Set _ajLastGenDate HANYA setelah entry berhasil disimpan ke IDB
+    _ajLastGenDate = today;
+    try { await kvSet('aj_last_gen_date', today); } catch(e) {}
+
     jRenderSpread();
+    // BUG 2: Toast sukses setelah berhasil
     showRpgToast('Jurnal harian telah ditulis otomatis ✦');
   } catch(err) {
     console.warn('Auto journal gagal:', err);
+    // Biarkan _ajLastGenDate tetap null/lama sehingga scheduler bisa retry
   }
 }
 
