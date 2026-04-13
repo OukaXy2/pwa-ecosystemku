@@ -1956,9 +1956,12 @@ async function detectMoodAI() {
       })
     });
     const data = await res.json();
-    // Support both Groq and OpenAI response shapes
-    const raw = (data?.choices?.[0]?.message?.content || data?.content?.[0]?.text || '').trim();
-    const found = MOOD_LIST.find(m => raw.toLowerCase().includes(m.status.toLowerCase()));
+    // Worker mengembalikan { text: "..." }
+    const raw = (data?.text || data?.choices?.[0]?.message?.content || data?.content?.[0]?.text || '').trim();
+    // Coba exact match dulu (case-insensitive), lalu fallback ke includes
+    const rawLower = raw.toLowerCase();
+    const found = MOOD_LIST.find(m => rawLower === m.status.toLowerCase())
+                || MOOD_LIST.find(m => rawLower.includes(m.status.toLowerCase()));
     if (found) {
       resultEl.textContent = `AI menyarankan: ${found.status} — konfirmasi?`;
       // Pre-highlight suggestion
@@ -1966,7 +1969,7 @@ async function detectMoodAI() {
         opt.classList.toggle('active', opt.dataset.mood === found.status);
       });
     } else {
-      resultEl.textContent = `Tidak dapat mendeteksi mood. (${raw.slice(0,30)})`;
+      resultEl.textContent = 'Mood tidak terdeteksi, pilih manual ya';
     }
   } catch(err) {
     resultEl.textContent = 'Gagal terhubung ke AI. Coba lagi.';
@@ -2134,8 +2137,11 @@ async function ajCheckSchedule() {
 
 async function ajGenerateEntry() {
   try {
+    console.log('[AutoJournal] Memulai generate entry...');
     const dosData = await readDailyOsData().catch(() => _dosDataCache);
-    if (!dosData) return;
+    if (!dosData) { console.warn('[AutoJournal] Tidak ada dosData, skip.'); return; }
+    console.log('[AutoJournal] dosData OK:', { habits: dosData.habits?.length, todos: dosData.todos?.length });
+
     const today = todayStr();
     const todayKey = today;
     // Habits completed today
@@ -2145,6 +2151,7 @@ async function ajGenerateEntry() {
     }).map(h => h.name);
     const todosDone = (dosData.todos || []).filter(t => t.done).map(t => t.title);
     const totalXp = dosData.totalPoints || 0;
+    console.log('[AutoJournal] Data hari ini:', { habitsCompleted, todosDone, totalXp });
 
     const prompt = `Kamu adalah asisten jurnal pribadi. Berdasarkan data aktivitas berikut, tulis entri jurnal harian yang natural, reflektif, dan personal dalam Bahasa Indonesia (3-4 paragraf). Jangan sebut nama AI. Tulis seolah orang ini yang menulis sendiri.
 Data:
@@ -2152,6 +2159,7 @@ Data:
 - Todos selesai: ${todosDone.length > 0 ? todosDone.join(', ') : 'tidak ada'}
 - Total XP terkumpul: ${totalXp}`;
 
+    console.log('[AutoJournal] Mengirim request ke Groq worker...');
     const res = await fetch('https://dailyos-ai.mywisnu238.workers.dev', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2161,8 +2169,11 @@ Data:
       })
     });
     const data = await res.json();
-    const text = (data?.choices?.[0]?.message?.content || data?.content?.[0]?.text || '').trim();
-    if (!text) return;
+    console.log('[AutoJournal] Raw response dari worker:', data);
+    // Worker mengembalikan { text: "..." }
+    const text = (data?.text || data?.choices?.[0]?.message?.content || data?.content?.[0]?.text || '').trim();
+    console.log('[AutoJournal] Teks yang diparsed:', text ? text.slice(0, 80) + '...' : '(kosong)');
+    if (!text) { console.warn('[AutoJournal] Teks kosong, tidak jadi simpan.'); return; }
 
     const habitsLogToday = entries
       .filter(en => en.date === today)
