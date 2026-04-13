@@ -1544,7 +1544,21 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Kategori</label>
-          <input type="text" id="habitCategory" class="form-input" placeholder="General" value="General" autocomplete="off">
+          <select id="habitCategorySelect" class="form-input" onchange="handleCategoryChange(this.value)" style="cursor:pointer">
+            <option value="General" selected>General</option>
+            <option value="Kesehatan">Kesehatan</option>
+            <option value="Olahraga">Olahraga / Fisik</option>
+            <option value="Produktivitas">Produktivitas</option>
+            <option value="Karir & Bisnis">Karir & Bisnis</option>
+            <option value="Belajar">Belajar</option>
+            <option value="Kreativitas">Kreativitas</option>
+            <option value="Sosial">Sosial</option>
+            <option value="Keuangan">Keuangan</option>
+            <option value="Spiritual">Spiritual</option>
+            <option value="__other__">Lainnya...</option>
+          </select>
+          <input type="text" id="habitCategoryCustom" class="form-input" placeholder="Tulis kategori..." autocomplete="off" style="display:none;margin-top:6px">
+          <input type="hidden" id="habitCategory" value="General">
         </div>
         <div class="form-group">
           <label class="form-label">Warna</label>
@@ -2107,6 +2121,38 @@ window.toggleMenu = function(e, idx) {
   }
 };
 
+// ===== CATEGORY DROPDOWN HELPERS =====
+const CATEGORY_PRESETS = ['General','Kesehatan','Olahraga','Produktivitas','Karir & Bisnis','Belajar','Kreativitas','Sosial','Keuangan','Spiritual'];
+
+function handleCategoryChange(val) {
+  const customInput = document.getElementById('habitCategoryCustom');
+  const hiddenInput = document.getElementById('habitCategory');
+  if (val === '__other__') {
+    customInput.style.display = '';
+    customInput.focus();
+    customInput.oninput = () => { hiddenInput.value = customInput.value.trim() || 'General'; };
+    hiddenInput.value = '';
+  } else {
+    customInput.style.display = 'none';
+    hiddenInput.value = val;
+  }
+}
+
+function setCategoryValue(category) {
+  const select = document.getElementById('habitCategorySelect');
+  const customInput = document.getElementById('habitCategoryCustom');
+  const hiddenInput = document.getElementById('habitCategory');
+  hiddenInput.value = category;
+  if (CATEGORY_PRESETS.includes(category)) {
+    select.value = category;
+    customInput.style.display = 'none';
+  } else {
+    select.value = '__other__';
+    customInput.style.display = '';
+    customInput.value = category;
+  }
+}
+
 window.deleteHabit = async function(idx) {
   const ok = await showConfirm('Habit ini akan dihapus. Data XP dan history tetap tersimpan.', 'error', 'Hapus Habit?');
   if (ok) {
@@ -2125,7 +2171,7 @@ window.editHabit = function(idx) {
   const h = habits[idx];
   document.getElementById('habitModalTitle').textContent = 'Edit Habit';
   document.getElementById('habitName').value = h.name;
-  document.getElementById('habitCategory').value = h.category;
+  setCategoryValue(h.category || 'General');
   document.getElementById('habitColor').value = h.color;
   document.querySelectorAll('.color-dot').forEach(d => {
     d.classList.toggle('active', d.dataset.color === h.color);
@@ -2151,7 +2197,7 @@ function openHabitModal() {
   editHabitIdx = null;
   document.getElementById('habitModalTitle').textContent = 'Habit Baru';
   document.getElementById('habitName').value = '';
-  document.getElementById('habitCategory').value = 'General';
+  setCategoryValue('General');
   document.getElementById('habitColor').value = '#22C55E';
   document.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === '#22C55E'));
   setIconPickerValue('star');
