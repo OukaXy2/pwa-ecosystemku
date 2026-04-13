@@ -1984,7 +1984,7 @@ async function detectMoodAI() {
 ════════════════════════════════════════════════════════════════════ */
 async function readDailyOsData() {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('dailyos_db');
+    const req = indexedDB.open('dailyos_db', 1);
     req.onerror = () => reject(new Error('dailyos_db not found'));
     req.onsuccess = e => {
       const dosDb = e.target.result;
@@ -2119,13 +2119,13 @@ async function ajSaveSettings() {
   try { await kvSet('autojournal_settings', _ajSettings); } catch(e) {}
 }
 
-function ajToggle() {
+async function ajToggle() {
   _ajSettings.enabled = !_ajSettings.enabled;
   const toggle  = document.getElementById('aj-toggle');
   const timeRow = document.getElementById('aj-time-row');
   if (toggle)  toggle.classList.toggle('on', _ajSettings.enabled);
   if (timeRow) timeRow.style.display = _ajSettings.enabled ? '' : 'none';
-  ajSaveSettings();
+  await ajSaveSettings();
 }
 
 // Scheduler: check every minute if it's time to generate auto journal
