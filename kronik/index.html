@@ -1099,7 +1099,7 @@ function switchTab(tab) {
 ════════════════════════════════════════════════════════════════════ */
 const PAGE_CHARS = 900;
 
-const todayStr = () => new Date().toISOString().split('T')[0];
+const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const fmtLong  = d => { try { return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); } catch(e){ return d; } };
 const fmtShort = d => { try { return new Date(d+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); } catch(e){ return d; } };
 const genId    = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
@@ -2047,28 +2047,21 @@ async function autoLoadDailyOsProfile() {
   }
 }
 
-// Listen for real-time habit completion events from Daily OS
-window.addEventListener('habitCompleted', async () => {
+// ── Unified habitCompleted handler (window event + BroadcastChannel) ──
+async function _onHabitCompleted(detail) {
+  // 1. Update RPG profile
   try {
     const data = await readDailyOsData();
     _dosDataCache = data;
     renderProfile(parseData(data), false);
   } catch(err) { /* silently ignore */ }
-});
 
-/* ════════════════════════════════════════════════════════════════════
-   FITUR 1 — AUTO JOURNAL
-════════════════════════════════════════════════════════════════════ */
-
-// Real-time habit log: append to today's entry
-window.addEventListener('habitCompleted', async (e) => {
+  // 2. Append to today's habits_log
   try {
-    const detail = e.detail || {};
-    const habitName  = detail.name     || detail.habitName || 'Habit';
-    const category   = detail.category || '';
-    const completedAt = new Date().toISOString();
+    const habitName   = detail.habitName || detail.name || 'Habit';
+    const category    = detail.habitCategory || detail.category || '';
+    const completedAt = detail.completedAt || new Date().toISOString();
     const today = todayStr();
-    // Find or create today's entry
     let entry = entries.find(en => en.date === today && en.source !== 'auto');
     if (!entry) {
       entry = { id: genId(), date: today, title: '', content: '', order: 0,
@@ -2077,10 +2070,29 @@ window.addEventListener('habitCompleted', async (e) => {
       entries.forEach((x, i) => { x.order = i; });
     }
     if (!Array.isArray(entry.habits_log)) entry.habits_log = [];
-    entry.habits_log.push({ habitName, category, completedAt });
-    await dbPutEntry(entry);
+    // Cegah duplikat kalau event datang dari dua channel sekaligus
+    const alreadyLogged = entry.habits_log.some(
+      l => l.habitName === habitName && Math.abs(new Date(l.completedAt) - new Date(completedAt)) < 2000
+    );
+    if (!alreadyLogged) {
+      entry.habits_log.push({ habitName, category, completedAt });
+      await dbPutEntry(entry);
+    }
   } catch(err) { /* silently ignore */ }
-});
+}
+
+// Listen via window event (same-page/same-tab)
+window.addEventListener('habitCompleted', (e) => _onHabitCompleted(e.detail || {}));
+
+// Listen via BroadcastChannel (cross-tab, same origin)
+try {
+  const _bc = new BroadcastChannel('dailyos_events');
+  _bc.onmessage = (e) => { if (e.data?.type === 'habitCompleted') _onHabitCompleted(e.data); };
+} catch(e) { /* BroadcastChannel tidak tersedia */ }
+
+/* ════════════════════════════════════════════════════════════════════
+   FITUR 1 — AUTO JOURNAL
+════════════════════════════════════════════════════════════════════ */
 
 // Auto-journal settings helpers
 let _ajSettings = { enabled: false, time: '21:00' };
@@ -2117,7 +2129,16 @@ function ajToggle() {
 // Scheduler: check every minute if it's time to generate auto journal
 let _ajLastGenDate = null;
 
+async function _ajLoadLastGenDate() {
+  try {
+    const saved = await kvGet('aj_last_gen_date');
+    if (saved) _ajLastGenDate = saved;
+  } catch(e) {}
+}
+
 function ajStartScheduler() {
+  // Langsung check sekali saat boot (untuk kasus buka app setelah jam yang di-set)
+  ajCheckSchedule();
   setInterval(ajCheckSchedule, 60 * 1000);
 }
 
@@ -2130,34 +2151,49 @@ async function ajCheckSchedule() {
   if (now.getHours() < hh || (now.getHours() === hh && now.getMinutes() < mm)) return;
   // Check if auto journal already exists for today
   const existing = entries.find(en => en.date === today && en.source === 'auto');
-  if (existing) { _ajLastGenDate = today; return; }
+  if (existing) {
+    _ajLastGenDate = today;
+    try { await kvSet('aj_last_gen_date', today); } catch(e) {}
+    return;
+  }
   _ajLastGenDate = today;
+  try { await kvSet('aj_last_gen_date', today); } catch(e) {}
   await ajGenerateEntry();
 }
 
 async function ajGenerateEntry() {
   try {
     console.log('[AutoJournal] Memulai generate entry...');
-    const dosData = await readDailyOsData().catch(() => _dosDataCache);
+    // Selalu baca fresh dari IDB, fallback ke cache kalau gagal
+    let dosData;
+    try { dosData = await readDailyOsData(); _dosDataCache = dosData; }
+    catch(e) { dosData = _dosDataCache; }
     if (!dosData) { console.warn('[AutoJournal] Tidak ada dosData, skip.'); return; }
     console.log('[AutoJournal] dosData OK:', { habits: dosData.habits?.length, todos: dosData.todos?.length });
 
     const today = todayStr();
-    const todayKey = today;
-    // Habits completed today
+    // Habits completed today — history entry bisa string atau object {id, text}
     const habitsCompleted = (dosData.habits || []).filter(h => {
-      const hist = h.history || {};
-      return hist[todayKey] && (Array.isArray(hist[todayKey]) ? hist[todayKey].length > 0 : true);
+      if (h.archived) return false;
+      const log = h.history?.[today] || [];
+      return log.length > 0;
     }).map(h => h.name);
+
     const todosDone = (dosData.todos || []).filter(t => t.done).map(t => t.title);
-    const totalXp = dosData.totalPoints || 0;
-    console.log('[AutoJournal] Data hari ini:', { habitsCompleted, todosDone, totalXp });
+
+    // XP hari ini saja (bukan total all-time)
+    let todayXP = 0;
+    (dosData.habits || []).forEach(h => {
+      todayXP += (h.history?.[today] || []).length * 10;
+    });
+
+    console.log('[AutoJournal] Data hari ini:', { habitsCompleted, todosDone, todayXP });
 
     const prompt = `Kamu adalah asisten jurnal pribadi. Berdasarkan data aktivitas berikut, tulis entri jurnal harian yang natural, reflektif, dan personal dalam Bahasa Indonesia (3-4 paragraf). Jangan sebut nama AI. Tulis seolah orang ini yang menulis sendiri.
-Data:
-- Habits selesai hari ini: ${habitsCompleted.length > 0 ? habitsCompleted.join(', ') : 'tidak ada yang tercatat'}
+Data hari ini:
+- Habits selesai: ${habitsCompleted.length > 0 ? habitsCompleted.join(', ') : 'belum ada yang tercatat hari ini'}
 - Todos selesai: ${todosDone.length > 0 ? todosDone.join(', ') : 'tidak ada'}
-- Total XP terkumpul: ${totalXp}`;
+- XP didapat hari ini: ${todayXP}`;
 
     console.log('[AutoJournal] Mengirim request ke Groq worker...');
     const res = await fetch('https://dailyos-ai.mywisnu238.workers.dev', {
@@ -2170,7 +2206,6 @@ Data:
     });
     const data = await res.json();
     console.log('[AutoJournal] Raw response dari worker:', data);
-    // Worker mengembalikan { text: "..." }
     const text = (data?.text || data?.choices?.[0]?.message?.content || data?.content?.[0]?.text || '').trim();
     console.log('[AutoJournal] Teks yang diparsed:', text ? text.slice(0, 80) + '...' : '(kosong)');
     if (!text) { console.warn('[AutoJournal] Teks kosong, tidak jadi simpan.'); return; }
@@ -2254,6 +2289,7 @@ Data:
 
     // ── Load auto-journal settings & start scheduler (Fitur 1) ──
     await ajLoadSettings();
+    await _ajLoadLastGenDate();
     ajStartScheduler();
 
   } catch(err) {
