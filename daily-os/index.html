@@ -2063,7 +2063,7 @@ window.toggleCheck = function(idx, subId, el) {
       const sub = (h.subTasks || []).find(s => s.id === subId);
       if (sub) snapText = sub.text;
     }
-    log.push({ id: subId, text: snapText });
+    log.push({ id: subId, text: snapText, completedAt: new Date().toISOString() });
     totalPoints += 10;
     el.classList.add('checked');
     const txt = el.nextElementSibling;
