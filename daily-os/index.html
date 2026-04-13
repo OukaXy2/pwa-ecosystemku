@@ -2056,15 +2056,21 @@ window.toggleCheck = function(idx, subId, el) {
     if (txt) txt.classList.add('done');
 
     // ── EVENT: habitCompleted ──
-    window.dispatchEvent(new CustomEvent('habitCompleted', {
-      detail: {
-        habitName:     h.name,
-        habitCategory: h.category || 'General',
-        habitColor:    h.color || '#1A1917',
-        completedAt:   new Date().toISOString(),
-        isMainTask:    subId === 'main'
-      }
-    }));
+    const _habitDetail = {
+      habitName:     h.name,
+      habitCategory: h.category || 'General',
+      habitColor:    h.color || '#1A1917',
+      completedAt:   new Date().toISOString(),
+      isMainTask:    subId === 'main'
+    };
+    window.dispatchEvent(new CustomEvent('habitCompleted', { detail: _habitDetail }));
+
+    // ── BROADCASTCHANNEL: notify Kronik & other tabs ──
+    try {
+      const bc = new BroadcastChannel('dailyos_events');
+      bc.postMessage({ type: 'habitCompleted', ..._habitDetail });
+      bc.close();
+    } catch(e) { /* BroadcastChannel tidak tersedia di env ini */ }
   }
   save(); updateXP();
 };
@@ -3182,6 +3188,47 @@ function renderAIHabitPreview() {
   el.innerHTML = html;
 }
 
+// ===== IDEKU INTEGRATION =====
+// Baca ide berstatus "Proses" dari IndexedDB IdeKu (ideku_db)
+async function readIdekuIdeas() {
+  try {
+    const db = await new Promise((resolve, reject) => {
+      const req = indexedDB.open('ideku_db');
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror = () => reject(new Error('ideku_db tidak ditemukan'));
+      req.onblocked = () => reject(new Error('ideku_db blocked'));
+    });
+
+    if (!db.objectStoreNames.contains('ideas')) {
+      db.close();
+      return [];
+    }
+
+    const ideas = await new Promise((resolve, reject) => {
+      const tx = db.transaction('ideas', 'readonly');
+      const store = tx.objectStore('ideas');
+      const req = store.getAll();
+      req.onsuccess = (e) => resolve(e.target.result || []);
+      req.onerror = () => reject(new Error('Gagal baca ideas'));
+    });
+
+    db.close();
+
+    return ideas
+      .filter(idea => idea && idea.status === 'Proses')
+      .map(idea => ({
+        title:    idea.title    || idea.name || '',
+        notes:    idea.notes    || idea.description || '',
+        category: idea.category || ''
+      }))
+      .filter(idea => idea.title); // pastikan ada judul
+
+  } catch(e) {
+    console.log('[DailyOS] IdeKu tidak tersedia atau kosong:', e.message);
+    return [];
+  }
+}
+
 async function callWorker(payload) {
   const resp = await fetch(WORKER_URL, {
     method: 'POST',
@@ -3361,6 +3408,9 @@ async function getAICoach() {
   // Cek & refresh memory (background, tidak block)
   const memory = await checkAndRefreshMemory();
 
+  // Ambil ide "Proses" dari IdeKu (graceful fallback kalau tidak ada)
+  const idekuIdeas = await readIdekuIdeas();
+
   // Siapkan ringkasan habit (hanya yang dijadwalkan hari ini)
   const habitSummary = scheduledHabits.map(h => {
     const log = h.history?.[today] || [];
@@ -3391,6 +3441,13 @@ Yang sudah kuat: ${memory.strengths || '-'}
 Insight: ${memory.coachInsight}
 ----------------------------------------------` : '';
 
+  // Susun IdeKu section kalau ada ide yang sedang diproses
+  const idekuSection = idekuIdeas.length > 0 ? `
+
+IDE YANG SEDANG DIKERJAKAN USER (dari IdeKu):
+${idekuIdeas.map(i => `- ${i.title}${i.category ? ' ['+i.category+']' : ''}${i.notes ? ': '+i.notes : ''}`).join('\n')}
+(Gunakan ini sebagai konteks untuk rekomendasi yang lebih relevan dengan proyek/ide user.)` : '';
+
   const prompt = `Hari ini ${todayLabel}.
 
 HABIT TERJADWAL HARI INI:
@@ -3398,7 +3455,7 @@ ${habitSummary || '(tidak ada habit dijadwalkan hari ini)'}
 
 TO-DO AKTIF:
 ${todoSummary}
-${memorySection}
+${memorySection}${idekuSection}
 
 Tulis briefing harian — maksimal 2-3 paragraf pendek, padat, dan langsung ke intinya. Gaya: pesan WhatsApp dari mentor yang kenal kamu baik, bukan pidato motivasi. Kalau ada yang sudah selesai, sebut spesifik dan lanjut. Kalau ada yang belum dan kamu punya data polanya, tantang langsung — jangan basa-basi atau filosofis. Pilih 1-2 hal paling penting untuk disorot, jangan bahas semuanya. Jangan pakai bullet point. Jangan mulai dengan sapaan klise seperti "Hei!", "Wah!", "Oke,", atau "Jadi,".`;
 
@@ -3443,6 +3500,9 @@ async function getAIRecommendations() {
     if (raw) memory = JSON.parse(raw);
   } catch {}
 
+  // Ambil ide "Proses" dari IdeKu (graceful fallback)
+  const idekuIdeas = await readIdekuIdeas();
+
   // Ambil konteks to-do selesai (30 terakhir)
   const doneTodos = todos
     .filter(t => t.done)
@@ -3465,6 +3525,11 @@ ${memory.patterns}
 Titik lemah: ${memory.weakSpots || '-'}
 Insight: ${memory.coachInsight}` : '';
 
+  const idekuSection = idekuIdeas.length > 0 ? `
+
+IDE YANG SEDANG DIKERJAKAN USER (dari IdeKu — gunakan sebagai konteks rekomendasi yang lebih relevan):
+${idekuIdeas.map(i => `- ${i.title}${i.category ? ' ['+i.category+']' : ''}${i.notes ? ': '+i.notes : ''}`).join('\n')}` : '';
+
   const prompt = `Kamu adalah AI yang membantu user merekomendasikan task to-do yang relevan dan actionable.
 
 Tanggal hari ini: ${todayLabel}
@@ -3477,7 +3542,7 @@ ${doneTodos || '(belum ada)'}
 
 TO-DO YANG MASIH AKTIF (JANGAN direkomendasikan lagi):
 ${activeTodos || '(tidak ada)'}
-${memorySection}
+${memorySection}${idekuSection}
 
 Tugas kamu: rekomendasikan task to-do yang BARU, SPESIFIK, dan ONE-OFF — bukan kegiatan rutin yang sudah ada di habit.
 
