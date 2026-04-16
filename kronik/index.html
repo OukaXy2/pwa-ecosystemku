@@ -1119,9 +1119,7 @@ function dbGetAllEntries() {
     const store = tx.objectStore('entries');
     const req   = store.getAll();
     req.onsuccess = e => {
-      // Sort by order descending (newest first = lowest order number = added first)
-      const sorted = e.target.result.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-      resolve(sorted);
+      resolve(normalizeJournalEntries(e.target.result));
     };
     req.onerror = e => reject(e.target.error);
   });
@@ -1130,7 +1128,7 @@ function dbGetAllEntries() {
 function dbPutEntry(entry) {
   return new Promise((resolve, reject) => {
     const tx  = db.transaction('entries', 'readwrite');
-    const req = tx.objectStore('entries').put(entry);
+    const req = tx.objectStore('entries').put(normalizeJournalEntry(entry));
     req.onsuccess = () => resolve();
     req.onerror   = e => reject(e.target.error);
   });
@@ -1151,7 +1149,7 @@ function dbPutAllEntries(arr) {
     const store = tx.objectStore('entries');
     // Clear then re-put all (for import)
     store.clear();
-    arr.forEach(e => store.put(e));
+    arr.forEach((e, i) => store.put(normalizeJournalEntry(e, i)));
     tx.oncomplete = () => resolve();
     tx.onerror    = e => reject(e.target.error);
   });
@@ -1196,6 +1194,126 @@ const genId    = () => Date.now().toString(36) + Math.random().toString(36).slic
 // In-memory mirror of IndexedDB entries (always sorted newest-first)
 let entries = [];
 
+/* ── Shared data rules ──
+   Semua app harus baca data lewat helper ini, bukan langsung dari raw store.
+*/
+function isArchivedRecord(record) {
+  return record?.isArchived === true
+    || record?.archived === true
+    || record?.status === 'archived'
+    || Boolean(record?.archivedAt);
+}
+
+function toIsoString(value, fallback = undefined) {
+  if (typeof value === 'string' && value.trim()) return value;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString();
+  if (fallback !== undefined) return fallback;
+  return new Date().toISOString();
+}
+
+function normalizeHabitLogItem(item) {
+  const completedAt = toIsoString(item?.completedAt || item?.doneAt || item?.timestamp);
+  return {
+    habitName: item?.habitName || item?.name || 'Habit',
+    category: item?.category || '',
+    completedAt,
+  };
+}
+
+function normalizeJournalEntry(entry, fallbackOrder = 0) {
+  const date = entry?.date || todayStr();
+  const createdAt = toIsoString(
+    entry?.createdAt || entry?.generatedAt,
+    `${date}T00:00:00.000Z`
+  );
+  const updatedAt = toIsoString(entry?.updatedAt || entry?.modifiedAt || createdAt, createdAt);
+  const completedAt = entry?.completedAt ? toIsoString(entry.completedAt, null) : (entry?.generatedAt ? toIsoString(entry.generatedAt, null) : null);
+  return {
+    id: entry?.id || genId(),
+    date,
+    title: entry?.title || '',
+    content: entry?.content || '',
+    order: Number.isFinite(entry?.order) ? entry.order : fallbackOrder,
+    mood: entry?.mood ?? null,
+    habits_log: Array.isArray(entry?.habits_log) ? entry.habits_log.map(normalizeHabitLogItem) : [],
+    source: entry?.source || 'manual',
+    generatedAt: entry?.generatedAt || null,
+    createdAt,
+    updatedAt,
+    completedAt,
+    archivedAt: entry?.archivedAt || null,
+    isArchived: isArchivedRecord(entry),
+  };
+}
+
+function normalizeJournalEntries(list) {
+  return (Array.isArray(list) ? list : [])
+    .map((entry, idx) => normalizeJournalEntry(entry, idx))
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+function getVisibleEntries(list = entries) {
+  return normalizeJournalEntries(list).filter(entry => !isArchivedRecord(entry));
+}
+
+function getEntryByDate(dateStr, list = entries) {
+  return getVisibleEntries(list).find(entry => entry.date === dateStr) || null;
+}
+
+function normalizeDailyOsHabit(habit) {
+  const normalized = { ...(habit || {}) };
+  normalized.createdAt = toIsoString(normalized.createdAt || normalized.addedAt, null);
+  normalized.updatedAt = toIsoString(normalized.updatedAt || normalized.modifiedAt || normalized.createdAt, normalized.createdAt);
+  normalized.completedAt = normalized.completedAt ? toIsoString(normalized.completedAt, null) : null;
+  normalized.archivedAt = normalized.archivedAt || null;
+  normalized.isArchived = isArchivedRecord(normalized);
+  return normalized;
+}
+
+function normalizeDailyOsTodo(todo) {
+  const normalized = { ...(todo || {}) };
+  normalized.createdAt = toIsoString(normalized.createdAt || normalized.addedAt, null);
+  normalized.updatedAt = toIsoString(normalized.updatedAt || normalized.modifiedAt || normalized.createdAt, normalized.createdAt);
+  normalized.completedAt = normalized.completedAt
+    ? toIsoString(normalized.completedAt, null)
+    : (normalized.done ? toIsoString(normalized.doneAt || normalized.finishedAt || normalized.updatedAt, null) : null);
+  normalized.archivedAt = normalized.archivedAt || null;
+  normalized.isArchived = isArchivedRecord(normalized);
+  return normalized;
+}
+
+function getActiveHabits(data) {
+  return (data?.habits || []).map(normalizeDailyOsHabit).filter(habit => !habit.isArchived);
+}
+
+function getActiveTodos(data) {
+  return (data?.todos || []).map(normalizeDailyOsTodo).filter(todo => !todo.isArchived);
+}
+
+function getHabitCompletionsOnDate(habit, dateStr) {
+  const history = habit?.history || {};
+  const dayValue = history?.[dateStr];
+  if (Array.isArray(dayValue)) return dayValue.length;
+  if (typeof dayValue === 'number') return dayValue;
+  if (dayValue) return 1;
+  return 0;
+}
+
+function isTodoCompletedOnDate(todo, dateStr) {
+  if (!todo) return false;
+  const completedAt = todo.completedAt || todo.doneAt || todo.finishedAt || null;
+  if (completedAt) return completedAt.slice(0, 10) === dateStr;
+  return todo.done === true;
+}
+
+function getYesterdayCompletedTodos(data, dateStr) {
+  return getActiveTodos(data).filter(todo => isTodoCompletedOnDate(todo, dateStr));
+}
+
+function getTodayJournal(list = entries) {
+  return getEntryByDate(todayStr(), list);
+}
+
 /* ── Persist helpers ── */
 let jSaveAllTimer = null;
 
@@ -1205,14 +1323,14 @@ function jSaveAll() {
   // Re-assign order based on current array position, then persist all
   clearTimeout(jSaveAllTimer);
   jSaveAllTimer = setTimeout(async () => {
-    entries.forEach((e, i) => { e.order = i; });
+    entries.forEach((e, i) => { e.order = i; e.updatedAt = new Date().toISOString(); });
     for (const e of entries) await dbPutEntry(e);
   }, 300);
 }
 
 function jSaveAllNow() {
   clearTimeout(jSaveAllTimer);
-  entries.forEach((e, i) => { e.order = i; });
+  entries.forEach((e, i) => { e.order = i; e.updatedAt = new Date().toISOString(); });
   // Fire-and-forget (sync-style callers expect void)
   (async () => { for (const e of entries) await dbPutEntry(e); })();
 }
@@ -1220,20 +1338,35 @@ function jSaveAllNow() {
 function jSaveEntry(id, fields) {
   const idx = entries.findIndex(e => e.id === id);
   if (idx >= 0) {
-    Object.assign(entries[idx], fields);
+    Object.assign(entries[idx], fields, { updatedAt: new Date().toISOString() });
     dbPutEntry(entries[idx]); // persist single entry immediately
   }
 }
 
 function jAddEntry() {
-  const e = { id: genId(), date: todayStr(), title: '', content: '', order: 0,
-              mood: null, habits_log: [], source: 'manual', generatedAt: null };
+  const now = new Date().toISOString();
+  const e = normalizeJournalEntry({
+    id: genId(),
+    date: todayStr(),
+    title: '',
+    content: '',
+    order: 0,
+    mood: null,
+    habits_log: [],
+    source: 'manual',
+    generatedAt: null,
+    createdAt: now,
+    updatedAt: now,
+    completedAt: null,
+    archivedAt: null,
+    isArchived: false,
+  });
   entries.unshift(e);
-  entries.forEach((x, i) => { x.order = i; });
+  entries.forEach((x, i) => { x.order = i; x.updatedAt = now; });
   dbPutEntry(e);
   return e;
 }
-function jAllEntries() { return [...entries]; }
+function jAllEntries() { return getVisibleEntries(entries); }
 function jPagesOf(text) {
   if (!text) return [''];
   const chunks = [];
@@ -1355,8 +1488,9 @@ function jRenderSpread() {
 
 function jGoFullscreen(id) {
   if (!id) {
-    if (entries.length === 0) { const e = jAddEntry(); id = e.id; }
-    else id = entries[0].id;
+    const visible = getVisibleEntries(entries);
+    if (visible.length === 0) { const e = jAddEntry(); id = e.id; }
+    else id = visible[0].id;
   }
   jCurrentId   = id;
   jCurrentPage = 0;
@@ -1387,19 +1521,27 @@ function jDeleteEntry() {
   const btn = document.querySelector('.btn-delete-inline');
   if (!btn) return;
   if (btn.dataset.confirm !== '1') {
-    btn.dataset.confirm = '1'; btn.textContent = 'yakin?'; btn.style.color = 'rgba(160,50,30,0.8)';
+    btn.dataset.confirm = '1'; btn.textContent = 'arsip?'; btn.style.color = 'rgba(160,50,30,0.8)';
     setTimeout(() => { btn.dataset.confirm = ''; btn.textContent = 'hapus'; btn.style.color = ''; }, 2500);
     return;
   }
   clearTimeout(jSaveTimer);
   const idx = entries.findIndex(e => e.id === jCurrentId);
-  const deletedId = jCurrentId;
-  entries.splice(idx, 1);
-  dbDeleteEntry(deletedId);
-  if (entries.length === 0) { jGoToSpread(); }
+  if (idx < 0) return;
+  const now = new Date().toISOString();
+  entries[idx] = {
+    ...entries[idx],
+    isArchived: true,
+    archivedAt: now,
+    updatedAt: now,
+  };
+  dbPutEntry(entries[idx]);
+  const visible = getVisibleEntries(entries);
+  if (visible.length === 0) { jGoToSpread(); }
   else {
-    const nextIdx = Math.min(idx, entries.length - 1);
-    jCurrentId   = entries[nextIdx].id;
+    const nextIdx = visible.findIndex(e => e.id === jCurrentId);
+    const targetIdx = Math.min(Math.max(nextIdx, 0), visible.length - 1);
+    jCurrentId   = visible[targetIdx].id;
     jCurrentPage = 0;
     jBuildPage(jPageEl, 'flip-in-left', 'flip-out-right');
   }
@@ -1407,10 +1549,11 @@ function jDeleteEntry() {
 
 function jBuildPage(oldEl, inAnim, outAnim) {
   const vp = document.getElementById('page-viewport');
-  const entry     = entries.find(e => e.id === jCurrentId) || { id: jCurrentId, date: todayStr(), title: '', content: '', mood: null };
-  const entryIdx  = entries.findIndex(e => e.id === jCurrentId);
+  const visibleEntries = getVisibleEntries(entries);
+  const entry     = visibleEntries.find(e => e.id === jCurrentId) || normalizeJournalEntry({ id: jCurrentId, date: todayStr(), title: '', content: '', mood: null });
+  const entryIdx  = visibleEntries.findIndex(e => e.id === jCurrentId);
   const entryNum  = entryIdx + 1;
-  const totalEntries = entries.length;
+  const totalEntries = visibleEntries.length;
 
   if (oldEl && outAnim) { oldEl.classList.add(outAnim); oldEl.addEventListener('animationend', () => oldEl.remove(), { once: true }); }
   else if (oldEl) { oldEl.remove(); }
@@ -1466,10 +1609,11 @@ function jUpdatePageNum(cur, total) {
 
 function jFlipForward() {
   if (jIsFlipping) return;
-  const idx = entries.findIndex(e => e.id === jCurrentId);
-  if (idx >= entries.length - 1) return;
+  const visible = getVisibleEntries(entries);
+  const idx = visible.findIndex(e => e.id === jCurrentId);
+  if (idx >= visible.length - 1) return;
   jIsFlipping = true;
-  jCurrentId   = entries[idx + 1].id;
+  jCurrentId   = visible[idx + 1].id;
   jCurrentPage = 0;
   const needsFlip = (idx % 2 === 1);
   jBuildPage(jPageEl, needsFlip ? 'flip-in-forward' : null, needsFlip ? 'flip-out-forward' : null);
@@ -1477,10 +1621,11 @@ function jFlipForward() {
 
 function jFlipBackward() {
   if (jIsFlipping) return;
-  const idx = entries.findIndex(e => e.id === jCurrentId);
+  const visible = getVisibleEntries(entries);
+  const idx = visible.findIndex(e => e.id === jCurrentId);
   if (idx <= 0) return;
   jIsFlipping = true;
-  jCurrentId   = entries[idx - 1].id;
+  jCurrentId   = visible[idx - 1].id;
   jCurrentPage = 0;
   const needsFlip = (idx % 2 === 0);
   jBuildPage(jPageEl, needsFlip ? 'flip-in-backward' : null, needsFlip ? 'flip-out-backward' : null);
@@ -1507,7 +1652,8 @@ function jOnTouchEnd(e) {
   jTouchLocked = true;
   if (dx < 0) { jFlipForward(); }
   else {
-    const idx = entries.findIndex(e => e.id === jCurrentId);
+    const visible = getVisibleEntries(entries);
+    const idx = visible.findIndex(e => e.id === jCurrentId);
     if (idx <= 0) jGoToSpread();
     else jFlipBackward();
   }
@@ -1596,7 +1742,7 @@ function deleteSelected() {
 }
 
 function exportData() {
-  const data = JSON.stringify(entries, null, 2);
+  const data = JSON.stringify(normalizeJournalEntries(entries), null, 2);
   const blob = new Blob([data], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -1611,11 +1757,11 @@ function importData(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (!Array.isArray(imported)) throw new Error('Format tidak valid');
+      const normalizedImported = normalizeJournalEntries(imported);
       const existingIds = new Set(entries.map(e => e.id));
-      const newEntries  = imported.filter(e => e.id && !existingIds.has(e.id));
+      const newEntries  = normalizedImported.filter(e => e.id && !existingIds.has(e.id));
       // Prepend new entries with correct order
-      entries = [...newEntries, ...entries];
-      entries.forEach((x, i) => { x.order = i; });
+      entries = [...newEntries, ...entries].map((e, i) => ({ ...e, order: i, updatedAt: new Date().toISOString() }));
       await dbPutAllEntries(entries);
       jRenderSpread(); toggleSettings();
       alert(`${newEntries.length} lembaran berhasil diimport.`);
@@ -1659,8 +1805,8 @@ function calcLevel(xp) {
 }
 
 function parseData(data) {
-  const habits = data.habits || [];
-  const todos  = data.todos  || [];
+  const habits = getActiveHabits(data);
+  const todos  = getActiveTodos(data);
   const totalPoints = data.totalPoints || 0;
   const today  = new Date();
   const cutoff = new Date(today); cutoff.setDate(today.getDate() - 30);
@@ -2414,11 +2560,13 @@ async function readDailyOsData() {
         };
         tx.oncomplete = () => {
           dosDb.close();
-          const totalPoints = habits.reduce((sum, h) => {
+          const activeHabits = getActiveHabits({ habits });
+          const activeTodos = getActiveTodos({ todos });
+          const totalPoints = activeHabits.reduce((sum, h) => {
             const history = h.history || {};
             return sum + Object.values(history).reduce((s, v) => s + (Array.isArray(v) ? v.length : (v ? 1 : 0)), 0);
           }, 0) * 10;
-          resolve({ habits, todos, totalPoints, exportedAt: new Date().toISOString() });
+          resolve({ habits: activeHabits, todos: activeTodos, totalPoints, exportedAt: new Date().toISOString() });
         };
         tx.onerror = () => { dosDb.close(); reject(new Error('Transaction error')); };
       } catch(err) { dosDb.close(); reject(err); }
@@ -2471,12 +2619,26 @@ async function _onHabitCompleted(detail) {
     const category    = detail.habitCategory || detail.category || '';
     const completedAt = detail.completedAt || new Date().toISOString();
     const today = todayStr();
-    let entry = entries.find(en => en.date === today && en.source !== 'auto');
+    let entry = getEntryByDate(today, entries);
     if (!entry) {
-      entry = { id: genId(), date: today, title: '', content: '', order: 0,
-                mood: null, habits_log: [], source: 'manual', generatedAt: null };
+      entry = normalizeJournalEntry({
+        id: genId(),
+        date: today,
+        title: '',
+        content: '',
+        order: 0,
+        mood: null,
+        habits_log: [],
+        source: 'manual',
+        generatedAt: null,
+        createdAt: completedAt,
+        updatedAt: completedAt,
+        completedAt: null,
+        archivedAt: null,
+        isArchived: false,
+      });
       entries.unshift(entry);
-      entries.forEach((x, i) => { x.order = i; });
+      entries.forEach((x, i) => { x.order = i; x.updatedAt = completedAt; });
     }
     if (!Array.isArray(entry.habits_log)) entry.habits_log = [];
     // Cegah duplikat kalau event datang dari dua channel sekaligus
@@ -2485,6 +2647,7 @@ async function _onHabitCompleted(detail) {
     );
     if (!alreadyLogged) {
       entry.habits_log.push({ habitName, category, completedAt });
+      entry.updatedAt = completedAt;
       await dbPutEntry(entry);
     }
   } catch(err) { /* silently ignore */ }
@@ -2511,7 +2674,7 @@ async function ajBootGenerate() {
     const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
 
     // 2. Cek apakah sudah ada auto entry untuk kemarin → skip jika sudah ada
-    const existing = entries.find(en => en.date === yesterdayStr && en.source === 'auto');
+    const existing = getVisibleEntries(entries).find(en => en.date === yesterdayStr && en.source === 'auto');
     if (existing) {
       console.log('[AutoJournal] Entry kemarin sudah ada, skip.');
       return;
@@ -2524,19 +2687,15 @@ async function ajBootGenerate() {
     if (!dosData) { console.warn('[AutoJournal] Tidak ada dosData, skip.'); return; }
 
     // 4. Filter habits yang diselesaikan kemarin
-    const habitsCompleted = (dosData.habits || []).filter(h => {
-      if (h.archived) return false;
-      const log = h.history?.[yesterdayStr] || [];
-      return log.length > 0;
-    }).map(h => h.name);
+    const habitsCompleted = getActiveHabits(dosData).filter(h => getHabitCompletionsOnDate(h, yesterdayStr) > 0).map(h => h.name);
 
-    // 5. Filter todos yang sudah done (pakai flag done)
-    const todosDone = (dosData.todos || []).filter(t => t.done).map(t => t.title);
+    // 5. Filter todos yang sudah done (pakai flag done + completedAt)
+    const todosDone = getYesterdayCompletedTodos(dosData, yesterdayStr).map(t => t.title);
 
     // 6. Hitung XP kemarin
     let yesterdayXP = 0;
-    (dosData.habits || []).forEach(h => {
-      yesterdayXP += (h.history?.[yesterdayStr] || []).length * 10;
+    getActiveHabits(dosData).forEach(h => {
+      yesterdayXP += getHabitCompletionsOnDate(h, yesterdayStr) * 10;
     });
 
     console.log('[AutoJournal] Data kemarin:', { yesterdayStr, habitsCompleted, todosDone, yesterdayXP });
@@ -2646,9 +2805,9 @@ async function ajBootGenerate() {
         try {
           const parsed = JSON.parse(lsV3);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            parsed.forEach((e, i) => { if (!e.order) e.order = i; });
-            await dbPutAllEntries(parsed);
-            entries = parsed;
+            const normalized = normalizeJournalEntries(parsed).map((e, i) => ({ ...e, order: i }));
+            await dbPutAllEntries(normalized);
+            entries = normalized;
             localStorage.removeItem('buku_jurnal_v3');
           }
         } catch(e) {}
@@ -2660,7 +2819,18 @@ async function ajBootGenerate() {
         if (lsV2) {
           try {
             const oldDb = JSON.parse(lsV2);
-            const migrated = Object.keys(oldDb).sort().map((d, i) => ({ id: genId(), date: d, title: '', content: oldDb[d]||'', order: i }));
+            const migrated = Object.keys(oldDb).sort().map((d, i) => normalizeJournalEntry({
+              id: genId(),
+              date: d,
+              title: '',
+              content: oldDb[d] || '',
+              order: i,
+              source: 'manual',
+              createdAt: `${d}T00:00:00.000Z`,
+              updatedAt: `${d}T00:00:00.000Z`,
+              archivedAt: null,
+              isArchived: false,
+            }, i));
             await dbPutAllEntries(migrated);
             entries = migrated;
             localStorage.removeItem('buku_jurnal_v2');
@@ -2668,7 +2838,7 @@ async function ajBootGenerate() {
         }
       }
     } else {
-      entries = idbEntries;
+      entries = normalizeJournalEntries(idbEntries);
     }
 
     // ── Auto-load Daily OS stat (Fitur 2) ──
