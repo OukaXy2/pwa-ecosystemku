@@ -3,31 +3,22 @@
 <head>
   <title>AI Assistant</title>
   <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-
-    #chat {
-      margin-bottom: 20px;
-    }
-
-    .msg {
-      margin: 8px 0;
-    }
-
-    .user {
-      color: blue;
-    }
-
-    .ai {
-      color: green;
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    #chat { margin-bottom: 20px; }
+    .msg { margin: 8px 0; }
+    .user { color: blue; }
+    .ai { color: green; }
+    .config { margin-bottom: 20px; }
   </style>
 </head>
 <body>
 
 <h2>AI Assistant</h2>
+
+<div class="config">
+  <input id="apiKey" placeholder="Masukkan Groq API Key" />
+  <button onclick="saveKey()">Simpan API</button>
+</div>
 
 <div id="chat"></div>
 
@@ -56,34 +47,50 @@ async function typeEffect(element, text) {
   }
 }
 
+// simpan API key
+function saveKey() {
+  const key = document.getElementById("apiKey").value;
+  localStorage.setItem("GROQ_API_KEY", key);
+  alert("API Key disimpan!");
+}
+
 async function send() {
   const input = document.getElementById("input");
   const text = input.value;
 
+  const apiKey = localStorage.getItem("GROQ_API_KEY");
+
+  if (!apiKey) {
+    alert("Masukkan API key dulu!");
+    return;
+  }
+
   if (!text) return;
 
-  // tampilkan user
   addMessage("Kamu: " + text, "user");
-
   input.value = "";
 
-  // thinking
-  const thinkingText = ["hmm...", "bentar ya...", "aku pikir dulu..."];
   const thinking = document.createElement("div");
   thinking.className = "msg ai";
+
+  const thinkingText = ["hmm...", "bentar ya...", "aku pikir dulu..."];
   thinking.innerText = thinkingText[Math.floor(Math.random() * thinkingText.length)];
+
   chat.appendChild(thinking);
 
   await sleep(800);
 
   try {
-    const res = await fetch("https://assistantwife2d.mywisnu238.workers.dev", {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + apiKey
       },
       body: JSON.stringify({
+        model: "llama3-70b-8192",
         messages: [
+          { role: "system", content: "Kamu asisten santai, bantu user berpikir." },
           { role: "user", content: text }
         ]
       })
@@ -91,9 +98,8 @@ async function send() {
 
     const data = await res.json();
 
-    const reply = data.reply || JSON.stringify(data);
+    const reply = data?.choices?.[0]?.message?.content || JSON.stringify(data);
 
-    // ganti thinking jadi jawaban
     await typeEffect(thinking, "AI: " + reply);
 
   } catch (err) {
