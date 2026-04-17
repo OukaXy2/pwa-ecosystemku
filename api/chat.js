@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "openai/gpt-oss-120b",
+        model: "llama3-70b-8192", // 🔥 GANTI MODEL (lebih stabil)
         messages: formattedMessages,
         max_tokens: 1024,
         temperature: 0.7,
@@ -30,18 +30,29 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 🔥 AMBIL TEXT LANGSUNG
+    // 🔥 DEBUG OUTPUT
+    console.log("GROQ RESPONSE:", data);
+
+    if (!response.ok) {
+      return res.status(500).json({
+        error: "Groq API error",
+        detail: data
+      });
+    }
+
     const reply = data?.choices?.[0]?.message?.content;
 
     if (!reply) {
-      return res.status(500).json({ error: "No response from AI", raw: data });
+      return res.status(500).json({
+        error: "No reply from model",
+        detail: data
+      });
     }
 
-    // 🔥 RETURN BERSIH
     return res.status(200).json({ reply });
 
   } catch (error) {
-    console.error(error);
+    console.error("CHAT ERROR:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
