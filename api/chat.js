@@ -1,19 +1,13 @@
 export default async function handler(req, res) {
+  // hanya terima POST
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { messages, system } = req.body;
+    const { messages } = req.body;
 
-    const formattedMessages = [];
-
-    if (system) {
-      formattedMessages.push({ role: "system", content: system });
-    }
-
-    formattedMessages.push(...messages);
-
+    // request ke Groq
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -21,8 +15,8 @@ export default async function handler(req, res) {
         "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "llama3-70b-8192", // 🔥 GANTI MODEL (lebih stabil)
-        messages: formattedMessages,
+        model: "llama3-70b-8192", // model stabil
+        messages: messages,
         max_tokens: 1024,
         temperature: 0.7,
       }),
@@ -30,9 +24,7 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // 🔥 DEBUG OUTPUT
-    console.log("GROQ RESPONSE:", data);
-
+    // kalau error dari Groq
     if (!response.ok) {
       return res.status(500).json({
         error: "Groq API error",
@@ -40,19 +32,24 @@ export default async function handler(req, res) {
       });
     }
 
+    // ambil isi jawaban
     const reply = data?.choices?.[0]?.message?.content;
 
+    // kalau kosong
     if (!reply) {
       return res.status(500).json({
-        error: "No reply from model",
+        error: "No reply from AI",
         detail: data
       });
     }
 
+    // kirim ke frontend
     return res.status(200).json({ reply });
 
-  } catch (error) {
-    console.error("CHAT ERROR:", error);
-    return res.status(500).json({ error: "Internal server error" });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Server error",
+      detail: err.message
+    });
   }
 }
