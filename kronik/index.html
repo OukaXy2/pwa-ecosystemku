@@ -876,10 +876,10 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
                 <span class="settings-icon">✕</span> Hapus Dipilih (<span id="selected-count">0</span>)
               </button>
               <div class="settings-divider"></div>
-              <button class="settings-item" onclick="exportData()">
+              <button class="settings-item" id="btn-export" onclick="exportData()">
                 <span class="settings-icon">↑</span> Export Data
               </button>
-              <label class="settings-item" style="cursor:pointer">
+              <label class="settings-item" id="btn-import" style="cursor:pointer">
                 <span class="settings-icon">↓</span> Import Data
                 <input type="file" accept=".json" style="display:none" onchange="importData(event)" />
               </label>
@@ -1698,20 +1698,26 @@ function toggleSettings() {
 function toggleSelectMode() {
   selectMode = !selectMode;
   selectedIds.clear();
-  const btn    = document.getElementById('btn-select');
-  const delBtn = document.getElementById('btn-delete-selected');
-  const list   = document.getElementById('toc-list');
+  const btn        = document.getElementById('btn-select');
+  const delBtn     = document.getElementById('btn-delete-selected');
+  const list       = document.getElementById('toc-list');
+  const exportBtn  = document.getElementById('btn-export');
+  const importBtn  = document.getElementById('btn-import');
   if (selectMode) {
     btn.style.color = 'rgba(140,80,30,0.9)';
     btn.innerHTML = '<span class="settings-icon">☑</span> Mode Pilih: Aktif';
     delBtn.style.display = '';
     list.classList.add('select-mode');
+    if (exportBtn) exportBtn.style.display = 'none';
+    if (importBtn) importBtn.style.display = 'none';
   } else {
     btn.style.color = '';
     btn.innerHTML = '<span class="settings-icon">☑</span> Pilih Lembaran';
     delBtn.style.display = 'none';
     list.classList.remove('select-mode');
     selectedIds.clear();
+    if (exportBtn) exportBtn.style.display = '';
+    if (importBtn) importBtn.style.display = '';
   }
   updateSelectedCount(); jRenderSpread();
 }
@@ -1804,25 +1810,59 @@ function calcLevel(xp) {
   return { level, rem, needed, pct: Math.round((rem / needed) * 100) };
 }
 
+function isHabitScheduledOnDate(habit, dateStr) {
+  const activeDays = habit.activeDays || [];
+  if (activeDays.length === 0) return true; // Setiap hari
+  const dow = new Date(dateStr + 'T00:00:00').getDay();
+  return activeDays.includes(dow);
+}
+
+function getHabitTotalItems(habit) {
+  // Sub-aktivitas dihitung — sesuai Daily OS
+  return (habit.subTasks && habit.subTasks.length > 0) ? habit.subTasks.length : 1;
+}
+
 function parseData(data) {
   const habits = getActiveHabits(data);
   const todos  = getActiveTodos(data);
   const totalPoints = data.totalPoints || 0;
   const today  = new Date();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
   const cutoff = new Date(today); cutoff.setDate(today.getDate() - 30);
 
   const habitStats = habits.map(h => {
     const history = h.history || {};
-    const recentDays = Object.keys(history).filter(d => new Date(d) >= cutoff);
-    const totalCompletions = recentDays.length;
-    let streak = 0;
+
+    // Hitung total completions dalam 30 hari (sub-aktivitas dihitung)
+    let totalCompletions = 0;
     for (let i = 0; i < 30; i++) {
       const d = new Date(today); d.setDate(today.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
-      if (history[key]) streak++;
-      else if (i > 0) break;
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (!isHabitScheduledOnDate(h, key)) continue;
+      totalCompletions += getHabitCompletionsOnDate(h, key);
     }
-    return { ...h, totalCompletions, streak, recentDays };
+
+    // Streak: hitung hari beruntun dimana habit dijadwalkan DAN ada aktivitas
+    // Sama persis dengan logika Daily OS
+    let streak = 0;
+    let sd = new Date(today);
+    for (let i = 0; i < 3650; i++) {
+      const key = `${sd.getFullYear()}-${String(sd.getMonth()+1).padStart(2,'0')}-${String(sd.getDate()).padStart(2,'0')}`;
+      const scheduled = isHabitScheduledOnDate(h, key);
+      const hasActivity = history[key] && (Array.isArray(history[key]) ? history[key].length > 0 : history[key]);
+      if (!scheduled) {
+        // Tidak dijadwalkan hari ini → skip (jangan putus streak)
+      } else if (hasActivity) {
+        streak++;
+      } else if (key === todayKey) {
+        // Hari ini belum dikerjakan → streak lanjut cek kemarin
+      } else {
+        break; // Dijadwalkan tapi tidak dikerjakan → streak putus
+      }
+      sd.setDate(sd.getDate() - 1);
+    }
+
+    return { ...h, totalCompletions, streak };
   });
 
   const scores = { Kecerdasan:0, Kreativitas:0, Kekuatan:0, Karisma:0, Kebijaksanaan:0, Ketangkasan:0 };
@@ -1965,13 +2005,15 @@ function renderProfile(result, skipCache) {
   const habitsList = document.getElementById('habitsList');
   habitsList.innerHTML = '';
   result.habitStats.forEach(h => {
+    const totalItems = getHabitTotalItems(h);
+    const subInfo = totalItems > 1 ? ` · ${totalItems} aktivitas` : '';
     const div = document.createElement('div');
     div.className = 'habit-row';
     div.innerHTML = `
       <div class="habit-dot" style="background:${h.color||'#888'}"></div>
       <div class="habit-info">
         <div class="habit-name">${h.name}</div>
-        <div class="habit-meta">${h.category} · ${h.totalCompletions}x (30 hari)</div>
+        <div class="habit-meta">${h.category}${subInfo} · ${h.totalCompletions}x (30 hari)</div>
       </div>
       <div class="habit-streak">${h.streak > 0 ? '🔥 '+h.streak+'d' : '—'}</div>`;
     habitsList.appendChild(div);
@@ -2668,15 +2710,14 @@ try {
 
 async function ajBootGenerate() {
   try {
-    // 1. Hitung tanggal kemarin
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+    // 1. Gunakan tanggal HARI INI
+    const todayDate = new Date();
+    const todayDateStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth()+1).padStart(2,'0')}-${String(todayDate.getDate()).padStart(2,'0')}`;
 
-    // 2. Cek apakah sudah ada auto entry untuk kemarin → skip jika sudah ada
-    const existing = getVisibleEntries(entries).find(en => en.date === yesterdayStr && en.source === 'auto');
+    // 2. Cek apakah sudah ada auto entry untuk hari ini → skip jika sudah ada
+    const existing = getVisibleEntries(entries).find(en => en.date === todayDateStr && en.source === 'auto');
     if (existing) {
-      console.log('[AutoJournal] Entry kemarin sudah ada, skip.');
+      console.log('[AutoJournal] Entry hari ini sudah ada, skip.');
       return;
     }
 
@@ -2686,29 +2727,67 @@ async function ajBootGenerate() {
     catch(e) { dosData = _dosDataCache; }
     if (!dosData) { console.warn('[AutoJournal] Tidak ada dosData, skip.'); return; }
 
-    // 4. Filter habits yang diselesaikan kemarin
-    const habitsCompleted = getActiveHabits(dosData).filter(h => getHabitCompletionsOnDate(h, yesterdayStr) > 0).map(h => h.name);
+    const activeHabits = getActiveHabits(dosData);
 
-    // 5. Filter todos yang sudah done (pakai flag done + completedAt)
-    const todosDone = getYesterdayCompletedTodos(dosData, yesterdayStr).map(t => t.title);
-
-    // 6. Hitung XP kemarin
-    let yesterdayXP = 0;
-    getActiveHabits(dosData).forEach(h => {
-      yesterdayXP += getHabitCompletionsOnDate(h, yesterdayStr) * 10;
+    // 4. Hitung progres habit hari ini — sub-aktivitas juga dihitung
+    // totalItems = jumlah subtasks (atau 1 jika tidak punya subtasks), doneItems = completions hari ini
+    const habitDetails = activeHabits.map(h => {
+      const totalItems = (h.subTasks && h.subTasks.length > 0) ? h.subTasks.length : 1;
+      const doneItems  = getHabitCompletionsOnDate(h, todayDateStr);
+      const pct        = Math.round((doneItems / totalItems) * 100);
+      return { name: h.name, category: h.category || '', totalItems, doneItems, pct };
     });
 
-    console.log('[AutoJournal] Data kemarin:', { yesterdayStr, habitsCompleted, todosDone, yesterdayXP });
+    const habitsDone       = habitDetails.filter(h => h.doneItems >= h.totalItems);
+    const habitsPartial    = habitDetails.filter(h => h.doneItems > 0 && h.doneItems < h.totalItems);
+    const habitsNotDone    = habitDetails.filter(h => h.doneItems === 0);
 
-    // 7. Susun prompt berdasarkan ada/tidaknya aktivitas
+    // 5. Filter todos: selesai hari ini
+    const todosDone    = getActiveTodos(dosData).filter(t => isTodoCompletedOnDate(t, todayDateStr)).map(t => t.title);
+    const todosNotDone = getActiveTodos(dosData).filter(t => !t.done).map(t => t.title);
+
+    // 6. Hitung XP hari ini
+    let todayXP = 0;
+    activeHabits.forEach(h => { todayXP += getHabitCompletionsOnDate(h, todayDateStr) * 10; });
+
+    console.log('[AutoJournal] Data hari ini:', { todayDateStr, habitsDone, habitsPartial, habitsNotDone, todosDone, todaysNotDone: todosNotDone, todayXP });
+
+    // 7. Susun prompt yang JUJUR — kritik jika ada yang tidak dikerjakan
+    const doneList     = habitsDone.map(h => h.name).join(', ') || '-';
+    const partialList  = habitsPartial.map(h => `${h.name} (${h.doneItems}/${h.totalItems} aktivitas)`).join(', ') || '-';
+    const missedList   = habitsNotDone.map(h => h.name).join(', ') || '-';
+    const todoDoneList = todosDone.join(', ') || '-';
+    const todoMissList = todosNotDone.join(', ') || '-';
+
+    const hasActivity = habitsDone.length > 0 || habitsPartial.length > 0 || todosDone.length > 0;
+    const hasMissed   = habitsNotDone.length > 0 || todosNotDone.length > 0;
+
     let prompt;
-    if (habitsCompleted.length > 0 || todosDone.length > 0) {
-      prompt = `Kamu adalah asisten jurnal pribadi. Berdasarkan data aktivitas berikut, tulis entri jurnal harian yang natural, reflektif, dan personal dalam Bahasa Indonesia (3-4 paragraf). Jangan sebut nama AI. Tulis seolah orang ini yang menulis sendiri. Tanggal: ${yesterdayStr}. Habits selesai: ${habitsCompleted.join(', ')}. Todos selesai: ${todosDone.join(', ') || 'tidak ada'}. XP didapat: ${yesterdayXP}`;
+    if (!hasActivity && activeHabits.length === 0 && todosDone.length === 0) {
+      // Belum ada habit/todo sama sekali
+      prompt = `Tulis entri jurnal pribadi singkat dalam Bahasa Indonesia untuk hari tanpa aktivitas tercatat. Jujur dan reflektif, 1-2 paragraf. Jangan sebut nama AI. Boleh bertanya pada diri sendiri: kenapa tidak ada yang dikerjakan hari ini?`;
     } else {
-      prompt = `Tulis entri jurnal pribadi singkat dalam Bahasa Indonesia untuk hari tanpa aktivitas tercatat. Natural, reflektif, 1-2 paragraf. Jangan sebut nama AI. Bisa tentang istirahat, jeda, atau momen tenang.`;
+      prompt = `Kamu adalah asisten jurnal pribadi yang JUJUR dan KRITIS. Tulis entri jurnal harian dalam Bahasa Indonesia (3-4 paragraf) berdasarkan data berikut. Jangan sebut nama AI. Tulis seolah orang ini yang menulis sendiri — natural dan personal.
+
+Tanggal: ${todayDateStr}
+XP hari ini: ${todayXP}
+
+HABIT SELESAI PENUH: ${doneList}
+HABIT SEBAGIAN: ${partialList}
+HABIT TIDAK DIKERJAKAN: ${missedList}
+TODO SELESAI: ${todoDoneList}
+TODO BELUM SELESAI: ${todoMissList}
+
+INSTRUKSI PENTING:
+- Jika ada habit/todo yang TIDAK dikerjakan, WAJIB dikritik dengan jujur — tanyakan kenapa belum dilakukan, jangan hanya menulis hal positif
+- Jika habit hanya dikerjakan sebagian, sebutkan dan refleksikan kenapa tidak sampai selesai
+- Boleh apresiasi yang sudah dikerjakan, tapi jangan menutupi kekurangan dengan pujian kosong
+- Jika semua selesai, boleh positif — tapi tetap reflektif
+- Gunakan sudut pandang orang pertama (aku/saya)
+- JANGAN hanya menulis hal-hal positif jika ada yang terlewat`;
     }
 
-    showRpgToast('Sedang menulis jurnal kemarin... ✦');
+    showRpgToast('Sedang menulis jurnal hari ini... ✦');
 
     // 8. Kirim ke Groq worker
     const res = await fetch('https://dailyos-ai.mywisnu238.workers.dev', {
@@ -2726,10 +2805,10 @@ async function ajBootGenerate() {
     const text = (data?.text || '').trim();
     if (!text) { console.warn('[AutoJournal] Teks kosong, tidak jadi simpan.'); return; }
 
-    // 9. Simpan entry kemarin
+    // 9. Simpan entry hari ini
     const autoEntry = {
       id: genId(),
-      date: yesterdayStr,
+      date: todayDateStr,
       title: 'Jurnal Harian',
       content: text,
       order: 0,
@@ -2739,12 +2818,12 @@ async function ajBootGenerate() {
       generatedAt: new Date().toISOString()
     };
 
-    // Sisipkan setelah entry manual kemarin (jika ada), atau di posisi kronologis yang tepat
-    const yesterdayIdx = entries.findIndex(en => en.date === yesterdayStr);
-    if (yesterdayIdx >= 0) {
-      entries.splice(yesterdayIdx + 1, 0, autoEntry);
+    // Sisipkan di posisi kronologis yang tepat
+    const todayIdx = entries.findIndex(en => en.date === todayDateStr);
+    if (todayIdx >= 0) {
+      entries.splice(todayIdx + 1, 0, autoEntry);
     } else {
-      const insertIdx = entries.findIndex(en => en.date < yesterdayStr);
+      const insertIdx = entries.findIndex(en => en.date < todayDateStr);
       if (insertIdx >= 0) {
         entries.splice(insertIdx, 0, autoEntry);
       } else {
@@ -2757,8 +2836,8 @@ async function ajBootGenerate() {
     jRenderSpread();
 
     // 10. Toast sukses
-    showRpgToast('Jurnal kemarin telah ditulis ✦');
-    console.log('[AutoJournal] Entry kemarin berhasil disimpan.');
+    showRpgToast('Jurnal hari ini telah ditulis ✦');
+    console.log('[AutoJournal] Entry hari ini berhasil disimpan.');
   } catch(err) {
     console.warn('[AutoJournal] Boot generate gagal:', err);
   }
