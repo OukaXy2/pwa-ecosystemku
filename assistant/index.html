@@ -1,43 +1,104 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>AI Assistant</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+    }
+
+    #chat {
+      margin-bottom: 20px;
+    }
+
+    .msg {
+      margin: 8px 0;
+    }
+
+    .user {
+      color: blue;
+    }
+
+    .ai {
+      color: green;
+    }
+  </style>
+</head>
 <body>
 
 <h2>AI Assistant</h2>
 
+<div id="chat"></div>
+
 <input id="input" placeholder="Ketik sesuatu..." />
 <button onclick="send()">Kirim</button>
 
-<p id="output"></p>
-
 <script>
+const chat = document.getElementById("chat");
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function addMessage(text, type) {
+  const div = document.createElement("div");
+  div.className = "msg " + type;
+  div.innerText = text;
+  chat.appendChild(div);
+}
+
+async function typeEffect(element, text) {
+  element.innerText = "";
+  for (let char of text) {
+    element.innerText += char;
+    await sleep(15);
+  }
+}
+
 async function send() {
   const input = document.getElementById("input");
-  const output = document.getElementById("output");
-
   const text = input.value;
+
   if (!text) return;
 
-  output.innerText = "Loading...";
+  // tampilkan user
+  addMessage("Kamu: " + text, "user");
+
+  input.value = "";
+
+  // thinking
+  const thinkingText = ["hmm...", "bentar ya...", "aku pikir dulu..."];
+  const thinking = document.createElement("div");
+  thinking.className = "msg ai";
+  thinking.innerText = thinkingText[Math.floor(Math.random() * thinkingText.length)];
+  chat.appendChild(thinking);
+
+  await sleep(800);
 
   try {
-    const res = await fetch("/api/chat", {
+    const res = await fetch("https://assistantwife2d.mywisnu238.workers.dev", {
       method: "POST",
-      headers: {"Content-Type": "application/json"},
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify({
-        messages: [{ role: "user", content: text }]
+        messages: [
+          { role: "user", content: text }
+        ]
       })
     });
 
     const data = await res.json();
 
-    // 🔥 tampilkan semua response
-    output.innerText = data.reply || JSON.stringify(data);
+    const reply = data.reply || JSON.stringify(data);
+
+    // ganti thinking jadi jawaban
+    await typeEffect(thinking, "AI: " + reply);
 
   } catch (err) {
-    output.innerText = "Error: " + err.message;
+    thinking.innerText = "Error: " + err.message;
   }
-
-  input.value = "";
 }
 </script>
 
