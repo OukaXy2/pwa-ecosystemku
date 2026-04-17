@@ -1,8 +1,5 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Assistant</title>
-</head>
 <body>
 
 <h2>AI Assistant</h2>
@@ -20,85 +17,45 @@ function sleep(ms) {
 async function send() {
   const input = document.getElementById("input");
   const output = document.getElementById("output");
-  const text = input.value;
 
+  const text = input.value;
   if (!text) return;
 
-  // DEBUG
-  console.log("User:", text);
+  output.innerText = "hmm...";
 
-  // thinking text
-  const thinkingText = ["hmm...", "bentar ya...", "oke, aku pikir dulu..."];
-  output.innerText = thinkingText[Math.floor(Math.random() * thinkingText.length)];
+  await sleep(700);
 
-  await sleep(600 + Math.random() * 800);
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      system: "Kamu asisten santai, bantu user berpikir.",
+      messages: [{ role: "user", content: text }]
+    })
+  });
 
-  try {
-    // CALL CHAT API
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({
-        system: `
-Kamu adalah asisten pribadi.
-Gaya santai, tidak kaku.
-Kadang bilang "hmm", "oke", "bentar".
-Bantu user berpikir, bukan cuma jawab.
-Kalau ide kurang jelas, tanya balik.
-Jangan terlalu panjang.
-`,
-        messages: [{ role: "user", content: text }]
-      })
-    });
+  const data = await res.json();
 
-    const data = await res.json();
+  const reply = data.reply || "Error ambil response";
 
-    // DEBUG RESPONSE
-    console.log("API Response:", data);
-
-    // HANDLE BERBAGAI FORMAT RESPONSE
-    const reply =
-      data?.choices?.[0]?.message?.content ||
-      data?.content?.[0]?.text ||
-      data?.message ||
-      "hmm... aku agak bingung jawabnya";
-
-    console.log("AI Reply:", reply);
-
-    // TYPING EFFECT
-    output.innerText = "";
-    for (let char of reply) {
-      output.innerText += char;
-      await sleep(15);
-    }
-
-    // TTS (SUARA)
-    try {
-      const tts = await fetch("/api/tts", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ text: reply })
-      });
-
-      if (!tts.ok) {
-        console.log("TTS error:", tts.status);
-        return;
-      }
-
-      const blob = await tts.blob();
-      const url = URL.createObjectURL(blob);
-
-      const audio = new Audio(url);
-      audio.play();
-
-    } catch (e) {
-      console.log("TTS FAILED:", e);
-    }
-
-  } catch (err) {
-    console.log("CHAT ERROR:", err);
-    output.innerText = "Error terjadi...";
+  // typing effect
+  output.innerText = "";
+  for (let char of reply) {
+    output.innerText += char;
+    await sleep(15);
   }
+
+  // TTS
+  const tts = await fetch("/api/tts", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ text: reply })
+  });
+
+  const blob = await tts.blob();
+  const url = URL.createObjectURL(blob);
+
+  new Audio(url).play();
 
   input.value = "";
 }
