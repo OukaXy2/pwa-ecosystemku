@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Assistant</title>
+</head>
+<body>
+
+<h2>AI Assistant</h2>
+
+<input id="input" placeholder="Ketik sesuatu..." />
+<button onclick="send()">Kirim</button>
+
+<p id="output"></p>
+
+<script>
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function send() {
+  const input = document.getElementById("input");
+  const output = document.getElementById("output");
+  const text = input.value;
+
+  if (!text) return;
+
+  // random thinking text
+  const thinkingText = ["hmm...", "bentar ya...", "oke, aku pikir dulu..."];
+  output.innerText = thinkingText[Math.floor(Math.random() * thinkingText.length)];
+
+  // delay biar natural
+  await sleep(600 + Math.random() * 800);
+
+  // call AI
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      system: `
+Kamu adalah asisten pribadi.
+Gaya santai, tidak kaku.
+Kadang bilang "hmm", "oke", "bentar".
+Bantu user berpikir, bukan cuma jawab.
+Kalau ide kurang jelas, tanya balik.
+Jangan terlalu panjang.
+`,
+      messages: [{ role: "user", content: text }]
+    })
+  });
+
+  const data = await res.json();
+  const reply = data.choices[0].message.content;
+
+  // typing effect
+  output.innerText = "";
+  for (let char of reply) {
+    output.innerText += char;
+    await sleep(15);
+  }
+
+  // TTS
+  const tts = await fetch("/api/tts", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ text: reply })
+  });
+
+  const blob = await tts.blob();
+  const url = URL.createObjectURL(blob);
+
+  new Audio(url).play();
+
+  input.value = "";
+}
+</script>
+
+</body>
+</html>
