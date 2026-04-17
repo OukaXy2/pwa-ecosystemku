@@ -555,6 +555,7 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
 .stat-bar-track { height: 3px; background: rgba(255,255,255,0.05); }
 .stat-bar-fill { height: 100%; transition: width 1.4s ease; }
 .stat-icon { font-size: 15px; margin-bottom: 4px; display: block; }
+.stat-item .stat-name { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 
 .habits-list { margin-bottom: 20px; }
 .habit-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(201,168,76,0.06); }
@@ -976,9 +977,9 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
             <div class="vital-num" id="stNum">0</div>
           </div>
         </div>
-        <div class="section-title">Statistik <span class="info-badge">dari habit data</span></div>
+        <div class="section-title">Statistik Kategori <span class="info-badge">berdasarkan Daily OS</span></div>
         <div class="stats-grid" id="statsGrid"></div>
-        <div class="section-title">Habit Tracker</div>
+        <div class="section-title">Habit Tracker <span class="info-badge">dikelompokkan per kategori</span></div>
         <div class="habits-list" id="habitsList"></div>
         <div class="section-title">Quest Log (To-do)</div>
         <div class="todos-summary">
@@ -1000,13 +1001,13 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
     <button class="refresh-stat-btn" id="refreshStatBtn" style="display:none" onclick="autoLoadDailyOsProfile()">↻ Refresh Stat</button>
 
     <div class="rpg-legend" id="rpgLegend">
-      <div class="legend-title">Cara Hitung Stats</div>
-      <div class="legend-row"><span class="legend-icon">🧠</span><span><b>Kecerdasan</b> — dari habit belajar & todo selesai</span></div>
-      <div class="legend-row"><span class="legend-icon">✨</span><span><b>Kreativitas</b> — dari habit konten & marketing</span></div>
-      <div class="legend-row"><span class="legend-icon">💪</span><span><b>Kekuatan</b> — dari habit workout</span></div>
-      <div class="legend-row"><span class="legend-icon">💬</span><span><b>Karisma</b> — dari habit karir & aksi sosial</span></div>
-      <div class="legend-row"><span class="legend-icon">📖</span><span><b>Kebijaksanaan</b> — dari review & detox digital</span></div>
-      <div class="legend-row"><span class="legend-icon">⚡</span><span><b>Ketangkasan</b> — dari konsistensi & todo urgent</span></div>
+      <div class="legend-title">Cara Hitung Kategori</div>
+      <div class="legend-row"><span class="legend-icon">💪</span><span><b>Kesehatan</b> — dari workout, tidur, dan pemulihan</span></div>
+      <div class="legend-row"><span class="legend-icon">⚡</span><span><b>Produktivitas</b> — dari task, todo, dan fokus kerja</span></div>
+      <div class="legend-row"><span class="legend-icon">💼</span><span><b>Karir</b> — dari proyek, bisnis, dan kerja jangka panjang</span></div>
+      <div class="legend-row"><span class="legend-icon">💬</span><span><b>Sosial</b> — dari interaksi, komunikasi, dan aksi sosial</span></div>
+      <div class="legend-row"><span class="legend-icon">✨</span><span><b>Kreativitas</b> — dari konten, ide, dan marketing</span></div>
+      <div class="legend-row"><span class="legend-icon">🧠</span><span><b>Belajar</b> — dari belajar, review, evaluasi, dan refleksi</span></div>
     </div>
 
   </div>
@@ -1339,6 +1340,7 @@ function jSaveEntry(id, fields) {
   const idx = entries.findIndex(e => e.id === id);
   if (idx >= 0) {
     Object.assign(entries[idx], fields, { updatedAt: new Date().toISOString() });
+    if (Object.prototype.hasOwnProperty.call(fields, 'date')) sortEntriesInMemory();
     dbPutEntry(entries[idx]); // persist single entry immediately
   }
 }
@@ -1535,6 +1537,7 @@ function jDeleteEntry() {
     archivedAt: now,
     updatedAt: now,
   };
+  sortEntriesInMemory();
   dbPutEntry(entries[idx]);
   const visible = getVisibleEntries(entries);
   if (visible.length === 0) { jGoToSpread(); }
@@ -1774,34 +1777,155 @@ function importData(event) {
 /* ════════════════════════════════════════════════════════════════════
    RPG PROFILE LOGIC
 ════════════════════════════════════════════════════════════════════ */
-const STAT_RULES = [
-  { keys: ['workout','olahraga','gym','latihan','bicep','squat','plank'],   stats: ['Kekuatan'], vitals: ['hp'], weight: 2 },
-  { keys: ['belajar','digital marketing','marketing','materi','kursus'],     stats: ['Kecerdasan', 'Kreativitas'], vitals: [], weight: 1.5 },
-  { keys: ['dopamine','detox','fokus','scroll'],                             stats: ['Kebijaksanaan'], vitals: ['mp'], weight: 1.5 },
-  { keys: ['review','evaluasi','mingguan','refleksi'],                       stats: ['Kebijaksanaan'], vitals: ['mp'], weight: 1 },
-  { keys: ['marketing','aksi','konten','ig','tiktok','sosmed'],              stats: ['Kreativitas','Karisma'], vitals: [], weight: 1.5 },
-  { keys: ['produktivitas','produktif','task','todo','kerja'],               stats: ['Ketangkasan'], vitals: ['st'], weight: 1 },
-  { keys: ['karir','projek','project','bisnis'],                             stats: ['Karisma','Kecerdasan'], vitals: [], weight: 1 },
-  { keys: ['tidur','istirahat','sleep'],                                     stats: [], vitals: ['hp','st'], weight: 1 },
-];
-
-const CATEGORY_RULES = {
-  'Kesehatan':    { stats: ['Kekuatan'], vitals: ['hp','st'], weight: 1 },
-  'Produktivitas':{ stats: ['Ketangkasan','Kebijaksanaan'], vitals: ['st'], weight: 1 },
-  'Karir':        { stats: ['Kecerdasan','Karisma'], vitals: [], weight: 1 },
-  'Sosial':       { stats: ['Karisma'], vitals: [], weight: 1 },
-  'Kreativitas':  { stats: ['Kreativitas'], vitals: [], weight: 1 },
-  'Belajar':      { stats: ['Kecerdasan'], vitals: [], weight: 1 },
-};
-
-const STAT_COLORS = { Kecerdasan:'#4c7ec9', Kreativitas:'#9c6ec9', Kekuatan:'#c94c4c', Karisma:'#c9a84c', Kebijaksanaan:'#5aaa6a', Ketangkasan:'#c97c4c' };
-const STAT_ICONS  = { Kecerdasan:'🧠', Kreativitas:'✨', Kekuatan:'💪', Karisma:'💬', Kebijaksanaan:'📖', Ketangkasan:'⚡' };
 
 function calcLevel(xp) {
   let level = 1, rem = xp;
   while (rem >= level * 100) { rem -= level * 100; level++; }
   const needed = level * 100;
   return { level, rem, needed, pct: Math.round((rem / needed) * 100) };
+}
+
+function normalizeScore(n) {
+  return Number.isFinite(n) ? n : 0;
+}
+
+function resolveCategoryFromHabit(habit) {
+  const explicit = normalizeCategoryName(habit?.category);
+  if (explicit) return explicit;
+  const textGuess = inferCategoryFromText(`${habit?.name || ''} ${habit?.title || ''}`);
+  if (textGuess) return textGuess;
+  return 'Produktivitas';
+}
+
+function resolveCategoryFromTodo(todo) {
+  const explicit = normalizeCategoryName(todo?.category);
+  if (explicit) return explicit;
+  const titleGuess = inferCategoryFromText(`${todo?.title || ''} ${todo?.content || ''}`);
+  if (titleGuess) return titleGuess;
+  return 'Produktivitas';
+}
+
+function buildCategoryStats(habitStats, todos) {
+  const categoryMap = new Map();
+  DAILY_OS_CATEGORIES.forEach(cat => {
+    categoryMap.set(cat.key, {
+      ...cat,
+      points: 0,
+      normalized: 0,
+      habitCount: 0,
+      todoDone: 0,
+      todoTotal: 0,
+      relatedItems: [],
+    });
+  });
+
+  habitStats.forEach(h => {
+    const categoryKey = resolveCategoryFromHabit(h);
+    const meta = categoryMap.get(categoryKey);
+    if (!meta) return;
+
+    const points = (h.totalCompletions * 12) + (h.streak * 5);
+    meta.points += points;
+    meta.habitCount += 1;
+    meta.relatedItems.push({
+      type: 'habit',
+      name: h.name,
+      completions: h.totalCompletions,
+      streak: h.streak,
+    });
+  });
+
+  todos.forEach(todo => {
+    const categoryKey = resolveCategoryFromTodo(todo);
+    const meta = categoryMap.get(categoryKey);
+    if (!meta) return;
+
+    meta.todoTotal += 1;
+    meta.relatedItems.push({
+      type: 'todo',
+      name: todo.title || todo.name || 'Todo',
+      done: Boolean(todo.done),
+      priority: todo.priority || '',
+    });
+
+    if (todo.done) {
+      meta.todoDone += 1;
+      meta.points += todo.priority === 'urgent' ? 10 : 6;
+    } else {
+      meta.points += 1;
+    }
+  });
+
+  const maxPoints = Math.max(...Array.from(categoryMap.values()).map(v => v.points), 1);
+  const categoryStats = DAILY_OS_CATEGORIES.map(cat => {
+    const meta = categoryMap.get(cat.key);
+    const normalized = Math.min(100, Math.round((meta.points / maxPoints) * 90));
+    return {
+      ...meta,
+      normalized,
+      todoRate: meta.todoTotal > 0 ? Math.round((meta.todoDone / meta.todoTotal) * 100) : 0,
+      label: cat.label,
+    };
+  });
+
+  return categoryStats.sort((a, b) => b.points - a.points);
+}
+
+function buildRpgStatsFromCategories(categoryStats) {
+  const scores = { Kecerdasan: 0, Kreativitas: 0, Kekuatan: 0, Karisma: 0, Kebijaksanaan: 0, Ketangkasan: 0 };
+  const vitals = { hp: 0, mp: 0, st: 0 };
+
+  const valueOf = key => normalizeScore(categoryStats.find(c => c.key === key)?.normalized || 0);
+
+  const kesehatan = valueOf('Kesehatan');
+  const produktivitas = valueOf('Produktivitas');
+  const karir = valueOf('Karir');
+  const sosial = valueOf('Sosial');
+  const kreativitas = valueOf('Kreativitas');
+  const belajar = valueOf('Belajar');
+
+  scores.Kekuatan      += kesehatan * 1.25;
+  scores.Ketangkasan   += produktivitas * 1.15;
+  scores.Kebijaksanaan += produktivitas * 0.85;
+  scores.Kecerdasan    += belajar * 1.35;
+  scores.Kreativitas   += kreativitas * 1.35;
+  scores.Karisma       += karir * 0.95 + sosial * 1.25 + kreativitas * 0.35;
+  scores.Kebijaksanaan += belajar * 0.7;
+  scores.Kecerdasan    += karir * 0.8;
+
+  vitals.hp += kesehatan * 1.2;
+  vitals.mp += belajar * 0.9 + kreativitas * 0.6;
+  vitals.st += produktivitas * 1.1 + kesehatan * 0.7;
+
+  const maxScore = Math.max(...Object.values(scores), 1);
+  const normalizedStats = {};
+  Object.entries(scores).forEach(([k, v]) => {
+    normalizedStats[k] = Math.min(100, Math.round((v / maxScore) * 85) + 5);
+  });
+
+  const maxVital = Math.max(...Object.values(vitals), 1);
+  const hp = Math.min(100, Math.round((vitals.hp / maxVital) * 80) + 20);
+  const mp = Math.min(100, Math.round((vitals.mp / maxVital) * 80) + 15);
+  const st = Math.min(100, Math.round((vitals.st / maxVital) * 80) + 15);
+
+  return { normalizedStats, hp, mp, st };
+}
+
+function generateTraitsFromCategories(categoryStats, stats, todoDone, todoTotal) {
+  const traits = [];
+  const topCategories = [...categoryStats].sort((a, b) => b.points - a.points);
+  const top = topCategories[0];
+
+  if (top?.normalized >= 60) traits.push(`${top.label} Enthusiast`);
+  if ((categoryStats.find(c => c.key === 'Belajar')?.normalized || 0) > 60) traits.push('Deep Thinker');
+  if ((categoryStats.find(c => c.key === 'Kesehatan')?.normalized || 0) > 55) traits.push('Disiplin Fisik');
+  if ((categoryStats.find(c => c.key === 'Kreativitas')?.normalized || 0) > 60) traits.push('Creative Mind');
+  if ((categoryStats.find(c => c.key === 'Produktivitas')?.normalized || 0) > 55) traits.push('Task Hunter');
+  if ((categoryStats.find(c => c.key === 'Sosial')?.normalized || 0) > 55) traits.push('People Person');
+  if (todoDone === todoTotal && todoTotal > 0) traits.push('Perfect Clear ✦');
+  if (topCategories.filter(c => c.normalized > 50).length >= 4) traits.push('All-Rounder');
+
+  return traits.length > 0 ? traits : ['Karakter Baru'];
 }
 
 function parseData(data) {
@@ -1822,96 +1946,67 @@ function parseData(data) {
       if (history[key]) streak++;
       else if (i > 0) break;
     }
-    return { ...h, totalCompletions, streak, recentDays };
+    return {
+      ...h,
+      category: normalizeCategoryName(h.category) || resolveCategoryFromHabit(h),
+      totalCompletions,
+      streak,
+      recentDays
+    };
   });
 
-  const scores = { Kecerdasan:0, Kreativitas:0, Kekuatan:0, Karisma:0, Kebijaksanaan:0, Ketangkasan:0 };
-  const vitalScores = { hp: 0, mp: 0, st: 0 };
-
-  habitStats.forEach(h => {
-    const completions = h.totalCompletions;
-    if (completions === 0) return;
-    const nameLow = (h.name || '').toLowerCase();
-    let matched = false;
-    for (const rule of STAT_RULES) {
-      if (rule.keys.some(k => nameLow.includes(k))) {
-        const pts = completions * rule.weight * 3;
-        rule.stats.forEach(s => scores[s] = (scores[s]||0) + pts);
-        rule.vitals.forEach(v => vitalScores[v] = (vitalScores[v]||0) + completions * rule.weight * 2);
-        matched = true; break;
-      }
-    }
-    if (!matched) {
-      const cat = CATEGORY_RULES[h.category];
-      if (cat) {
-        const pts = completions * cat.weight * 2;
-        cat.stats.forEach(s => scores[s] = (scores[s]||0) + pts);
-        cat.vitals.forEach(v => vitalScores[v] = (vitalScores[v]||0) + completions * cat.weight);
-      }
-    }
-    vitalScores.st += completions * 0.5;
-  });
+  const categoryStats = buildCategoryStats(habitStats, todos);
+  const derived = buildRpgStatsFromCategories(categoryStats);
 
   const todoDone  = todos.filter(t => t.done).length;
   const todoTotal = todos.length;
-  const urgentDone = todos.filter(t => t.done && t.priority === 'urgent').length;
-  scores.Ketangkasan += todoDone * 4;
-  scores.Kecerdasan  += todoDone * 2;
-  scores.Karisma     += urgentDone * 3;
-
-  const maxScore = Math.max(...Object.values(scores), 1);
-  const normalizedStats = {};
-  Object.entries(scores).forEach(([k, v]) => { normalizedStats[k] = Math.min(100, Math.round((v / maxScore) * 85) + 5); });
-
-  const maxVital = Math.max(...Object.values(vitalScores), 1);
-  const hp = Math.min(100, Math.round((vitalScores.hp / maxVital) * 80) + 20);
-  const mp = Math.min(100, Math.round((vitalScores.mp / maxVital) * 80) + 15);
-  const st = Math.min(100, Math.round((vitalScores.st / maxVital) * 80) + 15);
 
   const { level, rem, needed, pct } = calcLevel(totalPoints);
 
-  const dominantStat = Object.entries(normalizedStats).sort((a,b) => b[1]-a[1])[0][0];
-  const classMap   = { Kecerdasan:'Cendekia', Kreativitas:'Kreator', Kekuatan:'Pejuang', Karisma:'Pemimpin', Kebijaksanaan:'Bijaksana', Ketangkasan:'Petualang' };
-  const avatarMap  = { Kecerdasan:'🧠', Kreativitas:'🎨', Kekuatan:'⚔️', Karisma:'👑', Kebijaksanaan:'📜', Ketangkasan:'⚡' };
-
-  const passiveTraits = generateTraits(habitStats, normalizedStats, todoDone, todoTotal);
+  const dominantCategory = categoryStats[0]?.key || 'Produktivitas';
+  const dominantMeta = getCategoryMeta(dominantCategory) || DAILY_OS_CATEGORIES[1];
+  const className = dominantMeta.className;
+  const avatar = dominantMeta.avatar;
 
   const titles = {
     Cendekia:  ['Pemula Ilmu','Pencari Ilmu','Sarjana Jiwa','Maestro Pengetahuan'],
     Kreator:   ['Pengukir Ide','Seniman Muda','Arsitek Kreasi','Maestro Kreatif'],
     Pejuang:   ['Prajurit Tekad','Pejuang Konsisten','Ksatria Disiplin','Legenda Latihan'],
     Pemimpin:  ['Suara Awal','Pemimpin Tumbuh','Wibawa Sejati','Legenda Karisma'],
-    Bijaksana: ['Pengamat Diam','Filosof Muda','Bijak Berucap','Mahaguru Jiwa'],
     Petualang: ['Penjelajah Baru','Petualang Gesit','Pendobrak Batas','Legenda Hidup'],
   };
-  const cls     = classMap[dominantStat];
-  const titleArr = titles[cls] || titles['Petualang'];
+  const titleArr = titles[className] || titles.Petualang;
   const tierIdx  = Math.min(3, Math.floor((level - 1) / 8));
   const title    = titleArr[tierIdx];
 
-  return { level, xpRem: rem, xpNeeded: needed, xpPct: pct, totalPoints, hp, mp, st, stats: normalizedStats, habitStats, todoDone, todoTotal, dominantStat, class: cls, avatar: avatarMap[dominantStat], title, passiveTraits, exportedAt: data.exportedAt };
-}
+  const passiveTraits = generateTraitsFromCategories(categoryStats, derived.normalizedStats, todoDone, todoTotal);
 
-function generateTraits(habitStats, stats, todoDone, todoTotal) {
-  const traits = [];
-  const topHabits = habitStats.filter(h => h.totalCompletions > 0).sort((a,b) => b.streak - a.streak);
-  if (topHabits[0]?.streak >= 3) traits.push(`${topHabits[0].name} Enthusiast`);
-  if (stats.Kebijaksanaan > 60) traits.push('Deep Thinker');
-  if (stats.Kekuatan > 55) traits.push('Disiplin Fisik');
-  if (stats.Kreativitas > 60) traits.push('Creative Mind');
-  if (stats.Ketangkasan > 55) traits.push('Task Hunter');
-  if (todoDone === todoTotal && todoTotal > 0) traits.push('Perfect Clear ✦');
-  if (habitStats.some(h => h.streak === 0 && h.totalCompletions === 0)) traits.push('Work in Progress');
-  if (stats.Karisma > 55) traits.push('People Person');
-  if (Object.values(stats).filter(v => v > 50).length >= 4) traits.push('All-Rounder');
-  return traits.length > 0 ? traits : ['Karakter Baru'];
+  return {
+    level,
+    xpRem: rem,
+    xpNeeded: needed,
+    xpPct: pct,
+    totalPoints,
+    hp: derived.hp,
+    mp: derived.mp,
+    st: derived.st,
+    stats: derived.normalizedStats,
+    categoryStats,
+    habitStats,
+    todoDone,
+    todoTotal,
+    dominantCategory,
+    class: className,
+    avatar,
+    title,
+    passiveTraits,
+    exportedAt: data.exportedAt
+  };
 }
 
 function renderProfile(result, skipCache) {
-  // Store class name for edit profile placeholder
   _epCurrentClass = result.class || 'Adventurer';
 
-  // Apply saved customization (name/avatar) or defaults
   const overlay = document.getElementById('edit-profile-overlay');
   const savedName   = overlay ? overlay.dataset.savedName   : '';
   const savedAvatar = overlay ? overlay.dataset.savedAvatar : '';
@@ -1920,7 +2015,6 @@ function renderProfile(result, skipCache) {
   document.getElementById('charTitle').textContent = `"${result.title}"`;
   document.getElementById('classBadge').textContent = `◆ ${result.class} ◆`;
 
-  // Avatar: custom SVG atau emoji default
   const avatarInner = document.getElementById('avatarEmoji');
   const customAv = EP_AVATARS.find(a => a.id === savedAvatar);
   if (customAv) {
@@ -1930,6 +2024,7 @@ function renderProfile(result, skipCache) {
     avatarInner.textContent = result.avatar;
     avatarInner.style.padding = '';
   }
+
   document.getElementById('levelNum').textContent = result.level;
   document.getElementById('expText').textContent = `${result.xpRem} / ${result.xpNeeded}`;
 
@@ -1946,32 +2041,39 @@ function renderProfile(result, skipCache) {
 
   const grid = document.getElementById('statsGrid');
   grid.innerHTML = '';
-  Object.entries(result.stats).forEach(([name, val]) => {
-    const color = STAT_COLORS[name];
-    const icon  = STAT_ICONS[name] || '◆';
-    const div   = document.createElement('div');
+  result.categoryStats.forEach((cat, idx) => {
+    const div = document.createElement('div');
     div.className = 'stat-item';
+    div.style.borderLeft = `3px solid ${cat.color}`;
+    div.style.boxShadow = `inset 0 0 0 1px ${cat.color}14`;
     div.innerHTML = `
-      <span class="stat-icon">${icon}</span>
+      <span class="stat-icon">${cat.icon}</span>
       <div class="stat-header">
-        <div class="stat-name">${name}</div>
-        <div class="stat-value" style="color:${color}">${val}</div>
+        <div class="stat-name">${cat.label}</div>
+        <div class="stat-value" style="color:${cat.color}">${cat.normalized}%</div>
       </div>
-      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:0%;background:linear-gradient(90deg,${color}55,${color})"></div></div>`;
+      <div style="font-size:10px;color:var(--rpg-text-dim);margin-bottom:7px;line-height:1.35">
+        ${cat.habitCount} habit · ${cat.todoDone}/${cat.todoTotal} todo
+      </div>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:0%;background:linear-gradient(90deg,${cat.color}55,${cat.color})"></div></div>`;
     grid.appendChild(div);
-    setTimeout(() => div.querySelector('.stat-bar-fill').style.width = val + '%', 100);
+    setTimeout(() => {
+      const bar = div.querySelector('.stat-bar-fill');
+      if (bar) bar.style.width = cat.normalized + '%';
+    }, 100);
   });
 
   const habitsList = document.getElementById('habitsList');
   habitsList.innerHTML = '';
   result.habitStats.forEach(h => {
+    const cat = getCategoryMeta(h.category) || getCategoryMeta(resolveCategoryFromHabit(h)) || DAILY_OS_CATEGORIES[1];
     const div = document.createElement('div');
     div.className = 'habit-row';
     div.innerHTML = `
-      <div class="habit-dot" style="background:${h.color||'#888'}"></div>
+      <div class="habit-dot" style="background:${cat.color}"></div>
       <div class="habit-info">
-        <div class="habit-name">${h.name}</div>
-        <div class="habit-meta">${h.category} · ${h.totalCompletions}x (30 hari)</div>
+        <div class="habit-name">${escapeHtml(h.name)}</div>
+        <div class="habit-meta">${escapeHtml(cat.label)} · ${h.totalCompletions}x (30 hari)</div>
       </div>
       <div class="habit-streak">${h.streak > 0 ? '🔥 '+h.streak+'d' : '—'}</div>`;
     habitsList.appendChild(div);
@@ -1985,7 +2087,12 @@ function renderProfile(result, skipCache) {
   const traitColors = ['#c94c4c','#9c6ec9','#4c7ec9','#5aaa6a','#c97c4c','#c9a84c'];
   result.passiveTraits.forEach((t, i) => {
     const c = traitColors[i % traitColors.length];
-    tc.innerHTML += `<span class="trait-tag" style="color:${c};border-color:${c}44">${t}</span>`;
+    const span = document.createElement('span');
+    span.className = 'trait-tag';
+    span.style.color = c;
+    span.style.borderColor = c + '44';
+    span.textContent = t;
+    tc.appendChild(span);
   });
 
   if (result.exportedAt) {
@@ -1997,43 +2104,10 @@ function renderProfile(result, skipCache) {
   document.getElementById('rpgCard').classList.add('visible');
   document.getElementById('rpgLegend').classList.add('visible');
 
-  // Cache result to IDB (skip if we just loaded from cache to avoid loop)
   if (!skipCache) {
     kvSet('rpg_profile_cache', result).catch(() => {});
     showRpgToast('Profil diperbarui dari Daily OS ✦');
   }
-}
-
-function handleFile(event) {
-  const file = event.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try { const data = JSON.parse(e.target.result); renderProfile(parseData(data)); }
-    catch (err) { showRpgToast('Format JSON tidak valid!'); }
-  };
-  reader.readAsText(file);
-}
-
-function triggerUpload() {
-  const input = document.createElement('input');
-  input.type = 'file'; input.accept = '.json'; input.onchange = handleFile; input.click();
-}
-
-// Drag & drop on profile
-const rpgZone = document.getElementById('uploadZone');
-rpgZone.addEventListener('dragover', e => { e.preventDefault(); rpgZone.classList.add('drag'); });
-rpgZone.addEventListener('dragleave', () => rpgZone.classList.remove('drag'));
-rpgZone.addEventListener('drop', e => {
-  e.preventDefault(); rpgZone.classList.remove('drag');
-  const file = e.dataTransfer.files[0];
-  if (file) handleFile({ target: { files: [file] } });
-});
-
-function showRpgToast(msg) {
-  const t = document.getElementById('rpgToast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -2638,7 +2712,8 @@ async function _onHabitCompleted(detail) {
         isArchived: false,
       });
       entries.unshift(entry);
-      entries.forEach((x, i) => { x.order = i; x.updatedAt = completedAt; });
+      sortEntriesInMemory();
+      entries.forEach((x) => { x.updatedAt = completedAt; });
     }
     if (!Array.isArray(entry.habits_log)) entry.habits_log = [];
     // Cegah duplikat kalau event datang dari dua channel sekaligus
@@ -2647,6 +2722,7 @@ async function _onHabitCompleted(detail) {
     );
     if (!alreadyLogged) {
       entry.habits_log.push({ habitName, category, completedAt });
+      entry.category = normalizeCategoryName(entry.category) || resolveCategoryFromHabit({ name: habitName, category }) || entry.category;
       entry.updatedAt = completedAt;
       await dbPutEntry(entry);
     }
@@ -2751,7 +2827,7 @@ async function ajBootGenerate() {
         entries.push(autoEntry);
       }
     }
-    entries.forEach((x, i) => { x.order = i; });
+    sortEntriesInMemory();
 
     await dbPutEntry(autoEntry);
     jRenderSpread();
@@ -2772,6 +2848,7 @@ async function ajBootGenerate() {
     await dbOpen();
     buildMoodGrid();
     buildEpAvatarGrid();
+    initTocInteraction();
 
     // ── Load profile customization (name + avatar) ──
     try {
@@ -2807,7 +2884,7 @@ async function ajBootGenerate() {
           if (Array.isArray(parsed) && parsed.length > 0) {
             const normalized = normalizeJournalEntries(parsed).map((e, i) => ({ ...e, order: i }));
             await dbPutAllEntries(normalized);
-            entries = normalized;
+            syncEntriesFromList(normalized);
             localStorage.removeItem('buku_jurnal_v3');
           }
         } catch(e) {}
@@ -2832,13 +2909,13 @@ async function ajBootGenerate() {
               isArchived: false,
             }, i));
             await dbPutAllEntries(migrated);
-            entries = migrated;
+            syncEntriesFromList(migrated);
             localStorage.removeItem('buku_jurnal_v2');
           } catch(e) {}
         }
       }
     } else {
-      entries = normalizeJournalEntries(idbEntries);
+      syncEntriesFromList(idbEntries);
     }
 
     // ── Auto-load Daily OS stat (Fitur 2) ──
