@@ -10,10 +10,6 @@
 <p id="output"></p>
 
 <script>
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
-
 async function send() {
   const input = document.getElementById("input");
   const output = document.getElementById("output");
@@ -21,41 +17,25 @@ async function send() {
   const text = input.value;
   if (!text) return;
 
-  output.innerText = "hmm...";
+  output.innerText = "Loading...";
 
-  await sleep(700);
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        messages: [{ role: "user", content: text }]
+      })
+    });
 
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      system: "Kamu asisten santai, bantu user berpikir.",
-      messages: [{ role: "user", content: text }]
-    })
-  });
+    const data = await res.json();
 
-  const data = await res.json();
+    // 🔥 tampilkan semua response
+    output.innerText = data.reply || JSON.stringify(data);
 
-  const reply = data.reply || "Error ambil response";
-
-  // typing effect
-  output.innerText = "";
-  for (let char of reply) {
-    output.innerText += char;
-    await sleep(15);
+  } catch (err) {
+    output.innerText = "Error: " + err.message;
   }
-
-  // TTS
-  const tts = await fetch("/api/tts", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({ text: reply })
-  });
-
-  const blob = await tts.blob();
-  const url = URL.createObjectURL(blob);
-
-  new Audio(url).play();
 
   input.value = "";
 }
