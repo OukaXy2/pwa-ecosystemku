@@ -693,33 +693,266 @@
       border-radius: 9px;
     }
 
-    /* Wishlist specific card display */
-    .card-wishlist-info {
+    /* Wishlist Card (Redesigned) */
+    .card.wishlist-type {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 14px 16px;
+      overflow: hidden;
+    }
+
+    .wishlist-header {
       display: flex;
       gap: 12px;
       align-items: flex-start;
-      margin-top: 12px;
-      padding: 12px;
-      background: var(--input-bg);
-      border-radius: 8px;
+      min-width: 0;
     }
 
-    .card-wishlist-image {
-      width: 70px;
-      height: 70px;
-      border-radius: 6px;
+    .wishlist-image-wrap {
+      flex-shrink: 0;
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+    }
+
+    .wishlist-image {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
+      display: block;
+    }
+
+    .wishlist-image-fallback {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .wishlist-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .wishlist-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .wishlist-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+      flex: 1;
+      word-break: break-word;
+      min-width: 0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .wishlist-price {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: auto;
+      text-align: right;
+    }
+
+    .wishlist-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-faint);
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .wishlist-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2px 0;
+    }
+
+    .wishlist-context {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      padding: 0;
+      min-width: 0;
+    }
+
+    .wishlist-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-sub);
+      min-width: 0;
+    }
+
+    .wishlist-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
       flex-shrink: 0;
     }
 
-    .card-wishlist-price {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-      padding: 6px 12px;
-      background: var(--surface);
-      border-radius: 6px;
+    .wishlist-priority {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--text-muted);
+      font-weight: 500;
       white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .wishlist-priority-star {
+      color: #f59e0b;
+      font-size: 9px;
+      letter-spacing: 0.5px;
+    }
+
+    .wishlist-decision {
+      display: flex;
+      gap: 6px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .btn-decision {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      background: var(--input-bg);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-decision:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      background: var(--surface);
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    html.dark .btn-decision:hover {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-decision.buy {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-decision.buy:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: #10b981;
+    }
+
+    .btn-decision.skip {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-decision.skip:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #ef4444;
+    }
+
+    html.dark .wishlist-decision {
+      border-top-color: var(--border);
+    }
+
+    html.dark .btn-decision {
+      background: var(--act-bg);
+    }
+
+    .wishlist-compact-note {
+      font-size: 12px;
+      color: var(--text-sub);
+      line-height: 1.6;
+    }
+
+    .wishlist-type .card-body {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+    }
+
+
+    /* ── Responsive Adjustments ── */
+    @media (max-width: 360px) {
+      .wishlist-title {
+        font-size: 13px;
+      }
+
+      .wishlist-price {
+        font-size: 12px;
+        letter-spacing: -0.5px;
+      }
+
+      .wishlist-meta {
+        font-size: 10px;
+      }
+
+      .btn-decision {
+        padding: 5px 6px;
+        font-size: 10px;
+      }
+
+      .wishlist-image-wrap {
+        width: 52px;
+        height: 52px;
+      }
+    }
+
+    @media (max-width: 280px) {
+      .wishlist-image-wrap {
+        width: 48px;
+        height: 48px;
+      }
+
+      .card.wishlist-type {
+        padding: 12px 12px;
+        gap: 10px;
+      }
+
+      .wishlist-header {
+        gap: 10px;
+      }
+
+      .btn-decision {
+        padding: 4px 4px;
+        font-size: 9px;
+      }
     }
 
     /* ── Custom File Input ── */
@@ -1218,6 +1451,18 @@ function saveCategories() {
   localStorage.setItem("ideku-categories", JSON.stringify(CATEGORIES));
 }
 
+// ── Wishlist Image Fallback ──
+function getWishlistFallbackImage() {
+  return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Crect width='120' height='120' rx='12' fill='%23f0f0f0'/%3E%3Cpath d='M34 48h8l13 26h22l7-19H43' stroke='%23c8c8c8' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='52' cy='77' r='3.5' fill='%23c8c8c8'/%3E%3Ccircle cx='70' cy='77' r='3.5' fill='%23c8c8c8'/%3E%3C/svg%3E";
+}
+
+function handleImageError(img) {
+  if (!img.dataset.fallbackLoaded) {
+    img.dataset.fallbackLoaded = "true";
+    img.src = getWishlistFallbackImage();
+  }
+}
+
 // ── Format Rupiah ──
 function formatRupiah(input) {
   const raw = input.value.replace(/\D/g, "");
@@ -1396,15 +1641,115 @@ function renderList() {
         onclick="updatePriority(${idea.id},'${p}')">${p}</button>`
     ).join("");
 
-    const wishlistDummy = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='70' height='70' viewBox='0 0 70 70'%3E%3Crect width='70' height='70' fill='%23f0f0f0'/%3E%3Cpath d='M20 28h5l8 16h14l5-12H26' stroke='%23ccc' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='31' cy='47' r='2' fill='%23ccc'/%3E%3Ccircle cx='43' cy='47' r='2' fill='%23ccc'/%3E%3C/svg%3E`;
-    const wishlistInfo = idea.type === "Wishlist" && (idea.image || idea.price)
-      ? `
-        <div class="card-wishlist-info">
-          ${idea.image ? `<img src="${idea.image}" alt="${escHtml(idea.title)}" class="card-wishlist-image" onerror="this.src='${wishlistDummy}'">` : ""}
-          ${idea.price ? `<span class="card-wishlist-price">Rp ${Number(idea.price).toLocaleString('id-ID')}</span>` : ""}
+    const titleHtml = escHtml(idea.title);
+    const titleAttr = escAttr(idea.title);
+    const categoryHtml = escHtml(idea.category || "-");
+    const priceText = idea.price ? `Rp ${Number(idea.price).toLocaleString('id-ID')}` : "—";
+    const imgSrc = idea.image || "";
+    const metaLine = `${categoryHtml} • ${idea.priority}`;
+    const statusDot = STATUS_DOT[idea.status] || "#d1d5db";
+    const priorityStars = idea.priority === "Penting" ? "★★★" : idea.priority === "Nanti" ? "★★☆" : "★☆☆";
+    const decisionButtons = `
+      <button class="btn-decision" onclick="event.stopPropagation();getAIDecision(${idea.id})" style="background:rgba(124,58,237,0.15);color:#7c3aed;border-color:rgba(124,58,237,0.3)">🤖 Apakah layak?</button>
+      <button class="btn-decision buy" onclick="event.stopPropagation();recommendBuy(${idea.id})">✓ Beli</button>
+      <button class="btn-decision" onclick="event.stopPropagation();recommendWait(${idea.id})">⏸ Tunda</button>
+      <button class="btn-decision skip" onclick="event.stopPropagation();recommendSkip(${idea.id})">✕ Skip</button>
+    `;
+
+    let bodyContent = "";
+    if (idea.notes) {
+      bodyContent = `
+        <p class="card-notes">${escHtml(idea.notes)}</p>
+        <div class="card-actions">
+          <div class="act-row">
+            <span class="act-label">Status</span>
+            <div class="act-btns">${statusActions}</div>
+          </div>
+          <div class="act-row">
+            <span class="act-label">Prioritas</span>
+            <div class="act-btns">${priActions}</div>
+          </div>
         </div>
-      `
-      : "";
+        <div class="card-ai-row">
+          <button class="btn-ai" id="btn-perkaya-${idea.id}" onclick="perkayaIdea(${idea.id})">✦ Perkaya Ide</button>
+          <button class="btn-ai" onclick="breakdownIdea(${idea.id})">↗ Breakdown</button>
+        </div>
+      `;
+    } else {
+      bodyContent = `
+        <div class="card-actions">
+          <div class="act-row">
+            <span class="act-label">Status</span>
+            <div class="act-btns">${statusActions}</div>
+          </div>
+          <div class="act-row">
+            <span class="act-label">Prioritas</span>
+            <div class="act-btns">${priActions}</div>
+          </div>
+        </div>
+        <div class="card-ai-row">
+          <button class="btn-ai" id="btn-perkaya-${idea.id}" onclick="perkayaIdea(${idea.id})">✦ Perkaya Ide</button>
+          <button class="btn-ai" onclick="breakdownIdea(${idea.id})">↗ Breakdown</button>
+        </div>
+      `;
+    }
+
+    if (idea.type === "Wishlist") {
+      return `
+        <div class="card wishlist-type${done ? " done" : ""}" id="card-${idea.id}" onclick="toggleCard(${idea.id})">
+          <div class="card-top wishlist-header">
+            <div class="wishlist-image-wrap">
+              <img
+                src="${imgSrc}"
+                alt="${titleHtml}"
+                class="wishlist-image"
+                onerror="handleImageError(this)"
+              />
+            </div>
+            <div class="wishlist-content">
+              <div class="wishlist-title-row">
+                <div class="wishlist-title${done ? " done" : ""}">${titleHtml}</div>
+                <div class="wishlist-price">${priceText}</div>
+              </div>
+              <div class="wishlist-meta">${metaLine}</div>
+            </div>
+          </div>
+
+          <div class="wishlist-divider"></div>
+
+          <div class="wishlist-context">
+            <div class="wishlist-status">
+              <span class="wishlist-status-dot" style="background:${statusDot}"></span>
+              <span>Status: ${idea.status}</span>
+            </div>
+            <div class="wishlist-priority">
+              <span class="wishlist-priority-star">${priorityStars}</span>
+              <span>${idea.priority}</span>
+            </div>
+          </div>
+
+          <div class="wishlist-decision" onclick="event.stopPropagation()">
+            ${decisionButtons}
+          </div>
+
+          <div class="card-btns" style="position:absolute;top:12px;right:12px;">
+            <button class="btn-edit" onclick="openEdit(event,${idea.id})" title="Edit">
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z"/>
+              </svg>
+            </button>
+            <button class="btn-del" onclick="askDelete(event,${idea.id},'${titleAttr}')" title="Hapus">
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="card-body" id="body-${idea.id}" style="display:none" onclick="event.stopPropagation()">
+            ${bodyContent}
+          </div>
+        </div>`;
+    }
 
     return `
       <div class="card${done ? " done" : ""}" id="card-${idea.id}" onclick="toggleCard(${idea.id})">
@@ -1412,20 +1757,19 @@ function renderList() {
           <div style="flex:1">
             <div class="card-title${done ? " done" : ""}">
               ${TYPE_ICON[idea.type]
-                ? `<span style="display:inline-flex;align-items:center;gap:5px;line-height:1.4">${TYPE_ICON[idea.type]}<span>${escHtml(idea.title)}</span></span>`
-                : escHtml(idea.title)
+                ? `<span style="display:inline-flex;align-items:center;gap:5px;line-height:1.4">${TYPE_ICON[idea.type]}<span>${titleHtml}</span></span>`
+                : titleHtml
               }
             </div>
             <div class="card-meta">
               <span class="meta-dot" style="background:${STATUS_DOT[idea.status]}"></span>
               <span class="meta-t">${idea.status}</span>
               <span class="meta-sep">·</span>
-              <span class="meta-t">${escHtml(idea.category)}</span>
+              <span class="meta-t">${categoryHtml}</span>
               <span class="meta-sep">·</span>
               <span class="meta-pri" style="color:${priColor}">${idea.priority}</span>
               <span class="meta-date">${fmtDate(idea.id)}</span>
             </div>
-            ${wishlistInfo}
           </div>
           <div class="card-btns">
             <button class="btn-edit" onclick="openEdit(event,${idea.id})" title="Edit">
@@ -1433,7 +1777,7 @@ function renderList() {
                 <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z"/>
               </svg>
             </button>
-            <button class="btn-del" onclick="askDelete(event,${idea.id},'${escHtml(idea.title)}')" title="Hapus">
+            <button class="btn-del" onclick="askDelete(event,${idea.id},'${titleAttr}')" title="Hapus">
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
                 <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
               </svg>
@@ -1441,21 +1785,7 @@ function renderList() {
           </div>
         </div>
         <div class="card-body" id="body-${idea.id}" style="display:none" onclick="event.stopPropagation()">
-          ${idea.notes ? `<p class="card-notes">${escHtml(idea.notes)}</p>` : ""}
-          <div class="card-actions">
-            <div class="act-row">
-              <span class="act-label">Status</span>
-              <div class="act-btns">${statusActions}</div>
-            </div>
-            <div class="act-row">
-              <span class="act-label">Prioritas</span>
-              <div class="act-btns">${priActions}</div>
-            </div>
-          </div>
-          <div class="card-ai-row">
-            <button class="btn-ai" id="btn-perkaya-${idea.id}" onclick="perkayaIdea(${idea.id})">✦ Perkaya Ide</button>
-            <button class="btn-ai" onclick="breakdownIdea(${idea.id})">↗ Breakdown</button>
-          </div>
+          ${bodyContent}
         </div>
       </div>`;
   }).join("");
@@ -1579,6 +1909,24 @@ function setFilterCat(c) { filterCat = c; render(); }
 function setFilterType(type) {
   filterType = type;
   renderList();
+}
+
+function recommendBuy(id) {
+  const idea = ideas.find(i => i.id === id);
+  if (!idea) return;
+  showToast(`✓ Rekomendasi untuk "${idea.title}": beli sekarang`);
+}
+
+function recommendWait(id) {
+  const idea = ideas.find(i => i.id === id);
+  if (!idea) return;
+  showToast(`⏸ Rekomendasi untuk "${idea.title}": tunda dulu`);
+}
+
+function recommendSkip(id) {
+  const idea = ideas.find(i => i.id === id);
+  if (!idea) return;
+  showToast(`✕ Rekomendasi untuk "${idea.title}": tidak layak`);
 }
 
 function onSearch(val) {
@@ -2137,6 +2485,10 @@ function escHtml(s) {
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
+function escAttr(s) {
+  return escHtml(s).replace(/'/g, "&#39;");
+}
+
 // ── Dark Mode ──
 function initTheme() {
   const saved = localStorage.getItem("ideku-theme");
@@ -2245,6 +2597,222 @@ function importIdeas(e) {
 // ── Service Worker (PWA offline) ──
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+
+// ── Wishlist AI Decision System ──
+class WishlistAIDecisionSystem {
+  constructor() {
+    this.priorityWeights = {
+      "Penting": 3,
+      "Nanti": 2,
+      "Kapan-kapan": 1
+    };
+
+    this.categoryContext = {
+      "Belanja": { type: "purchase" },
+      "Personal": { type: "lifestyle" },
+      "Kreatif": { type: "investment" },
+      "Dev": { type: "investment" },
+      "Bisnis": { type: "investment" },
+      "Konten": { type: "investment" },
+      "Belajar": { type: "investment" }
+    };
+
+    this.priceThresholds = {
+      low: 100000,
+      medium: 500000,
+      high: 2000000
+    };
+  }
+
+  analyze(item) {
+    if (!item || !item.title) {
+      return {
+        label: "Pertimbangkan",
+        recommendation: "Tunda",
+        reason: "Data item tidak lengkap."
+      };
+    }
+
+    let score = 50;
+    score += this.calculatePriorityScore(item.priority);
+    score += this.calculatePriceScore(item.price);
+    score += this.calculateNotesScore(item.notes);
+    score += this.calculateCategoryScore(item.category, item.price);
+    score = Math.max(0, Math.min(100, score));
+
+    const decision = this.getDecision(score, item);
+    return {
+      label: decision.label,
+      recommendation: decision.recommendation,
+      reason: decision.reason
+    };
+  }
+
+  calculatePriorityScore(priority) {
+    const weight = this.priorityWeights[priority] || 1;
+    if (weight === 3) return 20;
+    if (weight === 2) return 5;
+    if (weight === 1) return -15;
+    return 0;
+  }
+
+  calculatePriceScore(price) {
+    if (!price || price === 0) return 0;
+    if (price <= this.priceThresholds.low) return 10;
+    if (price <= this.priceThresholds.medium) return 0;
+    if (price <= this.priceThresholds.high) return -12;
+    return -25;
+  }
+
+  calculateNotesScore(notes) {
+    if (!notes || notes.trim().length === 0) return -15;
+    const length = notes.trim().length;
+    const wordCount = notes.trim().split(/\s+/).length;
+    if (length < 20) return -5;
+    if (length < 50) return 5;
+    if (wordCount >= 10) return 15;
+    return 10;
+  }
+
+  calculateCategoryScore(category, price) {
+    const context = this.categoryContext[category];
+    if (!context) return 0;
+    if (context.type === "investment") {
+      return price >= this.priceThresholds.medium ? 8 : 5;
+    }
+    if (context.type === "lifestyle") return 2;
+    if (context.type === "purchase") return 3;
+    return 0;
+  }
+
+  getDecision(score, item) {
+    if (score >= 70) {
+      return {
+        label: "Layak",
+        recommendation: "Beli",
+        reason: this.generateReason(score, item, "buy")
+      };
+    }
+    if (score >= 50) {
+      return {
+        label: "Pertimbangkan",
+        recommendation: "Tunda",
+        reason: this.generateReason(score, item, "consider")
+      };
+    }
+    return {
+      label: "Tidak Layak",
+      recommendation: "Jangan",
+      reason: this.generateReason(score, item, "skip")
+    };
+  }
+
+  generateReason(score, item, decision) {
+    const priority = item.priority || "Nanti";
+    const price = item.price || 0;
+    const hasNotes = item.notes && item.notes.trim().length > 0;
+
+    const reasons = {
+      buy: [
+        priority === "Penting" && `Prioritas tinggi dan ${hasNotes ? "ada rencana jelas" : "perlu segera ditindaklanjuti"}.`,
+        price <= this.priceThresholds.low && "Harga terjangkau, kerugian minimal.",
+        hasNotes && "Ada catatan detail yang menunjukkan keputusan matang.",
+        this.categoryContext[item.category]?.type === "investment" && "Investasi untuk kebutuhan jangka panjang.",
+        score >= 85 && "Semua faktor mendukung pembelian sekarang."
+      ],
+      consider: [
+        price > this.priceThresholds.medium && !hasNotes && "Harga cukup tinggi, tapi catatan masih kurang detail.",
+        priority === "Nanti" && price > this.priceThresholds.low && "Prioritas sedang + harga cukup tinggi, percepat riset atau tunda.",
+        priority === "Kapan-kapan" && price <= this.priceThresholds.medium && "Prioritas rendah—cari yang lebih urgent dulu.",
+        !hasNotes && "Tanpa catatan detail, lebih baik tunda hingga yakin 100%."
+      ],
+      skip: [
+        priority === "Kapan-kapan" && price > this.priceThresholds.medium && "Prioritas rendah tapi harga tinggi—bukan waktu yang tepat.",
+        price > this.priceThresholds.high && priority !== "Penting" && "Harga sangat tinggi untuk prioritas tidak urgent.",
+        !hasNotes && price > this.priceThresholds.medium && "Tanpa rencana jelas + harga tinggi = impulsif.",
+        priority === "Kapan-kapan" && !hasNotes && "Tidak urgent dan tidak ada pertimbangan matang."
+      ]
+    };
+
+    const candidates = reasons[decision].filter(Boolean);
+    return candidates.length > 0 ? candidates[0] : this.getDefaultReason(decision);
+  }
+
+  getDefaultReason(decision) {
+    const defaults = {
+      buy: "Semua faktor mendukung untuk segera membeli.",
+      consider: "Ada beberapa faktor yang perlu dipertimbangkan lebih lanjut.",
+      skip: "Belum waktu yang tepat untuk membeli item ini."
+    };
+    return defaults[decision] || "Pertimbangkan kembali keputusan ini.";
+  }
+}
+
+const aiDecisionSystem = new WishlistAIDecisionSystem();
+
+function getAIDecision(id) {
+  const idea = ideas.find(i => i.id === id);
+  if (!idea || idea.type !== "Wishlist") return;
+
+  const decision = aiDecisionSystem.analyze({
+    title: idea.title,
+    price: idea.price,
+    priority: idea.priority,
+    notes: idea.notes,
+    category: idea.category
+  });
+
+  showAIDecisionModal(idea, decision);
+}
+
+function showAIDecisionModal(idea, decision) {
+  const labelColor = {
+    "Layak": "#10b981",
+    "Pertimbangkan": "#f59e0b",
+    "Tidak Layak": "#ef4444"
+  };
+
+  const color = labelColor[decision.label] || "#6b7280";
+
+  const modal = document.createElement("div");
+  modal.className = "overlay";
+  modal.style.display = "flex";
+  modal.style.zIndex = "999";
+  modal.onclick = (e) => {
+    if (e.target === modal) document.body.removeChild(modal);
+  };
+
+  modal.innerHTML = `
+    <div class="modal" style="max-width:360px">
+      <div class="modal-handle"></div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:0 24px">
+        <div style="font-size:28px">🤖</div>
+        <div>
+          <div class="modal-title" style="margin:0">${escHtml(idea.title)}</div>
+          <div style="font-size:11px;color:var(--text-faint);margin-top:2px">AI Recommendation</div>
+        </div>
+      </div>
+
+      <div style="padding:16px;background:${color}15;border:1px solid ${color}40;margin:0 24px 16px;border-radius:10px">
+        <div style="font-size:10px;color:var(--text-faint);font-weight:600;letter-spacing:0.4px;text-transform:uppercase;margin-bottom:6px">Keputusan</div>
+        <div style="font-size:18px;font-weight:700;color:${color};margin-bottom:8px">${decision.label}</div>
+        <div style="font-size:13px;color:var(--text-sub);line-height:1.5">${escHtml(decision.reason)}</div>
+      </div>
+
+      <div style="padding:12px;background:var(--input-bg);margin:0 24px 20px;border-radius:8px;border-left:3px solid ${color}">
+        <div style="font-size:10px;color:var(--text-faint);font-weight:600;margin-bottom:4px">Rekomendasi</div>
+        <div style="font-size:15px;font-weight:700;color:var(--text)">${decision.recommendation}</div>
+      </div>
+
+      <div class="modal-actions" style="margin:0 24px 32px">
+        <button class="btn-del-cancel" onclick="document.body.removeChild(this.closest('.overlay'))">Tutup</button>
+        <button class="btn-form-submit" style="background:${color};border:none" onclick="document.body.removeChild(this.closest('.overlay'))">Paham</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
 }
 
 // ── Init ──
