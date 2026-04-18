@@ -1001,12 +1001,36 @@ textarea::placeholder { color: rgba(100,70,40,0.28); font-style: italic; }
 
     <div class="rpg-legend" id="rpgLegend">
       <div class="legend-title">Cara Hitung Stats</div>
-      <div class="legend-row"><span class="legend-icon">🧠</span><span><b>Kecerdasan</b> — dari habit belajar & todo selesai</span></div>
-      <div class="legend-row"><span class="legend-icon">✨</span><span><b>Kreativitas</b> — dari habit konten & marketing</span></div>
-      <div class="legend-row"><span class="legend-icon">💪</span><span><b>Kekuatan</b> — dari habit workout</span></div>
-      <div class="legend-row"><span class="legend-icon">💬</span><span><b>Karisma</b> — dari habit karir & aksi sosial</span></div>
-      <div class="legend-row"><span class="legend-icon">📖</span><span><b>Kebijaksanaan</b> — dari review & detox digital</span></div>
-      <div class="legend-row"><span class="legend-icon">⚡</span><span><b>Ketangkasan</b> — dari konsistensi & todo urgent</span></div>
+
+      <div class="legend-row">
+        <span class="legend-icon">🧠</span>
+        <span><b>Kecerdasan</b> dari habit kategori <b>Belajar</b> & <b>Karir & Bisnis</b> + todo selesai</span>
+      </div>
+
+      <div class="legend-row">
+        <span class="legend-icon">✨</span>
+        <span><b>Kreativitas</b> dari habit kategori <b>Kreativitas</b> & <b>Belajar</b></span>
+      </div>
+
+      <div class="legend-row">
+        <span class="legend-icon">💪</span>
+        <span><b>Kekuatan</b> dari habit kategori <b>Kesehatan</b> & <b>Olahraga / Fisik</b> (prioritas tertinggi)</span>
+      </div>
+
+      <div class="legend-row">
+        <span class="legend-icon">💬</span>
+        <span><b>Karisma</b> dari habit kategori <b>Karir & Bisnis</b> & <b>Sosial</b> + aksi sosial</span>
+      </div>
+
+      <div class="legend-row">
+        <span class="legend-icon">📖</span>
+        <span><b>Kebijaksanaan</b> dari habit kategori <b>Produktivitas</b>, <b>Spiritual</b>, <b>Keuangan</b> + todo selesai</span>
+      </div>
+
+      <div class="legend-row">
+        <span class="legend-icon">⚡</span>
+        <span><b>Ketangkasan</b> dari habit kategori <b>Produktivitas</b> + todo urgent selesai</span>
+      </div>
     </div>
 
   </div>
@@ -1808,24 +1832,57 @@ function importData(event) {
 /* ════════════════════════════════════════════════════════════════════
    RPG PROFILE LOGIC
 ════════════════════════════════════════════════════════════════════ */
-const STAT_RULES = [
-  { keys: ['workout','olahraga','gym','latihan','bicep','squat','plank'],   stats: ['Kekuatan'], vitals: ['hp'], weight: 2 },
-  { keys: ['belajar','digital marketing','marketing','materi','kursus'],     stats: ['Kecerdasan', 'Kreativitas'], vitals: [], weight: 1.5 },
-  { keys: ['dopamine','detox','fokus','scroll'],                             stats: ['Kebijaksanaan'], vitals: ['mp'], weight: 1.5 },
-  { keys: ['review','evaluasi','mingguan','refleksi'],                       stats: ['Kebijaksanaan'], vitals: ['mp'], weight: 1 },
-  { keys: ['marketing','aksi','konten','ig','tiktok','sosmed'],              stats: ['Kreativitas','Karisma'], vitals: [], weight: 1.5 },
-  { keys: ['produktivitas','produktif','task','todo','kerja'],               stats: ['Ketangkasan'], vitals: ['st'], weight: 1 },
-  { keys: ['karir','projek','project','bisnis'],                             stats: ['Karisma','Kecerdasan'], vitals: [], weight: 1 },
-  { keys: ['tidur','istirahat','sleep'],                                     stats: [], vitals: ['hp','st'], weight: 1 },
-];
-
 const CATEGORY_RULES = {
-  'Kesehatan':    { stats: ['Kekuatan'], vitals: ['hp','st'], weight: 1 },
-  'Produktivitas':{ stats: ['Ketangkasan','Kebijaksanaan'], vitals: ['st'], weight: 1 },
-  'Karir':        { stats: ['Kecerdasan','Karisma'], vitals: [], weight: 1 },
-  'Sosial':       { stats: ['Karisma'], vitals: [], weight: 1 },
-  'Kreativitas':  { stats: ['Kreativitas'], vitals: [], weight: 1 },
-  'Belajar':      { stats: ['Kecerdasan'], vitals: [], weight: 1 },
+  'Kesehatan': {
+    stats: ['Kekuatan'],
+    vitals: ['hp','st'],
+    weight: 2
+  },
+  'Olahraga': {
+    stats: ['Kekuatan'],
+    vitals: ['hp','st'],
+    weight: 2.5
+  },
+  'Produktivitas': {
+    stats: ['Ketangkasan','Kebijaksanaan'],
+    vitals: ['st'],
+    weight: 1.5
+  },
+  'Karir & Bisnis': {
+    stats: ['Kecerdasan','Karisma'],
+    vitals: [],
+    weight: 1.5
+  },
+  'Belajar': {
+    stats: ['Kecerdasan','Kreativitas'],
+    vitals: [],
+    weight: 1.5
+  },
+  'Kreativitas': {
+    stats: ['Kreativitas'],
+    vitals: [],
+    weight: 1.5
+  },
+  'Sosial': {
+    stats: ['Karisma'],
+    vitals: [],
+    weight: 1
+  },
+  'Keuangan': {
+    stats: ['Kebijaksanaan'],
+    vitals: [],
+    weight: 1
+  },
+  'Spiritual': {
+    stats: ['Kebijaksanaan'],
+    vitals: ['mp'],
+    weight: 1.5
+  },
+  'General': {
+    stats: ['Ketangkasan'],
+    vitals: [],
+    weight: 1
+  }
 };
 
 const STAT_COLORS = { Kecerdasan:'#4c7ec9', Kreativitas:'#9c6ec9', Kekuatan:'#c94c4c', Karisma:'#c9a84c', Kebijaksanaan:'#5aaa6a', Ketangkasan:'#c97c4c' };
@@ -1899,24 +1956,18 @@ function parseData(data) {
   habitStats.forEach(h => {
     const completions = h.totalCompletions;
     if (completions === 0) return;
-    const nameLow = (h.name || '').toLowerCase();
-    let matched = false;
-    for (const rule of STAT_RULES) {
-      if (rule.keys.some(k => nameLow.includes(k))) {
-        const pts = completions * rule.weight * 3;
-        rule.stats.forEach(s => scores[s] = (scores[s]||0) + pts);
-        rule.vitals.forEach(v => vitalScores[v] = (vitalScores[v]||0) + completions * rule.weight * 2);
-        matched = true; break;
-      }
-    }
-    if (!matched) {
-      const cat = CATEGORY_RULES[h.category];
-      if (cat) {
-        const pts = completions * cat.weight * 2;
-        cat.stats.forEach(s => scores[s] = (scores[s]||0) + pts);
-        cat.vitals.forEach(v => vitalScores[v] = (vitalScores[v]||0) + completions * cat.weight);
-      }
-    }
+
+    // Ambil kategori — handle "Olahraga / Fisik" jadi "Olahraga"
+    let category = h.category || 'General';
+    if (category.includes('/')) category = category.split('/')[0].trim();
+
+    const cat = CATEGORY_RULES[category] || CATEGORY_RULES['General'];
+    const pts = completions * cat.weight * 3;
+
+    cat.stats.forEach(s => scores[s] = (scores[s]||0) + pts);
+    cat.vitals.forEach(v => vitalScores[v] = (vitalScores[v]||0) + completions * cat.weight * 2);
+
+    // Bonus stamina kecil untuk semua aktivitas
     vitalScores.st += completions * 0.5;
   });
 
