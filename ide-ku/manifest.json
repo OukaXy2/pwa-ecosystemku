@@ -1,10 +1,10 @@
 {
-  "id": "/ideku/",
+  "id": "/ide-ku/",
   "name": "Ideku",
   "short_name": "Ideku",
   "description": "Catat, kelola, dan eksekusi ide kamu.",
-  "start_url": "/ideku/",
-  "scope": "/ideku/",
+  "start_url": "/ide-ku/",
+  "scope": "/ide-ku/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#111111",
