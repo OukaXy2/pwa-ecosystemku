@@ -854,6 +854,13 @@
     </svg>
     Import JSON
   </button>
+  <button class="menu-btn" onclick="openDeleteAll()" style="color:#ef4444;">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="#ef4444" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="2,4 3,4 12,4"/><path d="M5 4V2h4v2"/><path d="M11 4l-.8 8H3.8L3 4"/>
+      <line x1="5.5" y1="6.5" x2="5.5" y2="9.5"/><line x1="8.5" y1="6.5" x2="8.5" y2="9.5"/>
+    </svg>
+    Hapus Semua Data
+  </button>
 </div>
 <input type="file" id="import-file" accept=".json" style="display:none" onchange="importIdeas(event)" />
 
@@ -869,6 +876,19 @@
     <div class="modal-actions">
       <button class="btn-del-cancel" onclick="cancelDelete()">Batal</button>
       <button class="btn-del-confirm" onclick="confirmDelete()">Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete All Confirm Modal -->
+<div class="overlay" id="delete-all-modal" style="display:none" onclick="cancelDeleteAll(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Hapus semua data?</div>
+    <div class="modal-sub">Semua ide dan wishlist akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.</div>
+    <div class="modal-actions">
+      <button class="btn-del-cancel" onclick="cancelDeleteAll()">Batal</button>
+      <button class="btn-del-confirm" onclick="confirmDeleteAll()">Hapus Semua</button>
     </div>
   </div>
 </div>
@@ -963,10 +983,8 @@
       <div id="wishlist-fields" style="display:none; margin-top:12px;">
         <div class="form-group">
           <label class="form-label">Harga (Rp)</label>
-          <input class="form-field" id="f-price" type="number" placeholder="Contoh: 50000" />
+          <input class="form-field" id="f-price" type="text" inputmode="numeric" placeholder="Contoh: 50.000" oninput="formatRupiah(this)" />
         </div>
-        <div class="form-group">
-          <label class="form-label">Foto Produk</label>
         <div class="form-group">
           <label class="form-label">Foto Produk</label>
           <div id="f-image-preview" style="display:none" class="img-preview-wrap">
@@ -984,7 +1002,6 @@
             Upload Foto
           </button>
           <input class="file-input-hidden" id="f-image" type="file" accept="image/*" onchange="handleAddWishlistImageUpload(event)" />
-        </div>
         </div>
       </div>
     </div>
@@ -1080,7 +1097,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">Harga (Rp)</label>
-        <input class="form-field" id="ew-price" type="number" placeholder="Contoh: 250000" />
+        <input class="form-field" id="ew-price" type="text" inputmode="numeric" placeholder="Contoh: 250.000" oninput="formatRupiah(this)" />
       </div>
       <div class="form-group">
         <label class="form-label">Foto Produk</label>
@@ -1201,6 +1218,44 @@ function saveCategories() {
   localStorage.setItem("ideku-categories", JSON.stringify(CATEGORIES));
 }
 
+// ── Format Rupiah ──
+function formatRupiah(input) {
+  const raw = input.value.replace(/\D/g, "");
+  input.dataset.raw = raw;
+  input.value = raw ? Number(raw).toLocaleString("id-ID") : "";
+}
+
+function getRupiahRaw(id) {
+  const el = document.getElementById(id);
+  if (!el) return 0;
+  // dataset.raw is set by formatRupiah; fallback: strip dots from value
+  const raw = el.dataset.raw || el.value.replace(/\./g, "").replace(/\D/g, "");
+  return parseFloat(raw) || 0;
+}
+
+// ── Delete All ──
+function openDeleteAll() {
+  menuOpen = false;
+  document.getElementById("menu-dropdown").style.display = "none";
+  if (ideas.length === 0) { showToast("Tidak ada data untuk dihapus."); return; }
+  document.getElementById("delete-all-modal").style.display = "flex";
+}
+
+function cancelDeleteAll(e) {
+  if (e && e.target !== document.getElementById("delete-all-modal")) return;
+  document.getElementById("delete-all-modal").style.display = "none";
+}
+
+function confirmDeleteAll() {
+  const total = ideas.length;
+  Promise.all(ideas.map(i => deleteIdeaDB(i.id))).then(() => {
+    ideas = [];
+    document.getElementById("delete-all-modal").style.display = "none";
+    render();
+    showToast(`✓ ${total} item berhasil dihapus`);
+  });
+}
+
 function populateCatSelects(selectedAdd, selectedEdit) {
   const opts = CATEGORIES.map(c => `<option>${c}</option>`).join("");
   const fCat = document.getElementById("f-cat");
@@ -1300,23 +1355,30 @@ function renderList() {
   if (filtered.length === 0) {
     const isFiltered = ideas.length > 0;
     const isSearch = searchQuery.length > 0;
+    const isWishlistFilter = filterType === "Wishlist";
+    const hasNoWishlist = ideas.filter(i => i.type === "Wishlist").length === 0;
+
     el.innerHTML = `
       <div class="empty">
         <div class="empty-icon">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a7 7 0 0 1 7 7c0 4-3.5 7-7 9-3.5-2-7-5-7-9a7 7 0 0 1 7-7z"/>
-            <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="15" x2="12.01" y2="15"/>
-          </svg>
+          ${isWishlistFilter
+            ? `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>`
+            : `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 4-3.5 7-7 9-3.5-2-7-5-7-9a7 7 0 0 1 7-7z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="15" x2="12.01" y2="15"/></svg>`
+          }
         </div>
         ${isSearch
-          ? `<div class="empty-title">Ide tidak ditemukan</div>
+          ? `<div class="empty-title">Tidak ditemukan</div>
              <div class="empty-txt">Coba kata kunci lain.</div>`
-          : isFiltered
-            ? `<div class="empty-title">Tidak ada ide di sini</div>
-               <div class="empty-txt">Coba ganti filter atau tambah ide baru.</div>`
-            : `<div class="empty-title">Belum ada ide tersimpan</div>
-               <div class="empty-txt">Ide bagus dimulai dari satu langkah kecil.<br>Catat sekarang sebelum lupa!</div>
-               <button class="empty-cta" onclick="openAdd()">+ Tambah ide pertama</button>`
+          : isWishlistFilter && hasNoWishlist
+            ? `<div class="empty-title">Belum ada wishlist</div>
+               <div class="empty-txt">Simpan barang impianmu di sini.<br>Catat harga, foto, dan prioritasnya.</div>
+               <button class="empty-cta" onclick="selectType('Wishlist')">+ Tambah wishlist pertama</button>`
+            : isFiltered
+              ? `<div class="empty-title">Tidak ada item di sini</div>
+                 <div class="empty-txt">Coba ganti filter atau tambah item baru.</div>`
+              : `<div class="empty-title">Belum ada ide tersimpan</div>
+                 <div class="empty-txt">Ide bagus dimulai dari satu langkah kecil.<br>Catat sekarang sebelum lupa!</div>
+                 <button class="empty-cta" onclick="openAdd()">+ Tambah ide pertama</button>`
         }
       </div>`;
     return;
@@ -1477,8 +1539,7 @@ function submitIdea() {
 
   // Handle Wishlist specific fields
   if (addingType === "Wishlist") {
-    const priceInput = document.getElementById("f-price");
-    if (priceInput.value) newIdea.price = parseFloat(priceInput.value);
+    if (document.getElementById("f-price").value) newIdea.price = getRupiahRaw("f-price");
     if (_pendingAddImageBase64) newIdea.image = _pendingAddImageBase64;
   }
 
@@ -1833,7 +1894,8 @@ function openEdit(e, id) {
     document.getElementById("ew-title").value = idea.title;
     document.getElementById("ew-notes").value = idea.notes || "";
     document.getElementById("ew-pri").value = idea.priority;
-    document.getElementById("ew-price").value = idea.price || "";
+    document.getElementById("ew-price").value = idea.price ? Number(idea.price).toLocaleString("id-ID") : "";
+    document.getElementById("ew-price").dataset.raw = idea.price || "";
 
     // Show image preview if exists
     const preview = document.getElementById("ew-image-preview");
@@ -1944,7 +2006,7 @@ function saveEditWishlist() {
   idea.notes = document.getElementById("ew-notes").value.trim();
   idea.category = document.getElementById("ew-cat").value;
   idea.priority = document.getElementById("ew-pri").value;
-  idea.price = parseFloat(document.getElementById("ew-price").value) || 0;
+  idea.price = getRupiahRaw("ew-price");
 
   if (_pendingWishlistImageBase64 === "__remove__") {
     idea.image = "";
@@ -2054,6 +2116,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     document.getElementById("add-modal").style.display = "none";
     document.getElementById("modal").style.display = "none";
+    document.getElementById("delete-all-modal").style.display = "none";
     document.getElementById("edit-modal").style.display = "none";
     document.getElementById("edit-wishlist-modal").style.display = "none";
     document.getElementById("perkaya-modal").style.display = "none";
