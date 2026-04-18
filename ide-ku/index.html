@@ -1429,7 +1429,7 @@ function deleteIdeaDB(id) {
 let ideas = [];
 let filterStatus = null;
 let filterCat = "Semua";
-let filterType = "All";  // NEW: "All", "Idea", "Wishlist"
+let filterType = "Idea";  // "Idea" or "Wishlist"
 let addingType = "Idea"; // NEW: track which type user is adding
 let searchQuery = "";
 let pendingDeleteId = null;
@@ -1560,7 +1560,6 @@ function renderFilters() {
   // Status row: type pills (compact) + separator + status pills
   const typePills = `
     <div class="filters-type-inline">
-      <button class="f-btn ${filterType === "All" ? "on" : ""}" onclick="setFilterType('All')" style="padding:5px 9px;font-size:11px">All</button>
       ${ITEM_TYPES.map(t => `
         <button class="f-btn ${filterType === t ? "on" : ""}" onclick="setFilterType('${t}')" style="padding:5px 9px;font-size:11px;display:inline-flex;align-items:center;gap:3px">${TYPE_SVG[t]} ${t}</button>
       `).join("")}
@@ -1591,10 +1590,8 @@ function renderList() {
     (!q || i.title.toLowerCase().includes(q) || (i.notes || "").toLowerCase().includes(q))
   );
 
-  // Filter by type (NEW)
-  if (filterType !== "All") {
-    filtered = filtered.filter(i => i.type === filterType);
-  }
+  // Filter by type
+  filtered = filtered.filter(i => i.type === filterType);
 
   const el = document.getElementById("list");
   if (filtered.length === 0) {
@@ -1650,10 +1647,10 @@ function renderList() {
     const statusDot = STATUS_DOT[idea.status] || "#d1d5db";
     const priorityStars = idea.priority === "Penting" ? "★★★" : idea.priority === "Nanti" ? "★★☆" : "★☆☆";
     const decisionButtons = `
-      <button class="btn-decision" onclick="event.stopPropagation();getAIDecision(${idea.id})" style="background:rgba(124,58,237,0.15);color:#7c3aed;border-color:rgba(124,58,237,0.3)">🤖 Apakah layak?</button>
-      <button class="btn-decision buy" onclick="event.stopPropagation();recommendBuy(${idea.id})">✓ Beli</button>
-      <button class="btn-decision" onclick="event.stopPropagation();recommendWait(${idea.id})">⏸ Tunda</button>
-      <button class="btn-decision skip" onclick="event.stopPropagation();recommendSkip(${idea.id})">✕ Skip</button>
+      <button class="btn-decision" onclick="event.stopPropagation();getAIDecision(${idea.id})" style="background:rgba(124,58,237,0.15);color:#7c3aed;border-color:rgba(124,58,237,0.3)"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><circle cx="7" cy="4" r="2.5"/><path d="M2 13c0-2.8 2.2-5 5-5s5 2.2 5 5"/><line x1="7" y1="11" x2="7" y2="13"/><line x1="6" y1="11.5" x2="8" y2="11.5"/></svg>Layak?</button>
+      <button class="btn-decision buy" onclick="event.stopPropagation();recommendBuy(${idea.id})"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><polyline points="2,7 5.5,10.5 12,4"/></svg>Beli</button>
+      <button class="btn-decision" onclick="event.stopPropagation();recommendWait(${idea.id})"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><rect x="3" y="2" width="2.5" height="10" rx="1"/><rect x="8.5" y="2" width="2.5" height="10" rx="1"/></svg>Tunda</button>
+      <button class="btn-decision skip" onclick="event.stopPropagation();recommendSkip(${idea.id})"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline-block;vertical-align:-1px;margin-right:3px"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>Skip</button>
     `;
 
     let bodyContent = "";
@@ -1709,7 +1706,21 @@ function renderList() {
             <div class="wishlist-content">
               <div class="wishlist-title-row">
                 <div class="wishlist-title${done ? " done" : ""}">${titleHtml}</div>
-                <div class="wishlist-price">${priceText}</div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                  <div class="card-btns" onclick="event.stopPropagation()">
+                    <button class="btn-edit" onclick="openEdit(event,${idea.id})" title="Edit">
+                      <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z"/>
+                      </svg>
+                    </button>
+                    <button class="btn-del" onclick="askDelete(event,${idea.id},'${titleAttr}')" title="Hapus">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                        <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="wishlist-price">${priceText}</div>
+                </div>
               </div>
               <div class="wishlist-meta">${metaLine}</div>
             </div>
@@ -1732,21 +1743,18 @@ function renderList() {
             ${decisionButtons}
           </div>
 
-          <div class="card-btns" style="position:absolute;top:12px;right:12px;">
-            <button class="btn-edit" onclick="openEdit(event,${idea.id})" title="Edit">
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z"/>
-              </svg>
-            </button>
-            <button class="btn-del" onclick="askDelete(event,${idea.id},'${titleAttr}')" title="Hapus">
-              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-                <line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/>
-              </svg>
-            </button>
-          </div>
-
           <div class="card-body" id="body-${idea.id}" style="display:none" onclick="event.stopPropagation()">
-            ${bodyContent}
+            ${idea.notes ? `<p class="card-notes">${escHtml(idea.notes)}</p>` : ""}
+            <div class="card-actions">
+              <div class="act-row">
+                <span class="act-label">Status</span>
+                <div class="act-btns">${statusActions}</div>
+              </div>
+              <div class="act-row">
+                <span class="act-label">Prioritas</span>
+                <div class="act-btns">${priActions}</div>
+              </div>
+            </div>
           </div>
         </div>`;
     }
@@ -2787,7 +2795,7 @@ function showAIDecisionModal(idea, decision) {
     <div class="modal" style="max-width:360px">
       <div class="modal-handle"></div>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:0 24px">
-        <div style="font-size:28px">🤖</div>
+        <div style="width:36px;height:36px;border-radius:9px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M8 8V6a4 4 0 018 0v2"/><circle cx="8.5" cy="14" r="1" fill="#7c3aed" stroke="none"/><circle cx="12" cy="14" r="1" fill="#7c3aed" stroke="none"/><circle cx="15.5" cy="14" r="1" fill="#7c3aed" stroke="none"/></svg></div>
         <div>
           <div class="modal-title" style="margin:0">${escHtml(idea.title)}</div>
           <div style="font-size:11px;color:var(--text-faint);margin-top:2px">AI Recommendation</div>
