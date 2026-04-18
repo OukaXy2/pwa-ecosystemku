@@ -1,8 +1,9 @@
 {
+  "id": "/daily-os/",
   "name": "Daily OS",
   "short_name": "Daily OS",
   "description": "Habit tracker, to-do, dan statistik harian.",
-  "start_url": "/daily-os",
+  "start_url": "/daily-os/",
   "scope": "/daily-os/",
   "display": "standalone",
   "orientation": "portrait",
