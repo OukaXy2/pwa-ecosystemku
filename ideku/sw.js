@@ -1,4 +1,4 @@
-const CACHE = "ideku-v2";
+const CACHE = "ideku-v3";
 const ASSETS = [
   "./",
   "./index.html",
