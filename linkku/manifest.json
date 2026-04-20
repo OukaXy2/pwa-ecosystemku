@@ -1,8 +1,10 @@
 {
+  "id": "/linkku/",
   "name": "Linkku",
   "short_name": "Linkku",
   "description": "Simpan link pribadimu",
-  "start_url": "./index.html",
+  "start_url": "/linkku",
+  "scope": "/linkku/",
   "display": "standalone",
   "display_override": ["standalone"],
   "capture_links": "none",
