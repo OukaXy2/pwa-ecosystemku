@@ -392,6 +392,13 @@
       pointer-events: none;
     }
 
+    .pwa-icon-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 18px;
+    }
+
     .pwa-soon .pwa-icon-wrap::after {
       content: 'Soon';
       position: absolute;
@@ -634,27 +641,41 @@
 
   <div class="pwa-grid">
     <a class="pwa-item delay-9"  href="/daily-os/">
-      <div class="pwa-icon-wrap">🗓️<span class="pwa-badge" id="badge-todo" style="display:none"></span></div>
+      <div class="pwa-icon-wrap">
+        <img src="/daily-os/icon.svg" alt="Daily OS" />
+        <span class="pwa-badge" id="badge-todo" style="display:none"></span>
+      </div>
       <span class="pwa-name">Daily OS</span>
     </a>
     <a class="pwa-item delay-10" href="/ide-ku/">
-      <div class="pwa-icon-wrap">💡<span class="pwa-badge" id="badge-ide" style="display:none"></span></div>
+      <div class="pwa-icon-wrap">
+        <img src="/ide-ku/icon-192.png" alt="IdeKu" />
+        <span class="pwa-badge" id="badge-ide" style="display:none"></span>
+      </div>
       <span class="pwa-name">IdeKu</span>
     </a>
     <a class="pwa-item delay-10" href="/kronik/">
-      <div class="pwa-icon-wrap">📓</div>
+      <div class="pwa-icon-wrap">
+        <img src="/kronik/icons/icon-192.png" alt="Kronik" />
+      </div>
       <span class="pwa-name">Kronik</span>
     </a>
     <a class="pwa-item delay-11" href="/cucimoney/">
-      <div class="pwa-icon-wrap">💰</div>
+      <div class="pwa-icon-wrap">
+        <img src="/cucimoney/icon-192.png" alt="CuciMoney+" />
+      </div>
       <span class="pwa-name">CuciMoney+</span>
     </a>
     <a class="pwa-item delay-11" href="/linkku/">
-      <div class="pwa-icon-wrap">🔗</div>
+      <div class="pwa-icon-wrap">
+        <img src="/linkku/icon-192.svg" alt="LinkKu" />
+      </div>
       <span class="pwa-name">LinkKu</span>
     </a>
     <a class="pwa-item delay-12" href="/vault/">
-      <div class="pwa-icon-wrap">🔐</div>
+      <div class="pwa-icon-wrap">
+        <img src="/vault/icon-192.png" alt="Vault" />
+      </div>
       <span class="pwa-name">Vault</span>
     </a>
     <div class="pwa-item pwa-soon delay-12">
