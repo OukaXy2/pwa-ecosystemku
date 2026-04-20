@@ -1372,6 +1372,47 @@ load().then(()=>{
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('./sw.js').catch(()=>{});
 }
+
+// ── ECOSYSTEM BACKUP LISTENER ──
+// Menerima request backup dari dashboard
+// Link private dikirim dalam bentuk terenkripsi (sama seperti exportData)
+window.addEventListener('message', async (e) => {
+  const allowed = [
+    'https://pwa-ecosystemku.vercel.app',
+    'http://localhost',
+    'http://127.0.0.1',
+  ];
+  if (!allowed.some(o => e.origin.startsWith(o))) return;
+  if (!e.data || e.data.type !== 'REQUEST_BACKUP') return;
+
+  try {
+    const pinHash   = await gpin();
+    const privLinks = L.filter(l => l.p);
+    const pubLinks  = L.filter(l => !l.p);
+
+    let payload;
+    if (privLinks.length > 0 && pinHash) {
+      // Link private — enkripsi dulu seperti exportData()
+      const encryptedPriv = await encryptObj({ links: privLinks, cats: PC }, pinHash);
+      payload = { L: pubLinks, C, ep: encryptedPriv, ts: Date.now(), v: 5 };
+    } else {
+      payload = { L: pubLinks, C, PC, ts: Date.now(), v: 5 };
+    }
+
+    e.source.postMessage({
+      type: 'BACKUP_RESPONSE',
+      app:  'linkku',
+      data: payload,
+    }, e.origin);
+
+  } catch(err) {
+    e.source.postMessage({
+      type:  'BACKUP_RESPONSE',
+      app:   'linkku',
+      error: err.message,
+    }, e.origin);
+  }
+});
 </script>
 </body>
 </html>
