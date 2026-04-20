@@ -2566,6 +2566,52 @@ if('serviceWorker' in navigator){
   });
 }
 
+// ===== ECOSYSTEM BACKUP LISTENER =====
+// Menerima request backup dari dashboard (pwa-ecosystemku.vercel.app)
+// Data yang dikirim sudah terenkripsi — tidak ada decrypt di sini
+window.addEventListener('message', async (e) => {
+  // Validasi origin — hanya terima dari domain kita sendiri
+  const allowed = [
+    'https://pwa-ecosystemku.vercel.app',
+    'http://localhost',
+    'http://127.0.0.1',
+  ];
+  if (!allowed.some(o => e.origin.startsWith(o))) return;
+  if (!e.data || e.data.type !== 'REQUEST_BACKUP') return;
+
+  try {
+    // Buka DB langsung tanpa perlu unlock — data masih encrypted
+    const raw = await new Promise((res, rej) => {
+      const req = indexedDB.open(DB_NAME, DB_VER);
+      req.onsuccess = e2 => {
+        const d = e2.target.result;
+        const tx = d.transaction(STORE, 'readonly');
+        const getAll = tx.objectStore(STORE).getAll();
+        getAll.onsuccess = () => res(getAll.result);
+        getAll.onerror  = () => rej(getAll.error);
+      };
+      req.onerror = () => rej(req.error);
+    });
+
+    const saltB64 = localStorage.getItem('vault_salt') || '';
+    const payload = { v: 3, salt: saltB64, data: raw };
+
+    // Kirim balik ke dashboard
+    e.source.postMessage({
+      type: 'BACKUP_RESPONSE',
+      app:  'vault',
+      data: payload,
+    }, e.origin);
+
+  } catch(err) {
+    e.source.postMessage({
+      type:    'BACKUP_RESPONSE',
+      app:     'vault',
+      error:   err.message,
+    }, e.origin);
+  }
+});
+
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', ()=>{
   checkLockout();
