@@ -1,9 +1,9 @@
 {
-  "id": "/vault/",
+  "id": "/vault/?v=2",
   "name": "Vault – Secure Password Manager",
   "short_name": "Vault",
   "description": "Password manager terenkripsi AES-256",
-  "start_url": "/vault/",
+  "start_url": "/vault/?v=2",
   "scope": "/vault/",
   "display": "standalone",
   "background_color": "#0a0a0c",
