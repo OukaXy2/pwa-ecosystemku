@@ -1,52 +1,79 @@
+// ===== SHARED DATABASE (VERSI SIMPLE) =====
+
 const DB_NAME = "ecosystem_db";
 const DB_VERSION = 1;
 
-let dbInstance = null;
+let db = null;
 
-export function openDB() {
-  if (dbInstance) return Promise.resolve(dbInstance);
-
+// 🔹 buka database
+export function initDB() {
   return new Promise((resolve, reject) => {
+    if (db) return resolve(db);
+
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onerror = () => reject(request.error);
 
     request.onsuccess = () => {
-      dbInstance = request.result;
-      resolve(dbInstance);
+      db = request.result;
+      resolve(db);
     };
 
     request.onupgradeneeded = (event) => {
-      const db = event.target.result;
+      const database = event.target.result;
 
-      // 🔥 CORE STORES
-      if (!db.objectStoreNames.contains("transactions")) {
-        db.createObjectStore("transactions", { keyPath: "id" });
+      // 🧱 "lemari data"
+      if (!database.objectStoreNames.contains("transactions")) {
+        database.createObjectStore("transactions", { keyPath: "id" });
       }
 
-      if (!db.objectStoreNames.contains("accounts")) {
-        db.createObjectStore("accounts", { keyPath: "id" });
+      if (!database.objectStoreNames.contains("habits")) {
+        database.createObjectStore("habits", { keyPath: "id" });
       }
 
-      if (!db.objectStoreNames.contains("habits")) {
-        db.createObjectStore("habits", { keyPath: "id" });
+      if (!database.objectStoreNames.contains("journal_entries")) {
+        database.createObjectStore("journal_entries", { keyPath: "id" });
       }
 
-      if (!db.objectStoreNames.contains("todos")) {
-        db.createObjectStore("todos", { keyPath: "id" });
-      }
-
-      if (!db.objectStoreNames.contains("journal_entries")) {
-        db.createObjectStore("journal_entries", { keyPath: "id" });
-      }
-
-      if (!db.objectStoreNames.contains("ideas")) {
-        db.createObjectStore("ideas", { keyPath: "id" });
-      }
-
-      if (!db.objectStoreNames.contains("kv")) {
-        db.createObjectStore("kv", { keyPath: "key" });
+      if (!database.objectStoreNames.contains("ideas")) {
+        database.createObjectStore("ideas", { keyPath: "id" });
       }
     };
+  });
+}
+
+// 🔹 simpan data
+export async function saveData(storeName, data) {
+  const database = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(storeName, "readwrite");
+    const store = tx.objectStore(storeName);
+
+    const item = {
+      id: crypto.randomUUID(),
+      createdAt: Date.now(),
+      ...data,
+    };
+
+    const req = store.add(item);
+
+    req.onsuccess = () => resolve(item);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// 🔹 ambil semua data
+export async function getAllData(storeName) {
+  const database = await initDB();
+
+  return new Promise((resolve, reject) => {
+    const tx = database.transaction(storeName, "readonly");
+    const store = tx.objectStore(storeName);
+
+    const req = store.getAll();
+
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
   });
 }
