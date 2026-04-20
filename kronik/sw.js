@@ -6,6 +6,7 @@ const CACHE_NAME = 'kronik-v4';
 const ASSETS = [
   './index.html',
   './manifest.json',
+  '/shared/ecosystem-db.js',
 ];
 
 // Install — cache assets
