@@ -2,7 +2,13 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- PWA: fullscreen mode, hilangkan address bar saat di-add to homescreen -->
+    <meta name="theme-color" content="#0F1117">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CuciMoney+">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>CuciMoney+</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -29,6 +35,16 @@
             --radius-2xl: 1.75rem;
             --nav-height: 72px;
             --header-height: 74px; /* padding 1.1rem*2 + icon 38px + border 1px */
+            /* View harus dikurangi nav + safe area bottom */
+            --view-height: calc(100% - var(--nav-height) - env(safe-area-inset-bottom, 0px));
+        }
+
+        /* Cegah seluruh halaman bisa di-scroll/overscroll oleh browser */
+        html {
+            overscroll-behavior: none;
+            overflow: hidden;
+            height: 100%;
+            touch-action: pan-y;
         }
 
         * {
@@ -61,31 +77,81 @@
             user-select: text;
         }
 
+        /* ─── MASALAH 1: Mobile viewport terpotong address bar ───────────
+           100dvh = dynamic viewport height, memperhitungkan browser chrome
+           (address bar, nav bar). Fallback ke 100vh untuk browser lama.
+           env(safe-area-inset-*) = notch/home indicator iPhone.
+        ----------------------------------------------------------------- */
         body {
             background: #070A0F;
             display: flex;
             justify-content: center;
+            align-items: stretch;
+            /* Fallback untuk browser tanpa dvh support */
             height: 100vh;
+            /* dvh = dynamic viewport height — ikut browser chrome naik/turun */
+            height: 100dvh;
             overflow: hidden;
+            overscroll-behavior: none;
+            /* iOS Safari: cegah elastic bounce */
+            position: fixed;
+            width: 100%;
+            top: 0; left: 0;
+            /* Padding safe area untuk notch & home indicator */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
 
+        /* ─── MASALAH 2: Desktop — modal bocor keluar area #app ──────────
+           #app adalah container utama max-width 480px. Semua modal
+           pakai position:absolute, harus tetap terkurung di dalam #app.
+           Di desktop, tambah border & shadow agar terlihat sebagai "device".
+        ----------------------------------------------------------------- */
         #app {
             background: var(--bg);
             width: 100%;
             max-width: 480px;
+            /* Gunakan 100% dari body yang sudah memperhitungkan safe area */
             height: 100%;
             position: relative;
-            box-shadow: 0 0 80px rgba(0,191,165,0.05);
+            /* KUNCI: clip semua absolute children agar tidak bocor keluar */
             overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: pan-y;
+            /* Desktop: tampil sebagai device frame */
+            flex-shrink: 0;
+        }
+
+        /* Desktop-only: frame device & lebar fixed */
+        @media (min-width: 520px) {
+            body {
+                align-items: center;
+                background: #040608;
+                padding: 1rem;
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+            #app {
+                height: 100%;
+                max-height: 900px;
+                border-radius: 2rem;
+                box-shadow:
+                    0 0 0 1px rgba(255,255,255,0.08),
+                    0 32px 80px rgba(0,0,0,0.8),
+                    0 0 120px rgba(0,191,165,0.06);
+            }
         }
 
         /* Views */
         .view {
             display: none;
-            height: calc(100% - var(--nav-height));
-            overflow-y: auto;
+            height: var(--view-height);
+            overflow-y: auto; overscroll-behavior: contain;
+            overflow-x: hidden;
             padding-bottom: 2rem;
             animation: fadeUp 0.25s ease-out;
+            /* Cegah scroll bocor ke browser saat sudah di ujung */
+            overscroll-behavior: contain;
         }
         .view.active { display: block; }
         .view::-webkit-scrollbar { display: none; }
@@ -383,7 +449,10 @@
         /* ===== BOTTOM NAV ===== */
         .bottom-nav {
             position: absolute; bottom: 0; left: 0;
-            width: 100%; height: var(--nav-height);
+            width: 100%;
+            /* Tinggi dasar + safe area home indicator iPhone */
+            height: calc(var(--nav-height) + env(safe-area-inset-bottom, 0px));
+            padding-bottom: env(safe-area-inset-bottom, 0px);
             background: var(--bg-card);
             border-top: 1px solid var(--border);
             display: flex; justify-content: space-around; align-items: center;
@@ -415,9 +484,11 @@
         .nav-item.active svg { transform: translateY(-2px); filter: drop-shadow(0 2px 6px rgba(0,191,165,0.4)); }
         .nav-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.3px; }
 
-        /* FAB - absolute ke #app (bukan ke .view) agar tidak ikut scroll */
+        /* FAB - posisi di atas nav + safe area */
         .fab {
-            position: absolute; bottom: 88px; right: 1.5rem;
+            position: absolute;
+            bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+            right: 1.5rem;
             width: 56px; height: 56px; border-radius: 1rem;
             background: linear-gradient(135deg, var(--primary), #00897B);
             border: none; color: white;
@@ -514,7 +585,7 @@
             padding: 1.25rem 1.5rem;
             border-bottom: 1px solid var(--border);
         }
-        .form-layout { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
+        .form-layout { padding: 1.5rem; overflow-y: auto; overscroll-behavior: contain; flex-grow: 1; }
         .form-buttons { display: flex; gap: 1rem; padding: 1.25rem 1.5rem; border-top: 1px solid var(--border); }
         .form-buttons button { flex: 1; }
 
@@ -636,7 +707,7 @@
         /* nota-area + cat-grid scrollable, keyboard stays fixed at bottom */
         #modal-add-transaction .trx-scrollable {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: auto; overscroll-behavior: contain;
             overflow-x: hidden;
             -ms-overflow-style: none;
             scrollbar-width: none;
@@ -1294,7 +1365,7 @@
             text-align: center; letter-spacing: -0.5px;
         }
         .budget-detail-amounts span { color: var(--text-muted); font-weight: 600; font-size: 0.85rem; }
-        .budget-detail-cat-list { flex: 1; overflow-y: auto; padding: 0.75rem 0 2rem; }
+        .budget-detail-cat-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0.75rem 0 2rem; }
         .budget-detail-cat-list::-webkit-scrollbar { display: none; }
         .budget-detail-cat-row {
             display: flex; align-items: center;
@@ -1364,7 +1435,7 @@
             flex: 1; 
             display: flex; flex-direction: column; gap: 0.6rem;
             max-height: 130px;
-            overflow-y: auto;
+            overflow-y: auto; overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
             padding-right: 2px;
@@ -1535,7 +1606,7 @@
             font-size: 1rem; font-weight: 800; color: var(--text-main);
             text-align: center; flex: 1;
         }
-        .wallet-modal-list { flex: 1; overflow-y: auto; padding: 0.75rem 0 2rem; }
+        .wallet-modal-list { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0.75rem 0 2rem; }
         .wallet-modal-list::-webkit-scrollbar { display: none; }
         .wallet-picker-item {
             display: flex; align-items: center; gap: 0.9rem;
@@ -1669,7 +1740,7 @@
         /* Cat list scroll area */
         .cat-list-scroll {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: auto; overscroll-behavior: contain;
             -ms-overflow-style: none; scrollbar-width: none;
         }
         .cat-list-scroll::-webkit-scrollbar { display: none; }
@@ -1745,7 +1816,7 @@
 
         /* Cat create body */
         .cat-create-body {
-            flex: 1; overflow-y: auto;
+            flex: 1; overflow-y: auto; overscroll-behavior: contain;
             -ms-overflow-style: none; scrollbar-width: none;
             padding: 1.5rem;
             display: flex; flex-direction: column; gap: 1.25rem;
@@ -1865,7 +1936,7 @@
         .member-header-btn:active { background: rgba(255,255,255,0.3); }
 
         .member-list-scroll {
-            flex: 1; overflow-y: auto;
+            flex: 1; overflow-y: auto; overscroll-behavior: contain;
             -ms-overflow-style: none; scrollbar-width: none;
         }
         .member-list-scroll::-webkit-scrollbar { display: none; }
@@ -1924,7 +1995,7 @@
         .member-create-modal.active { transform: translateY(0); }
 
         .member-create-body {
-            flex: 1; overflow-y: auto; padding: 1.5rem;
+            flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 1.5rem;
             display: flex; flex-direction: column; gap: 1.25rem;
             -ms-overflow-style: none; scrollbar-width: none;
         }
@@ -2126,7 +2197,7 @@
             letter-spacing: -1px;
         }
         .modal-cat-trx-scroll {
-            flex: 1; overflow-y: auto;
+            flex: 1; overflow-y: auto; overscroll-behavior: contain;
             padding: 1rem 0.75rem 5rem;
             -ms-overflow-style: none; scrollbar-width: none;
         }
@@ -3232,44 +3303,7 @@
     </div>
 
 </div>
-<script type="module">
-  import { saveData, getAllData } from "./shared/db.js";
 
-  // expose ke global
-  window.sharedDB = { saveData, getAllData };
-
-  document.addEventListener("DOMContentLoaded", async () => {
-    const container = document.getElementById("app");
-
-    try {
-      // simpan data test
-      await saveData("transactions", {
-        amount: 10000,
-        type: "expense",
-        note: "test jalan"
-      });
-
-      // ambil data
-      const data = await getAllData("transactions");
-
-      // tampilkan
-      const el = document.createElement("pre");
-      el.style.fontSize = "12px";
-      el.style.padding = "10px";
-      el.style.background = "#111";
-      el.style.color = "#0f0";
-      el.textContent = JSON.stringify(data, null, 2);
-
-      container.appendChild(el);
-
-    } catch (err) {
-      const el = document.createElement("pre");
-      el.style.color = "red";
-      el.textContent = err.message;
-      container.appendChild(el);
-    }
-  });
-</script>
 <script>
 /* ===========================
    DATA & STATE
@@ -3379,7 +3413,7 @@ function formatHero(n) {
 }
 function getCategory(id) { return db.categories.find(c => c.id == id); }
 function getAccount(id) { return db.accounts.find(a => a.id == id); }
-function getTransaction(id) { return db.transactions.find(t => t.id === id); }
+function getTransaction(id) { return _trxById.get(String(id)) || db.transactions.find(t => t.id === id); }
 function getCatIcon(name) { 
     const cat = db.categories.find(c => c.name === name);
     return cat?.emoji || CAT_ICONS[name] || '📌'; 
@@ -3501,24 +3535,25 @@ async function loadFromLS() {
     }
 
     // Boot app setelah data siap
+    rebuildIndex();
     const currentBook = db.books.find(b => b.id === state.currentBookId);
     if (currentBook) document.getElementById('current-book-name').textContent = currentBook.name;
     renderApp();
-    setInterval(saveToLS, 10000);
+    // Periodic flush setiap 30 detik sebagai safety net (markSave handles real-time)
+    setInterval(flushSave, 30000);
 }
 
 /* ===========================
-   FILTERING
+   FILTERING — pakai index O(1)
 =========================== */
 function getFilteredTrx(period = state.analysisPeriod) {
-    const bookTrx = db.transactions.filter(t => t.bookId === state.currentBookId);
-    const vy = state.viewYear, vm = state.viewMonth;
-    return bookTrx.filter(t => {
-        const d = new Date(t.date);
-        if (period === 'month') return d.getFullYear() === vy && d.getMonth() === vm;
-        if (period === 'year') return d.getFullYear() === vy;
-        return true;
-    });
+    if (period === 'month') {
+        return getTrxForMonth(state.currentBookId, state.viewYear, state.viewMonth);
+    }
+    if (period === 'year') {
+        return getTrxForYear(state.currentBookId, state.viewYear);
+    }
+    return getTrxForBook(state.currentBookId);
 }
 
 function showTransactionSkeleton() {
@@ -3548,24 +3583,182 @@ function changeMonth(dir) {
     if (newYear > now.getFullYear() || (newYear === now.getFullYear() && normMonth > now.getMonth())) return;
     state.viewMonth = normMonth;
     state.viewYear = newYear;
+    markDirty(['buku']);
     showTransactionSkeleton();
     setTimeout(() => renderApp(), 180);
 }
 
 /* ===========================
-   RENDER APP
+   PERFORMANCE LAYER
 =========================== */
-function renderApp() {
-    renderBuku();
-    renderDompet();
-    renderAnalysis();
-    renderLebih();
-    // Pastikan FAB tampil jika view aktif adalah Buku
-    const fab = document.getElementById('fab-add-trx');
-    if (fab && document.getElementById('view-buku')?.classList.contains('active')) {
-        fab.classList.add('visible');
+
+/* ── 1. TRANSACTION INDEX ──────────────────────────────────────
+   Map "bookId|YYYY-MM" → Transaction[]
+   Dibangun sekali saat boot, diupdate incremental saat add/edit/delete.
+   Semua filter transaksi per-bulan jadi O(1) lookup.
+---------------------------------------------------------------- */
+let _trxIndex = new Map();   // key: "bookId|YYYY-MM"  val: Transaction[]
+let _trxById  = new Map();   // key: trx.id            val: Transaction
+
+function _indexKey(bookId, year, month) {
+    return `${bookId}|${year}-${String(month + 1).padStart(2,'0')}`;
+}
+
+function rebuildIndex() {
+    _trxIndex.clear();
+    _trxById.clear();
+    for (const t of db.transactions) {
+        _trxById.set(String(t.id), t);
+        const d = new Date(t.date);
+        const k = _indexKey(t.bookId, d.getFullYear(), d.getMonth());
+        if (!_trxIndex.has(k)) _trxIndex.set(k, []);
+        _trxIndex.get(k).push(t);
     }
 }
+
+function _indexAdd(t) {
+    _trxById.set(String(t.id), t);
+    const d = new Date(t.date);
+    const k = _indexKey(t.bookId, d.getFullYear(), d.getMonth());
+    if (!_trxIndex.has(k)) _trxIndex.set(k, []);
+    _trxIndex.get(k).push(t);
+}
+
+function _indexRemove(t) {
+    _trxById.delete(String(t.id));
+    const d = new Date(t.date);
+    const k = _indexKey(t.bookId, d.getFullYear(), d.getMonth());
+    const arr = _trxIndex.get(k);
+    if (arr) {
+        const i = arr.indexOf(t);
+        if (i !== -1) arr.splice(i, 1);
+    }
+}
+
+// Ambil transaksi per bulan — O(1)
+function getTrxForMonth(bookId, year, month) {
+    return _trxIndex.get(_indexKey(bookId, year, month)) || [];
+}
+
+// Ambil semua transaksi per tahun — O(12) lookup
+function getTrxForYear(bookId, year) {
+    const result = [];
+    for (let m = 0; m < 12; m++) {
+        const arr = _trxIndex.get(_indexKey(bookId, year, m));
+        if (arr) result.push(...arr);
+    }
+    return result;
+}
+
+// Ambil semua transaksi buku — O(bulan unik)
+function getTrxForBook(bookId) {
+    const result = [];
+    for (const [key, arr] of _trxIndex) {
+        if (key.startsWith(bookId + '|')) result.push(...arr);
+    }
+    return result;
+}
+
+/* ── 2. LAZY / DIRTY RENDER ────────────────────────────────────
+   Setiap view punya flag dirty. renderApp() hanya render view
+   yang sedang aktif. View lain di-flag dirty → dirender saat
+   pertama kali dibuka via switchView().
+---------------------------------------------------------------- */
+const _dirty = { buku: true, dompet: true, analisis: true, lebih: true };
+let _activeView = 'buku';
+
+function markDirty(views = ['buku','dompet','analisis','lebih']) {
+    views.forEach(v => _dirty[v] = true);
+}
+
+function renderApp() {
+    // Hanya render view aktif
+    _renderView(_activeView);
+    // Pastikan FAB tampil jika view Buku aktif
+    const fab = document.getElementById('fab-add-trx');
+    if (fab) fab.classList.toggle('visible', _activeView === 'buku');
+}
+
+function _renderView(name) {
+    if (!_dirty[name]) return;
+    _dirty[name] = false;
+    if (name === 'buku')    renderBuku();
+    if (name === 'dompet')  renderDompet();
+    if (name === 'analisis') renderAnalysis();
+    if (name === 'lebih')   renderLebih();
+}
+
+/* ── 3. DEBOUNCED SAVE ─────────────────────────────────────────
+   Ganti semua saveToLS() langsung → markSave().
+   Actual write ke IDB di-batch setiap 3 detik, atau flush segera
+   saat tab/app akan ditutup (visibilitychange + beforeunload).
+---------------------------------------------------------------- */
+let _savePending = false;
+let _saveTimer   = null;
+
+function markSave() {
+    _savePending = true;
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(flushSave, 3000);
+}
+
+function flushSave() {
+    if (!_savePending || !idb) return;
+    _savePending = false;
+    idbSet('db', db).catch(e => console.warn('IDB save db:', e));
+    idbSet('budgets', budgets).catch(e => console.warn('IDB save budgets:', e));
+    idbSet('masterBudgets', masterBudgets).catch(e => console.warn('IDB save masterBudgets:', e));
+}
+
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+window.addEventListener('beforeunload', flushSave);
+
+/* ── 4. VIRTUAL LIST ───────────────────────────────────────────
+   Hanya render item yang ada di viewport + 5 item buffer atas/bawah.
+   Pakai IntersectionObserver + sentinel placeholder untuk trigger
+   load item berikutnya secara incremental.
+---------------------------------------------------------------- */
+const VLIST_PAGE = 30;   // item per batch
+let _vlistItems = [];    // semua item HTML string (sudah di-generate)
+let _vlistRendered = 0;  // berapa yang sudah di-DOM
+
+function renderVirtualList(containerId, htmlItems) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    _vlistItems = htmlItems;
+    _vlistRendered = 0;
+    container.innerHTML = '';
+    _vlistLoadMore(container);
+
+    // Sentinel untuk infinite scroll
+    let sentinel = container.querySelector('.vlist-sentinel');
+    if (!sentinel) {
+        sentinel = document.createElement('div');
+        sentinel.className = 'vlist-sentinel';
+        sentinel.style.height = '1px';
+    }
+    container.appendChild(sentinel);
+
+    if (window._vlistObserver) window._vlistObserver.disconnect();
+    window._vlistObserver = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting) _vlistLoadMore(container);
+    }, { root: container.closest('.view'), rootMargin: '200px' });
+    window._vlistObserver.observe(sentinel);
+}
+
+function _vlistLoadMore(container) {
+    if (_vlistRendered >= _vlistItems.length) return;
+    const batch = _vlistItems.slice(_vlistRendered, _vlistRendered + VLIST_PAGE);
+    const frag = document.createDocumentFragment();
+    const tmp = document.createElement('div');
+    // Insert before sentinel
+    batch.forEach(html => { tmp.innerHTML = html; frag.appendChild(tmp.firstChild); });
+    const sentinel = container.querySelector('.vlist-sentinel');
+    if (sentinel) container.insertBefore(frag, sentinel);
+    else container.appendChild(frag);
+    _vlistRendered += batch.length;
+}
+
 
 /* ===== BUKU ===== */
 function renderBuku() {
@@ -3596,58 +3789,58 @@ function renderBuku() {
         groups[t.date].push(t);
     });
     const sortedDates = Object.keys(groups).sort((a,b) => b.localeCompare(a));
-
-    let html = '';
     if (sortedDates.length === 0) {
-        html = `<div class="empty-state">
+        document.getElementById('transaction-list').innerHTML = `<div class="empty-state">
             <div class="empty-state-icon">📭</div>
             <div class="empty-state-text">Belum ada transaksi bulan ini</div>
         </div>`;
-    } else {
-        sortedDates.forEach((date, index) => {
-            const items = groups[date];
-            const dayIn = items.filter(t=>t.direction==='in').reduce((s,t)=>s+t.amount,0);
-            const dayOut = items.filter(t=>t.direction==='out').reduce((s,t)=>s+t.amount,0);
-            const d = new Date(date + 'T00:00:00');
-            const dayLabel = d.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short'}).toUpperCase();
+        return;
+    }
 
-            /* ✅ DENGAN DROPDOWN + SMOOTH COLLAPSE */
-            html += `<div class="trx-group" data-date="${date}">
-                <div class="trx-group-header" onclick="toggleTrxGroup(this)">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
-                        <svg class="trx-group-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                        <div class="trx-group-date">${dayLabel}</div>
-                    </div>
-                    <div class="trx-group-summary">
-                        ${dayIn > 0 ? `<span class="trx-group-in">Pemasukan: +${formatCurrency(dayIn)}</span>` : ''}
-                        ${dayOut > 0 ? `<span class="trx-group-out">Pengeluaran: -${formatCurrency(dayOut)}</span>` : ''}
+    // Bangun array HTML per-group, lalu render via virtual list
+    const groupHTMLs = sortedDates.map(date => {
+        const items = groups[date];
+        const dayIn  = items.filter(t=>t.direction==='in').reduce((s,t)=>s+t.amount,0);
+        const dayOut = items.filter(t=>t.direction==='out').reduce((s,t)=>s+t.amount,0);
+        const d = new Date(date + 'T00:00:00');
+        const dayLabel = d.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short'}).toUpperCase();
+
+        let itemsHTML = items.map(t => {
+            const cat  = getCategory(t.category_id);
+            const icon = getCatIcon(cat?.name);
+            const cls  = t.direction === 'in' ? 'in' : 'out';
+            const sign = t.direction === 'in' ? '+' : '-';
+            const acc  = getAccount(t.account_id);
+            return `<div class="trx-item" onclick="openTrxDetail('${t.id}')">
+                <div class="trx-item-left">
+                    <div class="trx-icon ${cls}">${icon}</div>
+                    <div class="trx-info">
+                        <div class="trx-title">${t.title}</div>
+                        <div class="trx-cat">${cat?.name || 'Lainnya'} · ${acc?.name || ''}</div>
                     </div>
                 </div>
-                <div class="trx-group-items">`;
-            
-            items.forEach(t => {
-                const cat = getCategory(t.category_id);
-                const icon = getCatIcon(cat?.name);
-                const cls = t.direction === 'in' ? 'in' : 'out';
-                const sign = t.direction === 'in' ? '+' : '-';
-                const acc = getAccount(t.account_id);
-                html += `<div class="trx-item" onclick="openTrxDetail('${t.id}')">
-                    <div class="trx-item-left">
-                        <div class="trx-icon ${cls}">${icon}</div>
-                        <div class="trx-info">
-                            <div class="trx-title">${t.title}</div>
-                            <div class="trx-cat">${cat?.name || 'Lainnya'} · ${acc?.name || ''}</div>
-                        </div>
-                    </div>
-                    <div class="trx-amount ${cls}">${sign} ${formatCurrency(t.amount)}</div>
-                </div>`;
-            });
-            html += `</div></div>`;
-        });
-    }
-    document.getElementById('transaction-list').innerHTML = html;
+                <div class="trx-amount ${cls}">${sign} ${formatCurrency(t.amount)}</div>
+            </div>`;
+        }).join('');
+
+        return `<div class="trx-group" data-date="${date}">
+            <div class="trx-group-header" onclick="toggleTrxGroup(this)">
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+                    <svg class="trx-group-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                    <div class="trx-group-date">${dayLabel}</div>
+                </div>
+                <div class="trx-group-summary">
+                    ${dayIn  > 0 ? `<span class="trx-group-in">Pemasukan: +${formatCurrency(dayIn)}</span>` : ''}
+                    ${dayOut > 0 ? `<span class="trx-group-out">Pengeluaran: -${formatCurrency(dayOut)}</span>` : ''}
+                </div>
+            </div>
+            <div class="trx-group-items">${itemsHTML}</div>
+        </div>`;
+    });
+
+    renderVirtualList('transaction-list', groupHTMLs);
 }
 function toggleTrxGroup(headerEl) {
     const groupEl = headerEl.parentElement;
@@ -3852,11 +4045,9 @@ function getPeriodMetrics() {
     if (period === 'month') {
         return getMonthlyMetrics(analyticsState.analysisMonth, analyticsState.analysisYear);
     }
-    // Year atau All — hitung langsung dari transaksi
-    let bookTrx = db.transactions.filter(t => t.bookId === state.currentBookId);
-    if (period === 'year') {
-        bookTrx = bookTrx.filter(t => new Date(t.date).getFullYear() === analyticsState.analysisYear);
-    }
+    const bookTrx = period === 'year'
+        ? getTrxForYear(state.currentBookId, analyticsState.analysisYear)
+        : getTrxForBook(state.currentBookId);
     const income  = bookTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
     const expense = bookTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
     return { income, expense, savings: income - expense };
@@ -3872,43 +4063,50 @@ function getPrevPeriodMetrics() {
     }
     if (period === 'year') {
         const prevYear = analyticsState.analysisYear - 1;
-        const bookTrx = db.transactions.filter(t =>
-            t.bookId === state.currentBookId && new Date(t.date).getFullYear() === prevYear
-        );
+        const bookTrx = getTrxForYear(state.currentBookId, prevYear);
         const income  = bookTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
         const expense = bookTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
         return { income, expense, savings: income - expense };
     }
-    // All — tidak ada pembanding, return nol
     return { income: 0, expense: 0, savings: 0 };
 }
 
-/* Filtered transactions for analysis view */
+/* Filtered transactions for analysis view — pakai index */
 function getAnalysisFilteredTrx(direction) {
-    let bookTrx = db.transactions.filter(t => t.bookId === state.currentBookId);
-    if (direction) bookTrx = bookTrx.filter(t => t.direction === direction);
-    if (analyticsState.analysisPeriod === 'month') {
-        return bookTrx.filter(t => {
-            const d = new Date(t.date);
-            return d.getFullYear() === analyticsState.analysisYear && d.getMonth() === analyticsState.analysisMonth;
-        });
+    const period = analyticsState.analysisPeriod;
+    let bookTrx;
+    if (period === 'month') {
+        bookTrx = getTrxForMonth(state.currentBookId, analyticsState.analysisYear, analyticsState.analysisMonth);
+    } else if (period === 'year') {
+        bookTrx = getTrxForYear(state.currentBookId, analyticsState.analysisYear);
+    } else {
+        bookTrx = getTrxForBook(state.currentBookId);
     }
-    if (analyticsState.analysisPeriod === 'year') {
-        return bookTrx.filter(t => new Date(t.date).getFullYear() === analyticsState.analysisYear);
+    return direction ? bookTrx.filter(t => t.direction === direction) : bookTrx;
+}
+
+/* ── Smart metrics cache invalidation ──────────────────────────
+   Daripada monthlyMetrics = {} (hapus semua), kita hanya hapus
+   key yang terdampak oleh transaksi yang berubah.
+-------------------------------------------------------------- */
+function invalidateMetricsCache(trx) {
+    if (!trx) {
+        // Full reset — saat ganti buku atau restore backup
+        monthlyMetrics = {};
+        return;
     }
-    return bookTrx;
+    // Hapus hanya bulan transaksi yang berubah
+    const d   = new Date(trx.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2,'0')}`;
+    delete monthlyMetrics[key];
 }
 
 /* Monthly metrics cache */
 function getMonthlyMetrics(month, year) {
     const key = `${year}-${String(month + 1).padStart(2, '0')}`;
     if (monthlyMetrics[key]) return monthlyMetrics[key];
-    const bookTrx = db.transactions.filter(t => {
-        if (t.bookId !== state.currentBookId) return false;
-        const d = new Date(t.date);
-        return d.getFullYear() === year && d.getMonth() === month;
-    });
-    const income = bookTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
+    const bookTrx = getTrxForMonth(state.currentBookId, year, month);
+    const income  = bookTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
     const expense = bookTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
     monthlyMetrics[key] = { income, expense, savings: income - expense };
     return monthlyMetrics[key];
@@ -4440,7 +4638,7 @@ function saveMasterBudget() {
         masterBudgets.push(budgetObj);
     }
 
-    saveToLS(); monthlyMetrics = {};
+    markSave(); invalidateMetricsCache(); markDirty();
     closeAllModals();
     renderAnalysis();
     showNotification('Budget disimpan ✓');
@@ -4492,12 +4690,16 @@ function openBudgetDetailSheet() {
         ${mb.note ? `· <span style="color:var(--text-muted);font-weight:500;">${mb.note}</span>` : ''}`;
 
     // Semua kategori (termasuk yang tidak ada transaksinya)
-    const monthTrx = db.transactions.filter(t => {
-        if (t.bookId !== state.currentBookId || t.direction !== 'out') return false;
-        if (mb.startDate && mb.endDate) return t.date >= mb.startDate && t.date <= mb.endDate;
-        const d = new Date(t.date);
-        return d.getFullYear() === analyticsState.analysisYear && d.getMonth() === analyticsState.analysisMonth;
-    });
+    const monthTrx = (() => {
+        let pool;
+        if (mb.startDate && mb.endDate) {
+            // Range custom — scan semua transaksi buku (rare case)
+            pool = getTrxForBook(state.currentBookId);
+            return pool.filter(t => t.direction === 'out' && t.date >= mb.startDate && t.date <= mb.endDate);
+        }
+        pool = getTrxForMonth(state.currentBookId, analyticsState.analysisYear, analyticsState.analysisMonth);
+        return pool.filter(t => t.direction === 'out');
+    })();
     const catSpending = {};
     monthTrx.forEach(t => { catSpending[t.category_id] = (catSpending[t.category_id] || 0) + t.amount; });
 
@@ -4544,7 +4746,7 @@ function deleteMasterBudget() {
           b.month === analyticsState.analysisMonth &&
           b.year === analyticsState.analysisYear)
     );
-    saveToLS(); monthlyMetrics = {};
+    markSave(); invalidateMetricsCache(); markDirty();
     closeAllModals();
     renderBudgetTab();
     showNotification('Budget dihapus', 'warning');
@@ -4557,7 +4759,7 @@ function deleteBudget(e, id) {
     e.stopPropagation();
     if (!confirm('Hapus budget ini?')) return;
     budgets = budgets.filter(b => b.id !== id);
-    saveToLS(); monthlyMetrics = {};
+    markSave(); invalidateMetricsCache(); markDirty();
     renderBudgetTab();
     showNotification('Budget dihapus', 'warning');
 }
@@ -4653,7 +4855,8 @@ function openMemberManager() {
 function confirmResetData() {
     if (!confirm('Reset semua data? Tindakan ini tidak bisa dibatalkan.')) return;
     seedDefaultData();
-    saveToLS(); monthlyMetrics = {};
+    rebuildIndex();
+    markSave(); invalidateMetricsCache(); markDirty();
     renderApp();
     showNotification('Data direset', 'warning');
 }
@@ -4662,77 +4865,188 @@ function confirmResetData() {
    UI HELPERS
 =========================== */
 function switchView(name, el) {
+    const prevView = _activeView;
+    _activeView = name;
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    if (name === 'analisis') {
-        analyticsState.analysisMonth = state.viewMonth;
-        analyticsState.analysisYear = state.viewYear;
-        monthlyMetrics = {};
-        showAnalysisSkeleton();
-        setTimeout(() => renderAnalysis(), 180);
-    }
-    if (name === 'buku') {
-        showTransactionSkeleton();
-        setTimeout(() => renderBuku(), 180);
-    }
     document.getElementById('view-' + name).classList.add('active');
     el.classList.add('active');
     closeAllModals();
+
+    // Push ke history saat pindah view (kecuali buku = base)
+    if (name === 'buku') {
+        history.replaceState({ layer: 'view', view: 'buku' }, '');
+    } else if (prevView !== name) {
+        history.pushState({ layer: 'view', view: name }, '');
+    }
+
     // FAB hanya tampil di view Buku
     const fab = document.getElementById('fab-add-trx');
     if (fab) fab.classList.toggle('visible', name === 'buku');
-}
 
-/* ===== BACK BUTTON / HISTORY STACK ===== */
-const _modalStack = [];
-
-function _pushHistory(id) {
-    history.pushState({ modal: id }, '');
-    _modalStack.push(id);
-}
-
-function _closeTopModal() {
-    // Tutup modal/sheet yang paling atas
-    const allModals = [
-        ...document.querySelectorAll('.modal-fs.active, .bottom-sheet.active'),
-        document.getElementById('wallet-modal-fs')?.classList.contains('active') ? document.getElementById('wallet-modal-fs') : null,
-        document.getElementById('main-overlay')?.classList.contains('active') ? document.getElementById('main-overlay') : null,
-        document.getElementById('date-dialog-overlay')?.classList.contains('active') ? document.getElementById('date-dialog-overlay') : null,
-    ].filter(Boolean);
-
-    if (allModals.length === 0) return;
-
-    // Tutup yang teratas
-    const top = allModals[allModals.length - 1];
-    top.classList.remove('active');
-
-    // Kalau tidak ada modal lain yang aktif, tutup overlay juga
-    const remaining = document.querySelectorAll('.modal-fs.active, .bottom-sheet.active');
-    const walletActive = document.getElementById('wallet-modal-fs')?.classList.contains('active');
-    if (remaining.length === 0 && !walletActive) {
-        document.getElementById('main-overlay')?.classList.remove('active');
-        document.getElementById('date-dialog-overlay')?.classList.remove('active');
-        closeAccountPicker();
-        closeCatNameModal();
+    // Sync analisis ke bulan buku saat pertama buka
+    if (name === 'analisis') {
+        analyticsState.analysisMonth = state.viewMonth;
+        analyticsState.analysisYear  = state.viewYear;
+        invalidateMetricsCache();
     }
-    if (_modalStack.length > 0) _modalStack.pop();
+
+    // Lazy render: hanya render jika dirty, tampilkan skeleton dulu
+    if (_dirty[name]) {
+        if (name === 'buku')     showTransactionSkeleton();
+        if (name === 'analisis') showAnalysisSkeleton();
+        setTimeout(() => _renderView(name), 180);
+    }
+}
+
+
+/* ===========================
+   BACK BUTTON — HISTORY STACK
+   
+   Strategi:
+   - Setiap buka modal/sheet/view non-base → pushState
+   - popstate → tutup layer teratas, TIDAK pushState ulang
+     (biarkan browser kelola stack secara alami)
+   - Base state = view buku, tidak ada modal
+=========================== */
+
+/* Layer priority (dari bawah ke atas):
+   base → view → modal-fs → bottom-sheet → overlay-dialog */
+
+const NAV_VIEWS = ['buku', 'dompet', 'analisis', 'lebih'];
+
+function _getOpenLayers() {
+    const layers = [];
+
+    // Full-screen modal-fs (highest priority)
+    document.querySelectorAll('.modal-fs.active').forEach(el => layers.push({ el, type: 'modal-fs' }));
+
+    // Wallet full screen
+    const wm = document.getElementById('wallet-modal-fs');
+    if (wm?.classList.contains('active')) layers.push({ el: wm, type: 'modal-fs' });
+
+    // Cat/member sub-modals dalam modal-fs
+    const catCreate = document.getElementById('cat-create-modal');
+    if (catCreate?.classList.contains('active')) layers.push({ el: catCreate, type: 'sub-modal' });
+
+    const memberCreate = document.getElementById('member-create-modal');
+    if (memberCreate?.classList.contains('active')) layers.push({ el: memberCreate, type: 'sub-modal' });
+
+    // Bottom sheets
+    document.querySelectorAll('.bottom-sheet.active').forEach(el => layers.push({ el, type: 'sheet' }));
+
+    // Date dialog
+    const dd = document.getElementById('date-dialog-overlay');
+    if (dd?.classList.contains('active')) layers.push({ el: dd, type: 'dialog' });
+
+    // Account picker popup
+    const ap = document.getElementById('account-picker-popup');
+    if (ap?.classList.contains('active')) layers.push({ el: ap, type: 'popup' });
+
+    // Nota popup
+    const nota = document.getElementById('nota-input-popup');
+    if (nota?.classList.contains('active')) layers.push({ el: nota, type: 'popup' });
+
+    return layers;
+}
+
+function _closeTopLayer() {
+    const layers = _getOpenLayers();
+    if (layers.length === 0) return false;
+
+    const top = layers[layers.length - 1];
+
+    switch (top.type) {
+        case 'sub-modal':
+            top.el.classList.remove('active');
+            break;
+        case 'dialog':
+            top.el.classList.remove('active');
+            break;
+        case 'popup':
+            top.el.classList.remove('active');
+            break;
+        case 'sheet':
+            top.el.classList.remove('active');
+            // Tutup overlay jika tidak ada modal lain
+            if (_getOpenLayers().filter(l => l.type !== 'sheet').length === 0) {
+                document.getElementById('main-overlay')?.classList.remove('active');
+            }
+            break;
+        case 'modal-fs':
+            top.el.classList.remove('active');
+            // Tutup overlay jika tidak ada layer lain
+            if (_getOpenLayers().length === 0) {
+                document.getElementById('main-overlay')?.classList.remove('active');
+            }
+            break;
+    }
+
+    // Tutup member/cat modal juga jika parent ditutup
+    if (top.el.id === 'modal-add-transaction') {
+        document.getElementById('cat-name-modal')?.classList.remove('active');
+        document.getElementById('cat-create-modal')?.classList.remove('active');
+        document.getElementById('member-modal')?.classList.remove('active');
+        document.getElementById('member-create-modal')?.classList.remove('active');
+        closeAccountPicker();
+        document.getElementById('nota-input-popup')?.classList.remove('active');
+        document.getElementById('date-dialog-overlay')?.classList.remove('active');
+    }
+
+    return true;
+}
+
+// Ganti semua view non-base → push state
+function _pushViewState(viewName) {
+    if (viewName === 'buku') {
+        history.replaceState({ layer: 'view', view: 'buku' }, '');
+    } else {
+        history.pushState({ layer: 'view', view: viewName }, '');
+    }
+}
+
+// Setiap modal/sheet buka → push state
+function _pushModalState(id) {
+    history.pushState({ layer: 'modal', id }, '');
 }
 
 window.addEventListener('popstate', (e) => {
-    const allActive = [
-        ...document.querySelectorAll('.modal-fs.active, .bottom-sheet.active'),
-        document.getElementById('wallet-modal-fs')?.classList.contains('active') ? document.getElementById('wallet-modal-fs') : null,
-    ].filter(Boolean);
+    const state = e.state;
 
-    if (allActive.length > 0) {
-        // Ada modal terbuka — tutup satu, push state lagi supaya app tidak exit
-        _closeTopModal();
-        history.pushState({ modal: 'app' }, '');
+    // Ada layer modal terbuka → tutup satu
+    if (_getOpenLayers().length > 0) {
+        _closeTopLayer();
+        return;
     }
+
+    // Tidak ada modal — navigasi antar view
+    if (state?.layer === 'view' && state.view) {
+        const targetView = state.view;
+        if (targetView !== _activeView) {
+            // Pindah ke view di stack (tanpa push state baru)
+            _activeView = targetView;
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('view-' + targetView)?.classList.add('active');
+            // Update nav item active
+            const navItems = document.querySelectorAll('.nav-item');
+            const viewOrder = ['buku', 'dompet', 'analisis', 'lebih'];
+            const idx = viewOrder.indexOf(targetView);
+            if (navItems[idx]) navItems[idx].classList.add('active');
+            // Render jika dirty
+            if (_dirty[targetView]) _renderView(targetView);
+            const fab = document.getElementById('fab-add-trx');
+            if (fab) fab.classList.toggle('visible', targetView === 'buku');
+        }
+        return;
+    }
+
+    // state null / base → kita di view buku, biarkan browser exit app
+    // Tidak perlu handle — browser akan minimize/exit secara natural
 });
 
-// Push initial state supaya back pertama tidak langsung keluar app
-history.replaceState({ modal: 'base' }, '');
+// Init: set base state
+history.replaceState({ layer: 'view', view: 'buku' }, '');
 
 function closeAllModals() {
     document.querySelectorAll('.bottom-sheet, .modal-fs').forEach(m => m.classList.remove('active'));
@@ -4746,13 +5060,15 @@ function closeAllModals() {
     closeMemberModal();
     const wm = document.getElementById('wallet-modal-fs');
     if (wm) wm.classList.remove('active');
-    _modalStack.length = 0;
+    // Bersihkan history stack modal — kembali ke state view aktif
+    history.replaceState({ layer: 'view', view: _activeView }, '');
 }
 
 function openOverlay() {
     document.getElementById('main-overlay').classList.add('active');
-    _pushHistory('overlay');
+    _pushModalState('overlay');
 }
+
 
 function showNotification(msg, type='success') {
     const el = document.createElement('div');
@@ -4764,6 +5080,7 @@ function showNotification(msg, type='success') {
 
 function toggleVisibility() {
     state.visibility = !state.visibility;
+    markDirty();
     renderApp();
 }
 
@@ -4773,7 +5090,7 @@ function toggleVisibility() {
 function openBookSheet() {
     let html = '';
     db.books.forEach(b => {
-        const count = db.transactions.filter(t => t.bookId === b.id).length;
+        const count = getTrxForBook(b.id).length;
         const active = b.id === state.currentBookId;
         html += `<div class="book-item" onclick="selectBook(${b.id})">
             <div class="book-item-left">
@@ -4806,6 +5123,8 @@ function selectBook(id) {
     }
     
     closeAllModals();
+    invalidateMetricsCache();
+    markDirty();
     renderApp();
 }
 
@@ -4820,7 +5139,7 @@ function openAddBookModal() {
     };
     
     db.books.push(newBook);
-    saveToLS(); monthlyMetrics = {};
+    markSave(); invalidateMetricsCache(); markDirty();
     closeAllModals();
     renderApp();
     showNotification(`Buku "${name}" ditambahkan`);
@@ -4910,8 +5229,10 @@ function deleteFromDetail() {
     if (!t) return;
     if (!confirm('Hapus transaksi ini?')) return;
     reverseAccountBalance(t);
+    _indexRemove(t);
     db.transactions = db.transactions.filter(x => x.id !== id);
-    saveToLS(); monthlyMetrics = {};
+    invalidateMetricsCache(t);
+    markDirty(); markSave();
     closeDetailModal();
     renderApp();
     showNotification('Transaksi dihapus', 'warning');
@@ -5036,17 +5357,16 @@ function openWalletModal() {
     if (titleEl) titleEl.textContent = acc?.name || 'Pilih Akun';
     renderWalletModalList();
     document.getElementById('wallet-modal-fs').classList.add('active');
+    _pushModalState('wallet-modal-fs');
 }
-/* ✅ FUNGSI BARU - Buka wallet modal untuk transfer */
 function openWalletModalTransfer(target) {
-    state.accPickerTarget = target;  /* Set target (from/to) */
-    
+    state.accPickerTarget = target;
     const titleText = target === 'to' ? 'Pilih Akun Tujuan' : 'Pilih Akun Asal';
     const titleEl = document.getElementById('wallet-modal-acc-name');
     if (titleEl) titleEl.textContent = titleText;
-    
     renderWalletModalList();
     document.getElementById('wallet-modal-fs').classList.add('active');
+    _pushModalState('wallet-modal-fs');
 }
 function closeWalletModal() {
     document.getElementById('wallet-modal-fs').classList.remove('active');
@@ -5201,6 +5521,7 @@ function openDatePicker() {
     _tempDate = state.trxDate;
     document.getElementById('trx-date-input').value = state.trxDate;
     document.getElementById('date-dialog-overlay').classList.add('active');
+    _pushModalState('date-picker');
 }
 function closeDatePicker() {
     // revert to previous date
@@ -5261,6 +5582,7 @@ function openAccountPicker(target) {
     });
     document.getElementById('account-picker-list').innerHTML = html;
     document.getElementById('account-picker-popup').classList.add('active');
+    _pushModalState('account-picker');
 }
 
 function selectAccountPicker(id) {
@@ -5345,7 +5667,7 @@ function filterCatIcons(val) {
 function renderCatListModal() {
     const type = state.trxType === 'in' ? 'income' : 'expense';
     const cats = db.categories.filter(c => c.type === type || c.type === 'both');
-    const title = type === 'in' ? 'Pemasukan Kategori' : 'Pengeluaran Kategori';
+    const title = type === 'in' ? 'PemasukanKategori' : 'PengeluaranKategori';
     document.getElementById('cat-list-modal-title').textContent = title;
     const scroll = document.getElementById('cat-list-scroll');
     if (!scroll) return;
@@ -5503,7 +5825,7 @@ function initCatDragDrop(container, type) {
         const affected = new Set(reordered.map(c => c.id));
         const rest = db.categories.filter(c => !affected.has(c.id));
         db.categories = [...reordered, ...rest];
-        saveToLS();
+        markSave();
 
         dragging = null;
         draggingId = null;
@@ -5530,6 +5852,7 @@ function openCatNameModal() {
     closeBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
     renderCatListModal();
     document.getElementById('cat-name-modal').classList.add('active');
+    _pushModalState('cat-name-modal');
 }
 function closeCatNameModal() {
     catModalMode = 'select';
@@ -5548,6 +5871,7 @@ function openCatCreateModal() {
     if (searchEl) searchEl.value = '';
     renderCatIconGrid('');
     document.getElementById('cat-create-modal').classList.add('active');
+    _pushModalState('cat-create-modal');
     setTimeout(() => document.getElementById('new-cat-name')?.focus(), 350);
 }
 function closeCatCreateModal() {
@@ -5571,7 +5895,7 @@ function saveNewCategory() {
             const type = catManagerTab === 'income' ? 'income' : 'expense';
             db.categories.push({ id: generateId(), name, emoji, type });
         }
-        saveToLS(); monthlyMetrics = {};
+        markSave(); invalidateMetricsCache(); markDirty();
         closeCatCreateModal();
         renderCatListForManager(catManagerTab);
         renderLebih();
@@ -5584,7 +5908,7 @@ function saveNewCategory() {
     const newCat = { id: generateId(), name, emoji, type };
     db.categories.push(newCat);
     state.trxCategoryId = newCat.id;
-    saveToLS(); monthlyMetrics = {};
+    markSave(); invalidateMetricsCache(); markDirty();
     closeCatCreateModal();
     closeCatNameModal();
     renderCatGrid();
@@ -5616,6 +5940,7 @@ function openMemberPicker() {
     switchMemberMode('select');
     renderMemberList();
     document.getElementById('member-modal').classList.add('active');
+    _pushModalState('member-modal');
 }
 
 function closeMemberModal() {
@@ -5698,6 +6023,7 @@ function openMemberCreate() {
     document.getElementById('member-delete-wrap').style.display = 'none';
     renderMemberEmojiGrid();
     document.getElementById('member-create-modal').classList.add('active');
+    _pushModalState('member-create-modal');
     setTimeout(() => document.getElementById('new-member-name')?.focus(), 300);
 }
 
@@ -5712,6 +6038,7 @@ function openMemberEdit(id) {
     document.getElementById('member-delete-wrap').style.display = m.id === 'm1' ? 'none' : 'block';
     renderMemberEmojiGrid();
     document.getElementById('member-create-modal').classList.add('active');
+    _pushModalState('member-create-modal');
 }
 
 function closeMemberCreate() {
@@ -5747,7 +6074,7 @@ function saveMember() {
         db.members.push(newM);
         showNotification(`Anggota "${name}" ditambahkan`);
     }
-    saveToLS();
+    markSave();
     closeMemberCreate();
     renderMemberList();
 }
@@ -5756,7 +6083,7 @@ function deleteMember() {
     if (!editingMemberId || editingMemberId === 'm1') return;
     db.members = db.members.filter(m => m.id !== editingMemberId);
     if (state.trxMemberId === editingMemberId) state.trxMemberId = 'm1';
-    saveToLS();
+    markSave();
     closeMemberCreate();
     renderMemberList();
     showNotification('Anggota dihapus');
@@ -5870,7 +6197,7 @@ function initMemberDragDrop(container) {
 
         // Persist
         db.members = orderedIds.map(id => db.members.find(m => m.id === id)).filter(Boolean);
-        saveToLS();
+        markSave();
 
         dragging = null; draggingId = null; orderedIds = []; origIndexMap = {};
     }
@@ -5912,15 +6239,18 @@ function saveTrxFromKeyboard() {
         }
         db.transactions.unshift(inTrx);
         db.transactions.unshift(outTrx);
+        _indexAdd(outTrx);
+        _indexAdd(inTrx);
         applyAccountBalance(outTrx);
         applyAccountBalance(inTrx);
 
         // Arahkan view ke bulan transaksi
         const transferDateObj = new Date(state.trxDate + 'T00:00:00');
         state.viewMonth = transferDateObj.getMonth();
-        state.viewYear = transferDateObj.getFullYear();
+        state.viewYear  = transferDateObj.getFullYear();
 
-        saveToLS(); monthlyMetrics = {}; closeAllModals(); renderApp();
+        invalidateMetricsCache(outTrx);
+        markDirty(); markSave(); closeAllModals(); renderApp();
         showNotification('Transfer berhasil');
         return;
     }
@@ -5945,12 +6275,19 @@ function saveTrxFromKeyboard() {
     if (state.editingTrxId) {
         const idx = db.transactions.findIndex(t => t.id === state.editingTrxId);
         if (idx > -1) {
-            reverseAccountBalance(db.transactions[idx]);
+            const oldTrx = db.transactions[idx];
+            _indexRemove(oldTrx);
+            reverseAccountBalance(oldTrx);
             db.transactions[idx] = newTrx;
+            _indexAdd(newTrx);
+            invalidateMetricsCache(oldTrx);
+            invalidateMetricsCache(newTrx);
             showNotification('Transaksi diperbarui');
         }
     } else {
         db.transactions.unshift(newTrx);
+        _indexAdd(newTrx);
+        invalidateMetricsCache(newTrx);
         showNotification('Transaksi ditambahkan');
     }
     applyAccountBalance(newTrx);
@@ -5958,9 +6295,9 @@ function saveTrxFromKeyboard() {
     // Arahkan view ke bulan transaksi yang disimpan agar langsung terlihat
     const trxDateObj = new Date(newTrx.date + 'T00:00:00');
     state.viewMonth = trxDateObj.getMonth();
-    state.viewYear = trxDateObj.getFullYear();
+    state.viewYear  = trxDateObj.getFullYear();
 
-    saveToLS(); monthlyMetrics = {}; closeAllModals(); renderApp();
+    markDirty(); markSave(); closeAllModals(); renderApp();
 }
 
 function saveAndNext() {
@@ -6110,7 +6447,7 @@ function saveAccountNew() {
                 book.accountIds = book.accountIds.filter(id => id !== state.editingAccountId);
             }
         }
-        saveToLS(); monthlyMetrics = {}; closeAllModals(); renderApp();
+        markSave(); invalidateMetricsCache(); markDirty(); closeAllModals(); renderApp();
         showNotification(`Akun "${name}" diperbarui`);
     } else {
         // Add mode
@@ -6120,7 +6457,7 @@ function saveAccountNew() {
         if (book && useInBook && !book.accountIds.includes(newAcc.id)) {
             book.accountIds.push(newAcc.id);
         }
-        saveToLS(); monthlyMetrics = {}; closeAllModals(); renderApp();
+        markSave(); invalidateMetricsCache(); markDirty(); closeAllModals(); renderApp();
         showNotification(`Akun "${name}" berhasil ditambahkan`);
     }
 }
@@ -6138,7 +6475,7 @@ function deleteAccountFromModal() {
         }
     });
     
-    saveToLS(); monthlyMetrics = {};
+    markSave(); invalidateMetricsCache(); markDirty();
     closeAllModals();
     renderApp();
     showNotification('Akun dihapus', 'warning');
@@ -6160,7 +6497,8 @@ function saveAccount() {
         currentBook.accountIds.push(newAccountId);
     }
     
-    saveToLS(); 
+    markSave();
+    markDirty();
     closeAllModals(); 
     renderApp();
     showNotification(`Akun "${name}" ditambahkan`);
@@ -6198,8 +6536,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            // Search transactions
-            const bookTrx = db.transactions.filter(t => t.bookId === state.currentBookId);
+            // Search transactions — pakai index per buku
+            const bookTrx = getTrxForBook(state.currentBookId);
             const results = bookTrx.filter(t => 
                 t.title.toLowerCase().includes(query) ||
                 getCategory(t.category_id)?.name.toLowerCase().includes(query) ||
@@ -6238,7 +6576,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('search-input').addEventListener('input', e => {
         const q = e.target.value.toLowerCase().trim();
         if (!q) { renderSearchResults([]); return; }
-        const results = db.transactions.filter(t => {
+        const bookTrx = getTrxForBook(state.currentBookId);
+        const results = bookTrx.filter(t => {
             const cat = getCategory(t.category_id);
             return t.title.toLowerCase().includes(q) || cat?.name.toLowerCase().includes(q) || t.date.includes(q);
         });
@@ -6368,6 +6707,8 @@ function importBackupJSON(event) {
             state.currentBookId = db.books[0]?.id || 1;
         }
 
+        rebuildIndex();
+        markDirty();
         renderApp();
         showNotification(`✅ Restore berhasil — ${jumlahTrx} transaksi dimuat`);
     };
@@ -6377,7 +6718,6 @@ function importBackupJSON(event) {
 function openCategoryManager() {
     catModalMode = 'manager';
     catManagerTab = 'expense';
-    // Tampilkan tab pills, ganti judul, ganti tombol close jadi back arrow
     document.getElementById('cat-modal-tabs').style.display = 'flex';
     document.getElementById('cat-modal-tabs').style.flexDirection = 'column';
     document.getElementById('cat-list-modal-title').textContent = 'Kategori';
@@ -6385,6 +6725,7 @@ function openCategoryManager() {
     closeBtn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>`;
     renderCatListForManager('expense');
     document.getElementById('cat-name-modal').classList.add('active');
+    _pushModalState('cat-name-modal');
 }
 
 function switchCatManagerTab(type) {
@@ -6418,10 +6759,8 @@ function renderCatListForManager(type) {
 }
 
 function openCatEditFromManager(id) {
-    // Buka cat create modal dalam mode edit
     const cat = db.categories.find(c => String(c.id) === String(id));
     if (!cat) return;
-    // Reuse openCatCreateModal dengan pre-fill
     state._editingCatId = id;
     document.getElementById('new-cat-name').value = cat.name;
     catCreateSelectedEmoji = cat.emoji || '📌';
@@ -6430,6 +6769,7 @@ function openCatEditFromManager(id) {
     if (searchEl) searchEl.value = '';
     renderCatIconGrid('');
     document.getElementById('cat-create-modal').classList.add('active');
+    _pushModalState('cat-create-modal');
 }
 
 /* ===========================
@@ -6473,17 +6813,9 @@ function renderAccountDetail() {
     document.getElementById('acc-detail-balance').textContent = formatCurrency(acc.balance);
     document.getElementById('acc-detail-currency').textContent = 'IDR';
     
-    // Hitung income/expense bulan ini
-    const bookTrx = db.transactions.filter(t => 
-        t.bookId === state.currentBookId && 
-        t.account_id === acc.id
-    );
-    
-    const monthTrx = bookTrx.filter(t => {
-        const d = new Date(t.date);
-        return d.getFullYear() === accountDetailState.detailYear && 
-               d.getMonth() === accountDetailState.detailMonth;
-    });
+    // Hitung income/expense bulan ini — pakai index
+    const monthTrx = getTrxForMonth(state.currentBookId, accountDetailState.detailYear, accountDetailState.detailMonth)
+        .filter(t => t.account_id === acc.id);
     
     const income = monthTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
     const expense = monthTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
@@ -6517,26 +6849,19 @@ function renderAccDetailChart() {
     const acc = getAccount(accountDetailState.accountId);
     if (!acc) return;
     
-    const bookTrx = db.transactions.filter(t => 
-        t.bookId === state.currentBookId && 
-        t.account_id === acc.id
-    ).sort((a,b) => a.date.localeCompare(b.date));
-    
     const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
     const months = [];
     const balances = [];
     
-    // Build 6 months data centered on selected month
+    // Build 6 months data centered on selected month — pakai index O(1) per bulan
     for (let i = 5; i >= 0; i--) {
         let m = accountDetailState.detailMonth - i;
         let y = accountDetailState.detailYear;
         while (m < 0) { m += 12; y--; }
         while (m > 11) { m -= 12; y++; }
         
-        const monthTrx = bookTrx.filter(t => {
-            const td = new Date(t.date);
-            return td.getFullYear() === y && td.getMonth() === m;
-        });
+        const monthTrx = getTrxForMonth(state.currentBookId, y, m)
+            .filter(t => t.account_id === acc.id);
         
         const inc = monthTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
         const exp = monthTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
@@ -6618,13 +6943,9 @@ function renderAccDetailTransactions() {
     const acc = getAccount(accountDetailState.accountId);
     if (!acc) return;
     
-    const monthTrx = db.transactions.filter(t => {
-        if (t.bookId !== state.currentBookId) return false;
-        if (t.account_id !== acc.id) return false;
-        const d = new Date(t.date);
-        return d.getFullYear() === accountDetailState.detailYear && 
-               d.getMonth() === accountDetailState.detailMonth;
-    }).sort((a,b) => b.date.localeCompare(a.date));
+    const monthTrx = getTrxForMonth(state.currentBookId, accountDetailState.detailYear, accountDetailState.detailMonth)
+        .filter(t => t.account_id === acc.id)
+        .sort((a,b) => b.date.localeCompare(a.date));
     
     const container = document.getElementById('acc-detail-transactions');
     
@@ -6700,6 +7021,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { passive: true });
     }
 });
+
+/* ===========================
+   BLOCK BROWSER SWIPE-BACK / OVERSCROLL
+   Mencegah gesture horizontal (swipe kiri/kanan) yang memicu
+   back/forward navigation atau menarik overlay browser.
+=========================== */
+(function blockHorizontalSwipe() {
+    let _startX = 0, _startY = 0;
+
+    document.addEventListener('touchstart', e => {
+        _startX = e.touches[0].clientX;
+        _startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+        const dx = Math.abs(e.touches[0].clientX - _startX);
+        const dy = Math.abs(e.touches[0].clientY - _startY);
+
+        // Jika gesture lebih horizontal dari vertikal → block
+        if (dx > dy && dx > 8) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    // Cegah elastic bounce iOS saat scroll sudah di ujung atas/bawah
+    document.getElementById('app').addEventListener('touchmove', e => {
+        const target = e.target.closest('.view, .form-layout, .modal-fs, .bottom-sheet, .wallet-modal-list, .cat-list-scroll, .member-list-scroll, .modal-cat-trx-scroll');
+        if (!target) {
+            e.preventDefault();
+            return;
+        }
+        // Izinkan scroll vertikal normal di dalam scrollable container
+    }, { passive: false });
+})();
 </script>
 </body>
 </html>
