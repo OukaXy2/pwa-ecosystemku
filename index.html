@@ -552,6 +552,7 @@
 
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="/shared/ecosystem-db.js"></script>
 <script>
 // ── Helpers ──────────────────────────────────────────────────
@@ -733,7 +734,7 @@ async function loadSnapshot() {
   }
 }
 
-// ── Backup ZIP ────────────────────────────────────────────────
+// ── Backup ZIP (JSZip) ────────────────────────────────────────
 async function exportZip() {
   const btn = document.getElementById('btn-export');
   btn.textContent = '⏳ Menyiapkan...';
@@ -742,31 +743,46 @@ async function exportZip() {
   try {
     await EcosystemDB.open();
 
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      version: 1,
-    };
+    const zip  = new JSZip();
+    const date = todayStr();
+    const meta = { exportedAt: new Date().toISOString(), version: 1 };
 
-    // Ambil semua domain
-    payload['daily-os'] = {
-      habits: await EcosystemDB.habits.getAll(),
-      todos:  await EcosystemDB.todos.getAll(),
-    };
-    payload['ideku']  = { ideas:   await EcosystemDB.ideas.getAll() };
-    payload['kronik'] = { entries: await EcosystemDB.journal.getAll() };
-    payload['cucimoney'] = {
-      db:            await EcosystemDB.kv.finances.get('db'),
-      budgets:       await EcosystemDB.kv.finances.get('budgets'),
-      masterBudgets: await EcosystemDB.kv.finances.get('masterBudgets'),
-    };
+    // ── Daily OS ──────────────────────────────────────────────
+    const habits = await EcosystemDB.habits.getAll();
+    const todos  = await EcosystemDB.todos.getAll();
+    zip.file('daily-os.json', JSON.stringify({
+      ...meta, habits, todos
+    }, null, 2));
 
-    // Buat file JSON per domain lalu ZIP manual (pakai multi-file download)
-    // Simple ZIP: gabung jadi satu JSON dulu, nanti bisa upgrade ke JSZip
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    // ── IdeKu ─────────────────────────────────────────────────
+    const ideas = await EcosystemDB.ideas.getAll();
+    zip.file('ideku.json', JSON.stringify({
+      ...meta, ideas
+    }, null, 2));
+
+    // ── Kronik ────────────────────────────────────────────────
+    const entries = await EcosystemDB.journal.getAll();
+    zip.file('kronik.json', JSON.stringify({
+      ...meta, entries
+    }, null, 2));
+
+    // ── CuciMoney+ ────────────────────────────────────────────
+    const finDb            = await EcosystemDB.kv.finances.get('db');
+    const finBudgets       = await EcosystemDB.kv.finances.get('budgets');
+    const finMasterBudgets = await EcosystemDB.kv.finances.get('masterBudgets');
+    zip.file('cucimoney.json', JSON.stringify({
+      ...meta,
+      db:            finDb            ?? {},
+      budgets:       finBudgets       ?? [],
+      masterBudgets: finMasterBudgets ?? [],
+    }, null, 2));
+
+    // ── Generate & download ───────────────────────────────────
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = `ecosystemku-backup-${todayStr()}.json`;
+    a.download = `ecosystemku-backup-${date}.zip`;
     a.click();
     URL.revokeObjectURL(url);
 
