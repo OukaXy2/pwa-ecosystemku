@@ -106,6 +106,103 @@
       margin-top: 4px;
     }
 
+    .header-actions {
+      display: flex;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .icon-btn:active { transform: scale(0.92); }
+    .icon-btn:hover  { background: var(--bg-card-2); }
+
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .sheet-overlay.active { opacity: 1; pointer-events: all; }
+
+    .sheet {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 100%;
+      max-width: 480px;
+      background: var(--bg-card);
+      border-radius: 20px 20px 0 0;
+      padding: 12px 20px calc(24px + env(safe-area-inset-bottom));
+      z-index: 101;
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .sheet.active { transform: translateX(-50%) translateY(0); }
+
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--text-3);
+      border-radius: 2px;
+      margin: 0 auto 20px;
+      opacity: 0.4;
+    }
+
+    .sheet-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .sheet-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s ease;
+    }
+    .sheet-item:last-child { border-bottom: none; }
+    .sheet-item:active { opacity: 0.6; }
+
+    .sheet-item-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--bg-card-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .sheet-item-title { font-size: 14px; font-weight: 500; color: var(--text); }
+    .sheet-item-sub   { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+    .sheet-item.danger .sheet-item-title { color: var(--red); }
+    .sheet-item.danger .sheet-item-icon  { background: rgba(239,68,68,0.1); }
+
     /* ── Section label ────────────────────────────────────────── */
     .section-label {
       font-size: 10px;
@@ -430,8 +527,42 @@
         <div class="greeting-main" id="greeting-main">Hai <em id="user-name"></em></div>
         <div class="header-date" id="header-date"></div>
       </div>
+      <div class="header-actions">
+        <div class="icon-btn" onclick="openSheet()" title="Pengaturan">⚙️</div>
+      </div>
     </div>
   </header>
+
+  <!-- BOTTOM SHEET -->
+  <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Pengaturan</div>
+
+    <div class="sheet-item" onclick="refreshApp()">
+      <div class="sheet-item-icon">🔄</div>
+      <div>
+        <div class="sheet-item-title">Refresh & Clear Cache</div>
+        <div class="sheet-item-sub">Hapus cache SW, cocok setelah deploy baru</div>
+      </div>
+    </div>
+
+    <div class="sheet-item" onclick="reloadData()">
+      <div class="sheet-item-icon">📡</div>
+      <div>
+        <div class="sheet-item-title">Muat ulang data</div>
+        <div class="sheet-item-sub">Refresh snapshot tanpa clear cache</div>
+      </div>
+    </div>
+
+    <div class="sheet-item danger" onclick="confirmClearData()">
+      <div class="sheet-item-icon">🗑️</div>
+      <div>
+        <div class="sheet-item-title">Hapus semua data lokal</div>
+        <div class="sheet-item-sub">Hapus ecosystem_db — tidak bisa dikembalikan</div>
+      </div>
+    </div>
+  </div>
 
   <!-- TODAY SNAPSHOT -->
   <div class="section-label delay-1">Hari ini</div>
@@ -750,19 +881,19 @@ async function exportZip() {
     // ── Daily OS ──────────────────────────────────────────────
     const habits = await EcosystemDB.habits.getAll();
     const todos  = await EcosystemDB.todos.getAll();
-    zip.file('daily-os.json', JSON.stringify({
+    zip.file(`daily-os-${date}.json`, JSON.stringify({
       ...meta, habits, todos
     }, null, 2));
 
     // ── IdeKu ─────────────────────────────────────────────────
     const ideas = await EcosystemDB.ideas.getAll();
-    zip.file('ideku.json', JSON.stringify({
+    zip.file(`ideku-${date}.json`, JSON.stringify({
       ...meta, ideas
     }, null, 2));
 
     // ── Kronik ────────────────────────────────────────────────
     const entries = await EcosystemDB.journal.getAll();
-    zip.file('kronik.json', JSON.stringify({
+    zip.file(`jurnal-${date}.json`, JSON.stringify({
       ...meta, entries
     }, null, 2));
 
@@ -770,7 +901,7 @@ async function exportZip() {
     const finDb            = await EcosystemDB.kv.finances.get('db');
     const finBudgets       = await EcosystemDB.kv.finances.get('budgets');
     const finMasterBudgets = await EcosystemDB.kv.finances.get('masterBudgets');
-    zip.file('cucimoney.json', JSON.stringify({
+    zip.file(`cucimoney-${date}.json`, JSON.stringify({
       ...meta,
       db:            finDb            ?? {},
       budgets:       finBudgets       ?? [],
@@ -811,6 +942,63 @@ function initBackupInfo() {
 
   if (diff >= 7) {
     el.style.color = 'var(--amber)';
+  }
+}
+
+// ── Bottom Sheet ─────────────────────────────────────────────
+function openSheet() {
+  document.getElementById('sheet-overlay').classList.add('active');
+  document.getElementById('sheet').classList.add('active');
+}
+function closeSheet() {
+  document.getElementById('sheet-overlay').classList.remove('active');
+  document.getElementById('sheet').classList.remove('active');
+}
+
+// ── Refresh & Clear Cache ─────────────────────────────────────
+async function refreshApp() {
+  closeSheet();
+  const btn = document.querySelector('.sheet-item');
+  try {
+    // Unregister semua Service Worker
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    // Hapus semua cache
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+    // Hard reload
+    location.reload(true);
+  } catch(e) {
+    alert('Gagal clear cache: ' + e.message);
+  }
+}
+
+// ── Reload data snapshot ──────────────────────────────────────
+function reloadData() {
+  closeSheet();
+  loadSnapshot();
+}
+
+// ── Hapus semua data lokal ────────────────────────────────────
+async function confirmClearData() {
+  closeSheet();
+  const ok = confirm('⚠️ Yakin mau hapus semua data ecosystem_db?\nData yang belum di-backup akan hilang permanen.');
+  if (!ok) return;
+  try {
+    await EcosystemDB.open();
+    await EcosystemDB.clear('ideas');
+    await EcosystemDB.clear('habits');
+    await EcosystemDB.clear('todos');
+    await EcosystemDB.clear('journal_entries');
+    await EcosystemDB.clear('kv');
+    alert('Data berhasil dihapus.');
+    loadSnapshot();
+  } catch(e) {
+    alert('Gagal hapus data: ' + e.message);
   }
 }
 
