@@ -1,5 +1,4 @@
 {
-  "id": "/vault/",
   "name": "Vault – Secure Password Manager",
   "short_name": "Vault",
   "description": "Password manager terenkripsi AES-256",
