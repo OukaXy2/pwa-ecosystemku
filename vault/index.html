@@ -2567,6 +2567,13 @@ if('serviceWorker' in navigator){
 }
 
 // ===== ECOSYSTEM BACKUP LISTENER =====
+// Kirim sinyal READY ke parent saat sudah siap
+window.addEventListener('load', () => {
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'APP_READY', app: 'vault' }, '*');
+  }
+});
+
 // Menerima request backup dari dashboard (pwa-ecosystemku.vercel.app)
 // Data yang dikirim sudah terenkripsi — tidak ada decrypt di sini
 window.addEventListener('message', async (e) => {
