@@ -3422,43 +3422,14 @@ function getCatIcon(name) {
 /* ===========================
    STORAGE — IndexedDB
 =========================== */
-const IDB_NAME    = 'cucimoney';
-const IDB_VERSION = 1;
-let idb = null; // IDBDatabase instance
-
-function openIDB() {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open(IDB_NAME, IDB_VERSION);
-
-        req.onupgradeneeded = (e) => {
-            const d = e.target.result;
-            // store tunggal pakai key string
-            if (!d.objectStoreNames.contains('kv')) {
-                d.createObjectStore('kv');
-            }
-        };
-
-        req.onsuccess = (e) => { idb = e.target.result; resolve(idb); };
-        req.onerror   = (e) => reject(e.target.error);
-    });
+async function openIDB() {
+  return EcosystemDB.open();
 }
-
 function idbSet(key, value) {
-    return new Promise((resolve, reject) => {
-        const tx  = idb.transaction('kv', 'readwrite');
-        const req = tx.objectStore('kv').put(value, key);
-        req.onsuccess = () => resolve();
-        req.onerror   = (e) => reject(e.target.error);
-    });
+  return EcosystemDB.kv.finances.set(key, value);
 }
-
 function idbGet(key) {
-    return new Promise((resolve, reject) => {
-        const tx  = idb.transaction('kv', 'readonly');
-        const req = tx.objectStore('kv').get(key);
-        req.onsuccess = (e) => resolve(e.target.result);
-        req.onerror   = (e) => reject(e.target.error);
-    });
+  return EcosystemDB.kv.finances.get(key);
 }
 
 // Simpan db + budgets ke IDB (fire-and-forget, tidak blocking UI)
