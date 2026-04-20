@@ -3252,6 +3252,29 @@
 </script>
 
 <script>
+  document.addEventListener("DOMContentLoaded", async () => {
+
+  // 🔥 SIMPAN DATA
+  await window.sharedDB.saveData("transactions", {
+    amount: 12345,
+    type: "expense",
+    note: "test dari HP"
+  });
+
+  // 🔥 AMBIL DATA
+  const data = await window.sharedDB.getAllData("transactions");
+
+  // 🔥 TAMPILKAN DI LAYAR
+  const el = document.createElement("pre");
+  el.style.fontSize = "12px";
+  el.style.padding = "10px";
+  el.style.background = "#111";
+  el.style.color = "#0f0";
+  el.textContent = JSON.stringify(data, null, 2);
+
+  document.body.appendChild(el);
+});
+  
 /* ===========================
    DATA & STATE
 =========================== */
