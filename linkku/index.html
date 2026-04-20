@@ -1374,6 +1374,13 @@ if('serviceWorker' in navigator){
 }
 
 // ── ECOSYSTEM BACKUP LISTENER ──
+// Kirim sinyal READY ke parent saat sudah siap
+window.addEventListener('load', () => {
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'APP_READY', app: 'linkku' }, '*');
+  }
+});
+
 // Menerima request backup dari dashboard
 // Link private dikirim dalam bentuk terenkripsi (sama seperti exportData)
 window.addEventListener('message', async (e) => {
