@@ -3232,49 +3232,45 @@
     </div>
 
 </div>
-
 <script type="module">
-  import { saveData, getAllData } from "../shared/db.js";
+  import { saveData, getAllData } from "./shared/db.js";
+
+  // expose ke global
+  window.sharedDB = { saveData, getAllData };
 
   document.addEventListener("DOMContentLoaded", async () => {
+    const container = document.getElementById("app");
 
-    // ✅ test simpan
-    await saveData("transactions", {
-      amount: 10000,
-      type: "expense"
-    });
+    try {
+      // simpan data test
+      await saveData("transactions", {
+        amount: 10000,
+        type: "expense",
+        note: "test jalan"
+      });
 
-    // ✅ test ambil
-    const data = await getAllData("transactions");
+      // ambil data
+      const data = await getAllData("transactions");
 
-    console.log("DATA:", data);
+      // tampilkan
+      const el = document.createElement("pre");
+      el.style.fontSize = "12px";
+      el.style.padding = "10px";
+      el.style.background = "#111";
+      el.style.color = "#0f0";
+      el.textContent = JSON.stringify(data, null, 2);
+
+      container.appendChild(el);
+
+    } catch (err) {
+      const el = document.createElement("pre");
+      el.style.color = "red";
+      el.textContent = err.message;
+      container.appendChild(el);
+    }
   });
 </script>
-
 <script>
-  document.addEventListener("DOMContentLoaded", async () => {
-
-  // 🔥 SIMPAN DATA
-  await window.sharedDB.saveData("transactions", {
-    amount: 12345,
-    type: "expense",
-    note: "test dari HP"
-  });
-
-  // 🔥 AMBIL DATA
-  const data = await window.sharedDB.getAllData("transactions");
-
-  // 🔥 TAMPILKAN DI LAYAR
-  const el = document.createElement("pre");
-  el.style.fontSize = "12px";
-  el.style.padding = "10px";
-  el.style.background = "#111";
-  el.style.color = "#0f0";
-  el.textContent = JSON.stringify(data, null, 2);
-
-  document.body.appendChild(el);
-});
-  
 /* ===========================
    DATA & STATE
 =========================== */
