@@ -11,6 +11,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <title>CuciMoney+</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#ffffff">
     <style>
         :root {
             --primary: #00BFA5;
@@ -7026,6 +7028,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Izinkan scroll vertikal normal di dalam scrollable container
     }, { passive: false });
 })();
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
 </script>
 </body>
 </html>
