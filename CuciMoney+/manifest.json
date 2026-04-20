@@ -1,10 +1,10 @@
 {
-  "id": "/CuciMoney+/",
+  "id": "/cucimoney/",
   "name": "CuciMoney+",
   "short_name": "CuciMoney+",
   "description": "Manajemen keuangan pribadi & bisnis.",
-  "start_url": "/CuciMoney+/",
-  "scope": "/CuciMoney+/",
+  "start_url": "/cucimoney/",
+  "scope": "/cucimoney/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
