@@ -3,6 +3,7 @@ const ASSETS = [
   './app.html',
   './manifest.json',
   './icon.svg',
+  '/shared/ecosystem-db.js',
   'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap',
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
