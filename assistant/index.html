@@ -1356,7 +1356,7 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     const isMobile = W < 700;
 
     // Scale: tampilkan 80% tinggi canvas di desktop, lebih besar di mobile
-    const targetH = isMobile ? H * 2.15 : H * 0.88;
+    const targetH = isMobile ? H * 1.25 : H * 0.88;
     const scale   = targetH / (m.internalModel?.height || 800);
     m.scale.set(scale);
 
