@@ -1,15 +1,9 @@
-// ============================================
-// Kronik — Service Worker
-// ============================================
-
-const CACHE_NAME = 'kronik-v4';
+const CACHE_NAME = 'kronik-v5';
 const ASSETS = [
   './index.html',
   './manifest.json',
-  '/shared/ecosystem-db.js',
 ];
 
-// Install — cache assets
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
@@ -17,7 +11,6 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 
-// Activate — hapus cache lama
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -27,8 +20,11 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch — cache first, fallback ke network
 self.addEventListener('fetch', e => {
+  if (new URL(e.request.url).pathname.startsWith('/shared/')) {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
