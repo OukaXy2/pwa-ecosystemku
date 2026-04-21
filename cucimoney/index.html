@@ -3554,6 +3554,9 @@ function getCatIcon(name) {
    STORAGE — IndexedDB
 =========================== */
 async function openIDB() {
+  if (typeof EcosystemDB === 'undefined') {
+    throw new Error('EcosystemDB belum tersedia — pastikan /shared/ecosystem-db.js ter-load');
+  }
   return EcosystemDB.open();
 }
 function idbSet(key, value) {
