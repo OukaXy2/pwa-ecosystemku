@@ -473,6 +473,28 @@
   #send-btn:active { transform: scale(0.93); }
   #send-btn:disabled { opacity: 0.3; cursor: default; }
 
+  #mute-btn {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+  }
+
+  #mute-btn:hover  { border-color: var(--border-lit); color: var(--text-primary); }
+  #mute-btn.muted  {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
   .input-hint {
     font-size: 11px;
     color: var(--text-muted);
@@ -713,6 +735,7 @@
           rows="1"
           placeholder="Ketik pesan…"
         ></textarea>
+        <button id="mute-btn" title="Mute/unmute suara Liro">🔊</button>
         <button id="send-btn">↑</button>
       </div>
       <div class="input-hint">Enter untuk kirim · Shift+Enter baris baru</div>
@@ -900,6 +923,7 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
   const messagesEl    = document.getElementById('messages');
   const msgInput      = document.getElementById('msg-input');
   const sendBtn       = document.getElementById('send-btn');
+  const muteBtn       = document.getElementById('mute-btn');
   const chatToast     = document.getElementById('chat-toast');
 
   if (DEBUG) debugPanel.classList.add('show');
@@ -938,6 +962,7 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
   let analyser     = null;     // AnalyserNode untuk amplitude
   let fftBuf       = null;     // Uint8Array untuk getByteFrequencyData
   let isSpeaking   = false;    // sedang main audio TTS
+  let isMuted      = false;    // TTS di-mute user
   let currentSource = null;    // AudioBufferSourceNode aktif (untuk stop)
 
   /* ── PixiJS App ─────────────────────────────────────────────── */
@@ -1430,6 +1455,26 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
     });
 
     sendBtn.addEventListener('click', handleSend);
+
+    // Mute/unmute TTS
+    muteBtn.addEventListener('click', () => {
+      isMuted = !isMuted;
+      muteBtn.textContent = isMuted ? '🔇' : '🔊';
+      muteBtn.classList.toggle('muted', isMuted);
+      muteBtn.title = isMuted ? 'Suara mati — tap untuk nyalakan' : 'Mute suara Liro';
+
+      // Kalau sedang main audio, stop sekarang
+      if (isMuted && currentSource) {
+        try { currentSource.stop(); } catch (_) {}
+        currentSource = null;
+        isSpeaking    = false;
+        smoothMouth   = 0;
+        setCoreParam('ParamMouthOpenY', 0);
+        setCoreParam('ParamMouthForm',  0);
+        document.getElementById('model-tag').classList.remove('speaking');
+        statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+      }
+    });
   }
 
   /* ── Handle send ─────────────────────────────────────────────── */
@@ -1609,6 +1654,7 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
    */
   async function playTTS(text) {
     if (!text) return;
+    if (isMuted) return;   // ← skip kalau mute
 
     // Inisialisasi AudioContext (perlu user gesture — sudah terpenuhi via send button)
     ensureAudioCtx();
