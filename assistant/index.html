@@ -868,19 +868,56 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
       lines.push(`Ide aktif (${activeIdeas.length}): ${list}`);
     }
 
-    // Keuangan — ringkasan saldo kalau tersedia
+    // Keuangan — ringkasan lengkap dari CuciMoney+
     if (finances) {
       try {
-        const txs = Array.isArray(finances) ? finances
-                  : Array.isArray(finances.transactions) ? finances.transactions
+        const fmt = (n) => 'Rp ' + n.toLocaleString('id-ID');
+        const db  = finances;
+
+        // Transaksi — pemasukan & pengeluaran bulan ini
+        const txs = Array.isArray(db) ? db
+                  : Array.isArray(db.transactions) ? db.transactions
                   : null;
         if (txs && txs.length) {
-          const income  = txs.filter(t => t.direction === 'in'  || t.type === 'income'  || t.amount > 0)
-                            .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-          const expense = txs.filter(t => t.direction === 'out' || t.type === 'expense' || t.amount < 0)
-                            .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-          const fmt = (n) => 'Rp ' + n.toLocaleString('id-ID');
-          lines.push(`Keuangan: pemasukan ${fmt(income)}, pengeluaran ${fmt(expense)} (total ${txs.length} transaksi)`);
+          const now   = new Date();
+          const month = now.getMonth();
+          const year  = now.getFullYear();
+          const thisMo = txs.filter(t => {
+            const d = new Date(t.date || t.createdAt || 0);
+            return d.getMonth() === month && d.getFullYear() === year;
+          });
+          const allIncome  = txs.filter(t => t.direction === 'in'  || t.type === 'income'  || t.amount > 0)
+                               .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+          const allExpense = txs.filter(t => t.direction === 'out' || t.type === 'expense' || t.amount < 0)
+                               .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+          const moIncome   = thisMo.filter(t => t.direction === 'in'  || t.type === 'income'  || t.amount > 0)
+                               .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+          const moExpense  = thisMo.filter(t => t.direction === 'out' || t.type === 'expense' || t.amount < 0)
+                               .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+          lines.push(`Keuangan bulan ini: pemasukan ${fmt(moIncome)}, pengeluaran ${fmt(moExpense)} (dari total ${txs.length} transaksi semua waktu, total pemasukan ${fmt(allIncome)}, total pengeluaran ${fmt(allExpense)})`);
+        }
+
+        // Akun — saldo per akun
+        const accounts = Array.isArray(db.accounts) ? db.accounts : null;
+        if (accounts && accounts.length) {
+          const aktif = accounts.filter(a => !a.deleted && !a.archived);
+          if (aktif.length) {
+            const totalAset = aktif
+              .filter(a => a.type !== 'debt' && a.type !== 'hutang')
+              .reduce((s, a) => s + (a.balance || 0), 0);
+            const totalHutang = aktif
+              .filter(a => a.type === 'debt' || a.type === 'hutang')
+              .reduce((s, a) => s + (a.balance || 0), 0);
+            const asetBersih = totalAset - totalHutang;
+
+            const aksList = aktif
+              .filter(a => a.type !== 'debt' && a.type !== 'hutang')
+              .map(a => `${a.name || a.title || '?'} ${fmt(a.balance || 0)}`)
+              .join(', ');
+
+            lines.push(`Akun keuangan: ${aksList}`);
+            lines.push(`Aset bersih: ${fmt(asetBersih)}${totalHutang > 0 ? ` (aset ${fmt(totalAset)}, hutang ${fmt(totalHutang)})` : ''}`);
+          }
         }
       } catch (_) { /* skip kalau format tidak dikenali */ }
     }
