@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0d1117">
+<link rel="manifest" href="./manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>Assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -731,16 +732,12 @@
 </div>
 
 <!-- ── Scripts ────────────────────────────────────────────────── -->
-<!-- PIXI v6 (LTS — compatible dengan pixi-live2d-display v0.4) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
-
-<!--
-  pixi-live2d-display tidak ada di cdnjs.
-  Kita load dari jsDelivr (CDN NPM).
-  Urutan: cubism4 core → pixi-live2d-display bundle
--->
+<!-- Cubism 4 Core — harus load SEBELUM pixi dan pixi-live2d-display -->
 <script src="https://cdn.jsdelivr.net/npm/live2dcubismcore@5.0.0/live2dcubismcore.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"></script>
+<!-- PIXI v6 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
+<!-- pixi-live2d-display — pakai versi cubism4 bundle yang inject ke PIXI namespace -->
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/cubism4.min.js"></script>
 <script src="/shared/ecosystem-db.js"></script>
 
 <script>
@@ -1637,6 +1634,13 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
   }
 
 })();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
