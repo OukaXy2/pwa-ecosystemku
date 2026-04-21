@@ -848,11 +848,12 @@ async function loadSnapshot() {
       document.getElementById('sub-saldo').textContent = finDb.accounts.length + ' akun';
 
       // Pengeluaran hari ini
+      // CuciMoney+ pakai direction:'out' bukan type:'expense'
       const keluarHariIni = (finDb.transactions || [])
-        .filter(t => t.type === 'expense' && t.date === today)
+        .filter(t => (t.direction === 'out' || t.type === 'expense') && t.date === today)
         .reduce((s, t) => s + (t.amount || 0), 0);
       document.getElementById('val-keluar').textContent = formatRupiah(keluarHariIni);
-      document.getElementById('sub-keluar').textContent = keluarHariIni > 0 ? 'pengeluaran hari ini' : 'belum ada pengeluaran';
+      document.getElementById('sub-keluar').textContent = keluarHariIni > 0 ? 'hari ini' : 'belum ada pengeluaran';
     } else {
       document.getElementById('val-saldo').textContent = '—';
       document.getElementById('sub-saldo').textContent = 'buka CuciMoney+';
