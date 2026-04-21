@@ -885,11 +885,42 @@ Gunakan data ini sebagai konteks, bukan bacaan literal. Jangan sebutkan data sec
       lines.push(`Todo belum selesai (${openTodos.length}): ${list}`);
     }
 
-    // Ideas — tampilkan yang status 'Proses' atau 'Ide'
-    const activeIdeas = ideas.filter(i => i.status !== 'Selesai' && i.status !== 'Batal');
-    if (activeIdeas.length) {
-      const list = activeIdeas.slice(0, 6).map(i => `"${i.title || i.name || '?'}" (${i.status || '-'})`).join(', ');
-      lines.push(`Ide aktif (${activeIdeas.length}): ${list}`);
+    // Ideas & Wishlist — pisahkan berdasarkan type
+    const allIdeas    = ideas.filter(i => i.type === 'Idea' || (!i.type && i.status));
+    const allWishlist = ideas.filter(i => i.type === 'Wishlist');
+
+    // Ide — breakdown per status
+    if (allIdeas.length) {
+      const belum   = allIdeas.filter(i => i.status === 'Belum').length;
+      const proses  = allIdeas.filter(i => i.status === 'Proses').length;
+      const selesai = allIdeas.filter(i => i.status === 'Selesai').length;
+      const activeList = allIdeas
+        .filter(i => i.status === 'Proses')
+        .slice(0, 5)
+        .map(i => `"${i.title || i.name || '?'}"`)
+        .join(', ');
+      let ideaLine = `Ide (total ${allIdeas.length}): ${belum} belum, ${proses} proses, ${selesai} selesai`;
+      if (activeList) ideaLine += ` — sedang dikerjakan: ${activeList}`;
+      lines.push(ideaLine);
+    }
+
+    // Wishlist — semua item dengan harga dan status
+    if (allWishlist.length) {
+      const belum   = allWishlist.filter(i => i.status === 'Belum').length;
+      const proses  = allWishlist.filter(i => i.status === 'Proses').length;
+      const selesai = allWishlist.filter(i => i.status === 'Selesai').length;
+      const wishList = allWishlist
+        .filter(i => i.status !== 'Selesai')
+        .slice(0, 10)
+        .map(i => {
+          const price  = i.price ? ` Rp ${Number(i.price).toLocaleString('id-ID')}` : '';
+          const status = i.status ? ` [${i.status}]` : '';
+          return `"${i.title || i.name || '?'}"${price}${status}`;
+        })
+        .join(', ');
+      let wishLine = `Wishlist (total ${allWishlist.length}): ${belum} belum, ${proses} proses, ${selesai} selesai`;
+      if (wishList) wishLine += ` — daftar: ${wishList}`;
+      lines.push(wishLine);
     }
 
     // Keuangan — ringkasan lengkap dari CuciMoney+
