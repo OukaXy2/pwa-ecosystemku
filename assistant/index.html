@@ -665,9 +665,9 @@
     <!-- Error -->
     <div id="error-overlay">
       <div class="err-icon">⚠️</div>
-      <h3>Model tidak ditemukan</h3>
+      <h3>Model gagal dimuat</h3>
       <p>
-        Pastikan file model berada di path yang benar.<br>
+        Pastikan file model, texture, dan library Live2D berada di path yang benar.<br>
         File yang dibutuhkan: <code>LiveroiD_A-Y02.model3.json</code>
       </p>
       <p id="error-detail" style="color:var(--text-muted); font-size:11px; margin-top:8px;"></p>
@@ -751,7 +751,7 @@
 (async () => {
 
   /* ── Config ─────────────────────────────────────────────────── */
-  const MODEL_PATH  = './LiveroiD_A-Y02.model3.json';
+  const MODEL_PATH  = new URL('./LiveroiD_A-Y02.model3.json', window.location.href).href;
   const CHAT_API    = '/api/chat';
   const DEBUG       = false;  // ganti true untuk debug panel
 
@@ -769,6 +769,28 @@ Kepribadianmu:
 
 Kamu bisa membantu dengan banyak hal: ngobrol santai, brainstorming, nulis, coding, math, dll.
 Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
+
+  /* ── Helper: wait for Live2D library ─────────────────────────── */
+  function getLive2DModelClass() {
+    const live2d = window.PIXI?.live2d;
+    const Live2DModel = live2d?.Live2DModel;
+
+    if (!window.PIXI) {
+      throw new Error('PIXI gagal dimuat dari CDN');
+    }
+    if (!live2d) {
+      throw new Error('PIXI.live2d tidak tersedia. Cek script pixi-live2d-display.');
+    }
+    if (!Live2DModel || typeof Live2DModel.from !== 'function') {
+      throw new Error('Live2DModel.from tidak tersedia. Versi library tidak cocok atau belum siap.');
+    }
+
+    return Live2DModel;
+  }
+
+  function getModelPath() {
+    return MODEL_PATH;
+  }
 
   /* ── Ecosystem context loader ────────────────────────────────── */
 
@@ -952,10 +974,10 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
 
   /* ── Load model ─────────────────────────────────────────────── */
   try {
-    // pixi-live2d-display mengekspos PIXI.live2d namespace
-    const { Live2DModel } = PIXI.live2d;
+    const Live2DModel = getLive2DModelClass();
+    const resolvedModelPath = getModelPath();
 
-    model = await Live2DModel.from(MODEL_PATH, {
+    model = await Live2DModel.from(resolvedModelPath, {
       autoInteract: false,   // kita handle sendiri
     });
 
@@ -976,7 +998,7 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
     console.error('[Live2D] Load error:', err);
     loadingEl.classList.add('hidden');
     errorEl.classList.add('show');
-    errorDetail.textContent = err.message || String(err);
+    errorDetail.textContent = err?.message ? err.message : String(err);
   }
 
   /* ── Position model ─────────────────────────────────────────── */
