@@ -1076,20 +1076,48 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
   async function getModelPathWithTexture() {
     try {
       const blob = await loadTextureBlob();
-      if (!blob) return MODEL_PATH; // pakai file asli kalau belum ada
+      if (!blob) return MODEL_PATH;
 
-      // Buat object URL dari blob
+      // Buat object URL dari blob tekstur
       const texUrl = URL.createObjectURL(blob);
 
-      // Fetch model3.json, override texture path dengan object URL
-      const res  = await fetch(MODEL_PATH);
-      const json = await res.json();
+      // Fetch model3.json — coba dari cache dulu, lalu network
+      let json;
+      try {
+        const cached = await caches.match(MODEL_PATH);
+        const res = cached || await fetch(MODEL_PATH);
+        json = await res.json();
+      } catch(fetchErr) {
+        // Kalau fetch gagal total, hardcode struktur model3.json
+        console.warn('[Texture] Fetch model3.json gagal, pakai struktur hardcode:', fetchErr);
+        json = {
+          "Version": 3,
+          "FileReferences": {
+            "Moc": "LiveroiD_A-Y02.moc3",
+            "Textures": ["LiveroiD_A-Y02.8192/texture_00.png"],
+            "Physics": "LiveroiD_A-Y02.physics3.json",
+            "DisplayInfo": "LiveroiD_A-Y02.cdi3.json",
+            "Expressions": [
+              {"Name":"blush","File":"blush.exp3.json"},
+              {"Name":"browLink","File":"browLink.exp3.json"},
+              {"Name":"cool","File":"cool.exp3.json"},
+              {"Name":"worried","File":"worried.exp3.json"}
+            ]
+          },
+          "Groups": [
+            {"Target":"Parameter","Name":"EyeBlink","Ids":["ParamEyeROpen","ParamEyeLOpen","Param","Param14"]},
+            {"Target":"Parameter","Name":"LipSync","Ids":["ParamMouthOpenY","ParamMouthForm"]}
+          ],
+          "HitAreas": []
+        };
+      }
+
+      // Override texture dengan blob URL
       const patched = JSON.parse(JSON.stringify(json));
       if (patched.FileReferences?.Textures) {
         patched.FileReferences.Textures = [texUrl];
       }
 
-      // Buat blob URL dari JSON yang sudah di-patch
       const patchedBlob = new Blob([JSON.stringify(patched)], { type: 'application/json' });
       return URL.createObjectURL(patchedBlob);
     } catch(e) {
