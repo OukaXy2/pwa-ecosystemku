@@ -875,9 +875,9 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
                   : Array.isArray(finances.transactions) ? finances.transactions
                   : null;
         if (txs && txs.length) {
-          const income  = txs.filter(t => t.type === 'income'  || t.amount > 0)
+          const income  = txs.filter(t => t.direction === 'in'  || t.type === 'income'  || t.amount > 0)
                             .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
-          const expense = txs.filter(t => t.type === 'expense' || t.amount < 0)
+          const expense = txs.filter(t => t.direction === 'out' || t.type === 'expense' || t.amount < 0)
                             .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
           const fmt = (n) => 'Rp ' + n.toLocaleString('id-ID');
           lines.push(`Keuangan: pemasukan ${fmt(income)}, pengeluaran ${fmt(expense)} (total ${txs.length} transaksi)`);
