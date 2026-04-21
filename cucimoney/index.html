@@ -4010,6 +4010,9 @@ function renderBuku() {
         const d = new Date(date + 'T00:00:00');
         const dayLabel = d.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short'}).toUpperCase();
 
+        // Urutkan transaksi dalam group: terbaru di atas
+        items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
         let itemsHTML = items.map(t => {
             const cat  = getCategory(t.category_id);
             const icon = getCatIcon(cat?.name);
@@ -4923,7 +4926,7 @@ function openBudgetDetailSheet() {
         const barPct = spent > 0 ? Math.min(100, Math.round(amount / spent * 100)) : 0;
         const color = amount > 0 ? DONUT_COLORS[withSpend.indexOf(cat) % DONUT_COLORS.length] : 'var(--border-strong)';
         catsHtml += `
-        <div class="budget-detail-cat-row" onclick="openCategoryTransactions('${cat.name}','out');document.getElementById('sheet-budget-detail').classList.remove('active');">
+        <div class="budget-detail-cat-row" onclick="openCategoryTransactions('${cat.name}','out');_closeTopLayer();">
             <div class="budget-detail-cat-icon">${cat.emoji}</div>
             <div class="budget-detail-cat-info">
                 <div class="budget-detail-cat-name">${cat.name}</div>
@@ -5134,6 +5137,14 @@ function _getOpenLayers() {
     const wm = document.getElementById('wallet-modal-fs');
     if (wm?.classList.contains('active')) layers.push({ el: wm, type: 'modal-fs' });
 
+    // Cat name modal (pilih/kelola kategori) — layer di atas modal-add-transaction
+    const catNameModal = document.getElementById('cat-name-modal');
+    if (catNameModal?.classList.contains('active')) layers.push({ el: catNameModal, type: 'modal-fs' });
+
+    // Member modal (pilih anggota) — layer di atas modal-add-transaction
+    const memberModal = document.getElementById('member-modal');
+    if (memberModal?.classList.contains('active')) layers.push({ el: memberModal, type: 'modal-fs' });
+
     // Cat/member sub-modals dalam modal-fs
     const catCreate = document.getElementById('cat-create-modal');
     if (catCreate?.classList.contains('active')) layers.push({ el: catCreate, type: 'sub-modal' });
@@ -5200,6 +5211,16 @@ function _closeTopLayer() {
         closeAccountPicker();
         document.getElementById('nota-input-popup')?.classList.remove('active');
         document.getElementById('date-dialog-overlay')?.classList.remove('active');
+    }
+
+    // Saat cat-name-modal ditutup via back → tutup juga cat-create-modal jika terbuka
+    if (top.el.id === 'cat-name-modal') {
+        document.getElementById('cat-create-modal')?.classList.remove('active');
+    }
+
+    // Saat member-modal ditutup via back → tutup juga member-create-modal jika terbuka
+    if (top.el.id === 'member-modal') {
+        document.getElementById('member-create-modal')?.classList.remove('active');
     }
 
     // Tutup overlay jika yang ditutup adalah trx-detail
@@ -6499,7 +6520,8 @@ function saveTrxFromKeyboard() {
         category_id: catId,
         account_id: accountId,
         date: state.trxDate,
-        member_id: state.trxMemberId || 'm1'
+        member_id: state.trxMemberId || 'm1',
+        createdAt: state.editingTrxId ? (getTransaction(state.editingTrxId)?.createdAt || Date.now()) : Date.now()
     };
 
     if (state.editingTrxId) {
