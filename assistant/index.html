@@ -586,8 +586,8 @@
       order: 1;
       flex: none;
       width: 100%;
-      height: 55dvh;   /* default lebih besar */
-      min-height: 35dvh;
+      height: 42dvh;   /* default, JS akan override via style */
+      min-height: 120px;
       max-height: 80dvh;
     }
 
@@ -644,42 +644,11 @@
     }
 
     #expression-bar {
-      padding: 0 12px;
+      padding: 5px 12px;
       gap: 5px;
       flex-shrink: 0;
-      max-height: 0;
-      overflow: hidden;
-      border-top: none;
-      border-bottom: none;
-      transition: max-height 0.2s ease, padding 0.2s ease;
-    }
-    #expression-bar.open {
-      max-height: 44px;
-      padding: 5px 12px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
     }
     .expr-pill { padding: 3px 9px; font-size: 11px; }
-
-    /* Tombol toggle expression bar */
-    #expr-toggle {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px 3px 12px;
-      font-size: 11px;
-      color: var(--text-muted);
-      background: none;
-      border: none;
-      border-top: 1px solid var(--border);
-      width: 100%;
-      cursor: pointer;
-      font-family: var(--font-body);
-      letter-spacing: 0.02em;
-      flex-shrink: 0;
-    }
-    #expr-toggle .toggle-arrow { font-size: 9px; margin-left: auto; transition: transform 0.2s; }
-    #expr-toggle.open .toggle-arrow { transform: rotate(180deg); }
 
     #input-area {
       padding: 6px 12px calc(8px + env(safe-area-inset-bottom)) 12px;
@@ -687,9 +656,7 @@
       flex-shrink: 0;
     }
     #msg-input  { font-size: 16px; min-height: 36px; padding: 8px 12px; }
-    #send-btn   { width: 34px; height: 34px; font-size: 14px; flex-shrink: 0; }
-    #mute-btn   { width: 34px; height: 34px; font-size: 14px; flex-shrink: 0; }
-    #apps-btn   { width: 34px; height: 34px; font-size: 14px; flex-shrink: 0; }
+    #send-btn   { width: 36px; height: 36px; font-size: 14px; }
     .input-hint { display: none; }
 
     #model-tag  { bottom: 8px; right: 10px; font-size: 11px; }
@@ -699,7 +666,7 @@
   @supports not (height: 1dvh) {
     @media (max-width: 700px) {
       #app           { height: 100vh; }
-      #model-panel   { height: 55vh; min-height: 35vh; max-height: 80vh; }
+      #model-panel   { height: 42vh; max-height: 80vh; }
     }
   }
 
@@ -816,7 +783,6 @@
     </div>
 
     <!-- Expression tester -->
-    <button id="expr-toggle" style="display:none">😐 Ekspresi <span class="toggle-arrow">▲</span></button>
     <div id="expression-bar">
       <button class="expr-pill active" data-expr="none">😐 Default</button>
       <button class="expr-pill" data-expr="blush">😳 Blush</button>
@@ -1155,8 +1121,6 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   const statusEl      = document.querySelector('#model-tag .status');
   const subtitleEl    = document.getElementById('chat-subtitle');
   const exprPills     = document.querySelectorAll('.expr-pill');
-  const exprToggle    = document.getElementById('expr-toggle');
-  const exprBar       = document.getElementById('expression-bar');
   const debugPanel    = document.getElementById('debug-panel');
   const dbgFps        = document.getElementById('dbg-fps');
   const dbgExpr       = document.getElementById('dbg-expr');
@@ -1206,7 +1170,7 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   let analyser     = null;     // AnalyserNode untuk amplitude
   let fftBuf       = null;     // Uint8Array untuk getByteFrequencyData
   let isSpeaking   = false;    // sedang main audio TTS
-  let isMuted      = localStorage.getItem('liro_muted') === 'true';    // TTS di-mute user (persisted)
+  let isMuted      = false;    // TTS di-mute user
   let currentSource = null;    // AudioBufferSourceNode aktif (untuk stop)
 
   /* ── PixiJS App ─────────────────────────────────────────────── */
@@ -1355,8 +1319,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   function positionModel(m, W, H) {
     const isMobile = W < 700;
 
-    // Scale: tampilkan 80% tinggi canvas di desktop, lebih besar di mobile
-    const targetH = isMobile ? H * 1.25 : H * 0.88;
+    // Scale: tampilkan 80% tinggi canvas di desktop, lebih kecil mobile
+    const targetH = isMobile ? H * 0.9 : H * 0.88;
     const scale   = targetH / (m.internalModel?.height || 800);
     m.scale.set(scale);
 
@@ -1587,20 +1551,6 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     pill.addEventListener('click', () => setExpression(pill.dataset.expr));
   });
 
-  /* ── Mobile: expression bar toggle ──────────────────────────── */
-  function initExprToggle() {
-    if (window.innerWidth > 700) return; // desktop: selalu tampil
-    exprToggle.style.display = 'flex';
-    exprToggle.addEventListener('click', () => {
-      const isOpen = exprBar.classList.toggle('open');
-      exprToggle.classList.toggle('open', isOpen);
-      // Update label sesuai ekspresi aktif
-      const activeExpr = document.querySelector('.expr-pill.active');
-      exprToggle.childNodes[0].textContent = (activeExpr?.textContent?.trim() || '😐 Ekspresi') + ' ';
-    });
-  }
-  initExprToggle();
-
   /* ── Tap model → random blink ────────────────────────────────── */
   canvas.addEventListener('click', () => {
     if (blinkState === 'open') {
@@ -1630,15 +1580,15 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     // Batas min/max
     const DESKTOP_MIN = 220;   // px chat width
     const DESKTOP_MAX = () => window.innerWidth * 0.65;
-    const MOBILE_MIN  = () => Math.round(window.innerHeight * 0.35);  // min 35% layar
-    const MOBILE_MAX  = () => Math.round(window.innerHeight * 0.80);  // max 80% layar
+    const MOBILE_MIN  = 100;   // px model height
+    const MOBILE_MAX  = () => window.innerHeight * 0.82;
 
     // Load saved size
     function loadSaved() {
       try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
         if (isMobile() && saved.modelH) {
-          modelPanel.style.height = clamp(saved.modelH, MOBILE_MIN(), MOBILE_MAX()) + 'px';
+          modelPanel.style.height = clamp(saved.modelH, MOBILE_MIN, MOBILE_MAX()) + 'px';
         } else if (!isMobile() && saved.chatW) {
           chatPanel.style.width = clamp(saved.chatW, DESKTOP_MIN, DESKTOP_MAX()) + 'px';
         }
@@ -1686,7 +1636,7 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
       if (isMobile()) {
         const delta   = pos - startPos;
-        const newH    = clamp(startSize + delta, MOBILE_MIN(), MOBILE_MAX());
+        const newH    = clamp(startSize + delta, MOBILE_MIN, MOBILE_MAX());
         modelPanel.style.height = newH + 'px';
         modelPanel.style.flex   = 'none';
         // Resize pixi canvas
@@ -1786,15 +1736,9 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
     sendBtn.addEventListener('click', handleSend);
 
-    // Sync tampilan awal tombol mute sesuai state tersimpan
-    muteBtn.textContent = isMuted ? '🔇' : '🔊';
-    muteBtn.classList.toggle('muted', isMuted);
-    muteBtn.title = isMuted ? 'Suara mati — tap untuk nyalakan' : 'Mute suara Liro';
-
     // Mute/unmute TTS
     muteBtn.addEventListener('click', () => {
       isMuted = !isMuted;
-      localStorage.setItem('liro_muted', isMuted); // simpan state
       muteBtn.textContent = isMuted ? '🔇' : '🔊';
       muteBtn.classList.toggle('muted', isMuted);
       muteBtn.title = isMuted ? 'Suara mati — tap untuk nyalakan' : 'Mute suara Liro';
