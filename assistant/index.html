@@ -263,47 +263,6 @@
   #error-overlay p { color: var(--text-secondary); font-size: 12px; line-height: 1.7; max-width: 280px; }
   #error-overlay code { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
 
-  /* ── Texture upload button ── */
-  #btn-upload-texture {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.5);
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    transition: background 0.2s, color 0.2s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #btn-upload-texture:hover { background: rgba(255,255,255,0.15); color: #fff; }
-  #btn-upload-texture.has-texture { color: #4ade80; border-color: rgba(74,222,128,0.3); }
-
-  /* ── Toast ── */
-  #texture-toast {
-    position: absolute;
-    top: 52px;
-    left: 12px;
-    background: rgba(0,0,0,0.75);
-    color: #fff;
-    font-size: 11px;
-    padding: 6px 10px;
-    border-radius: 8px;
-    z-index: 11;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-    white-space: nowrap;
-  }
-  #texture-toast.show { opacity: 1; }
-
   /* ── Chat panel overflow fix ──────────────────────────────── */
 
   /* Header */
@@ -715,11 +674,6 @@
       <p id="error-detail" style="color:var(--text-muted); font-size:11px; margin-top:8px;"></p>
     </div>
 
-    <!-- Texture upload button -->
-    <div id="btn-upload-texture" title="Upload texture" onclick="document.getElementById('texture-file-input').click()">🖼️</div>
-    <input type="file" id="texture-file-input" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="handleTextureUpload(event)">
-    <div id="texture-toast"></div>
-
     <!-- Name tag -->
     <div id="model-tag">
       <span class="dot"></span>
@@ -999,140 +953,12 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
   }
   window.addEventListener('resize', resizeApp);
 
-  /* ── Texture IndexedDB ──────────────────────────────────────── */
-  const TEX_DB_NAME  = 'assistantTextures';
-  const TEX_DB_VER   = 1;
-  const TEX_STORE    = 'textures';
-  let   texDb        = null;
-
-  async function openTexDB() {
-    if (texDb) return texDb;
-    return new Promise((res, rej) => {
-      const req = indexedDB.open(TEX_DB_NAME, TEX_DB_VER);
-      req.onupgradeneeded = e => {
-        e.target.result.createObjectStore(TEX_STORE);
-      };
-      req.onsuccess = e => { texDb = e.target.result; res(texDb); };
-      req.onerror   = e => rej(e.target.error);
-    });
-  }
-
-  async function saveTexture(blob) {
-    const db = await openTexDB();
-    return new Promise((res, rej) => {
-      const tx  = db.transaction(TEX_STORE, 'readwrite');
-      tx.objectStore(TEX_STORE).put(blob, 'texture_00');
-      tx.oncomplete = () => res();
-      tx.onerror    = e => rej(e.target.error);
-    });
-  }
-
-  async function loadTextureBlob() {
-    const db = await openTexDB();
-    return new Promise((res, rej) => {
-      const tx  = db.transaction(TEX_STORE, 'readonly');
-      const req = tx.objectStore(TEX_STORE).get('texture_00');
-      req.onsuccess = e => res(e.target.result ?? null);
-      req.onerror   = e => rej(e.target.error);
-    });
-  }
-
-  // Tampilkan toast sementara
-  function showTexToast(msg, isOk = true) {
-    const t = document.getElementById('texture-toast');
-    t.textContent = msg;
-    t.style.background = isOk ? 'rgba(74,222,128,0.85)' : 'rgba(239,68,68,0.85)';
-    t.style.color = '#000';
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2500);
-  }
-
-  // Handle file input
-  async function handleTextureUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    try {
-      showTexToast('Menyimpan tekstur…');
-      await saveTexture(file);
-      showTexToast('✓ Tekstur disimpan! Reload untuk apply.', true);
-      document.getElementById('btn-upload-texture').classList.add('has-texture');
-      // Reload otomatis setelah 1.5 detik
-      setTimeout(() => location.reload(), 1500);
-    } catch(e) {
-      showTexToast('Gagal simpan: ' + e.message, false);
-    }
-    event.target.value = '';
-  }
-
-  // Expose ke window agar onclick bisa akses
-  window.handleTextureUpload = handleTextureUpload;
-
-  // Cek apakah sudah ada tekstur tersimpan → tandai tombol
-  openTexDB().then(() => loadTextureBlob()).then(blob => {
-    if (blob) document.getElementById('btn-upload-texture').classList.add('has-texture');
-  }).catch(() => {});
-
-  /* ── Patch model loader untuk pakai tekstur dari IndexedDB ── */
-  async function getModelPathWithTexture() {
-    try {
-      const blob = await loadTextureBlob();
-      if (!blob) return MODEL_PATH;
-
-      // Buat object URL dari blob tekstur
-      const texUrl = URL.createObjectURL(blob);
-
-      // Fetch model3.json — coba dari cache dulu, lalu network
-      let json;
-      try {
-        const cached = await caches.match(MODEL_PATH);
-        const res = cached || await fetch(MODEL_PATH);
-        json = await res.json();
-      } catch(fetchErr) {
-        // Kalau fetch gagal total, hardcode struktur model3.json
-        console.warn('[Texture] Fetch model3.json gagal, pakai struktur hardcode:', fetchErr);
-        json = {
-          "Version": 3,
-          "FileReferences": {
-            "Moc": "LiveroiD_A-Y02.moc3",
-            "Textures": ["LiveroiD_A-Y02.8192/texture_00.png"],
-            "Physics": "LiveroiD_A-Y02.physics3.json",
-            "DisplayInfo": "LiveroiD_A-Y02.cdi3.json",
-            "Expressions": [
-              {"Name":"blush","File":"blush.exp3.json"},
-              {"Name":"browLink","File":"browLink.exp3.json"},
-              {"Name":"cool","File":"cool.exp3.json"},
-              {"Name":"worried","File":"worried.exp3.json"}
-            ]
-          },
-          "Groups": [
-            {"Target":"Parameter","Name":"EyeBlink","Ids":["ParamEyeROpen","ParamEyeLOpen","Param","Param14"]},
-            {"Target":"Parameter","Name":"LipSync","Ids":["ParamMouthOpenY","ParamMouthForm"]}
-          ],
-          "HitAreas": []
-        };
-      }
-
-      // Override texture dengan blob URL
-      const patched = JSON.parse(JSON.stringify(json));
-      if (patched.FileReferences?.Textures) {
-        patched.FileReferences.Textures = [texUrl];
-      }
-
-      const patchedBlob = new Blob([JSON.stringify(patched)], { type: 'application/json' });
-      return URL.createObjectURL(patchedBlob);
-    } catch(e) {
-      console.warn('[Texture] Gagal patch model, pakai path asli:', e);
-      return MODEL_PATH;
-    }
-  }
-
   /* ── Load model ─────────────────────────────────────────────── */
   try {
     // pixi-live2d-display mengekspos PIXI.live2d namespace
     const { Live2DModel } = PIXI.live2d;
 
-    const resolvedPath = await getModelPathWithTexture();
-    model = await Live2DModel.from(resolvedPath, {
+    model = await Live2DModel.from(MODEL_PATH, {
       autoInteract: false,   // kita handle sendiri
     });
 
