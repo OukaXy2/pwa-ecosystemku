@@ -731,17 +731,13 @@
 </div>
 
 <!-- ── Scripts ────────────────────────────────────────────────── -->
-<!-- PIXI v6 (LTS — compatible dengan pixi-live2d-display v0.4) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
+<!-- Shared database -->
+<script src="/shared/ecosystem-db.js"></script>
 
 <!--
-  pixi-live2d-display tidak ada di cdnjs.
-  Kita load dari jsDelivr (CDN NPM).
-  Urutan: cubism4 core → pixi-live2d-display bundle
+  Live2D / Pixi runtime will be loaded dynamically with fallbacks.
+  This avoids hard failures when one CDN is unavailable.
 -->
-<script src="https://cdn.jsdelivr.net/npm/live2dcubismcore@5.0.0/live2dcubismcore.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"></script>
-<script src="/shared/ecosystem-db.js"></script>
 
 <script>
 /* ================================================================
@@ -751,7 +747,8 @@
 (async () => {
 
   /* ── Config ─────────────────────────────────────────────────── */
-  const MODEL_PATH  = new URL('./LiveroiD_A-Y02.model3.json', window.location.href).href;
+  const MODEL_BASE  = new URL('./', document.baseURI);
+  const MODEL_PATH  = new URL('LiveroiD_A-Y02.model3.json', MODEL_BASE).href;
   const CHAT_API    = '/api/chat';
   const DEBUG       = false;  // ganti true untuk debug panel
 
@@ -770,21 +767,135 @@ Kepribadianmu:
 Kamu bisa membantu dengan banyak hal: ngobrol santai, brainstorming, nulis, coding, math, dll.
 Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
 
-  /* ── Helper: wait for Live2D library ─────────────────────────── */
-  function getLive2DModelClass() {
-    const live2d = window.PIXI?.live2d;
-    const Live2DModel = live2d?.Live2DModel;
+  /* ── Dependency loader (Pixi + Live2D) ───────────────────────── */
+  const SCRIPT_TIMEOUT = 15000;
 
-    if (!window.PIXI) {
-      throw new Error('PIXI gagal dimuat dari CDN');
+  function loadScript(src, { timeout = SCRIPT_TIMEOUT } = {}) {
+    return new Promise((resolve, reject) => {
+      const existing = Array.from(document.scripts).find(s => s.src === src);
+      if (existing && (existing.dataset.loaded === 'true' || existing.dataset.loading === 'true')) {
+        const check = () => {
+          if (existing.dataset.loaded === 'true') return resolve(existing);
+          if (existing.dataset.error === 'true') return reject(new Error(`Gagal memuat: ${src}`));
+          setTimeout(check, 100);
+        };
+        return check();
+      }
+
+      const script = document.createElement('script');
+      script.src = src;
+      script.async = false;
+      script.dataset.loading = 'true';
+
+      const timer = setTimeout(() => {
+        script.dataset.error = 'true';
+        script.remove();
+        reject(new Error(`Timeout saat memuat: ${src}`));
+      }, timeout);
+
+      script.onload = () => {
+        clearTimeout(timer);
+        script.dataset.loaded = 'true';
+        script.dataset.loading = 'false';
+        resolve(script);
+      };
+
+      script.onerror = () => {
+        clearTimeout(timer);
+        script.dataset.error = 'true';
+        script.dataset.loading = 'false';
+        script.remove();
+        reject(new Error(`Gagal memuat: ${src}`));
+      };
+
+      document.head.appendChild(script);
+    });
+  }
+
+  async function ensureLive2DRuntime() {
+    // 1) PIXI
+    if (!window.PIXI?.Application) {
+      const pixiUrls = [
+        'https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js',
+        'https://cdn.jsdelivr.net/npm/pixi.js@6.5.10/dist/browser/pixi.min.js',
+        'https://unpkg.com/pixi.js@6.5.10/dist/browser/pixi.min.js',
+      ];
+
+      let pixiOk = false;
+      for (const url of pixiUrls) {
+        try {
+          await loadScript(url);
+          if (window.PIXI?.Application) {
+            pixiOk = true;
+            break;
+          }
+        } catch (_) {}
+      }
+      if (!pixiOk) throw new Error('PIXI gagal dimuat dari CDN');
     }
-    if (!live2d) {
-      throw new Error('PIXI.live2d tidak tersedia. Cek script pixi-live2d-display.');
+
+    // expose PIXI to window explicitly (required by pixi-live2d-display)
+    window.PIXI = window.PIXI || globalThis.PIXI;
+
+    // 2) Cubism core
+    if (!window.Live2DCubismCore) {
+      const coreUrls = [
+        'https://cdn.jsdelivr.net/npm/live2dcubismcore@5.0.0/live2dcubismcore.min.js',
+        'https://unpkg.com/live2dcubismcore@5.0.0/live2dcubismcore.min.js',
+      ];
+
+      let coreOk = false;
+      for (const url of coreUrls) {
+        try {
+          await loadScript(url);
+          if (window.Live2DCubismCore) {
+            coreOk = true;
+            break;
+          }
+        } catch (_) {}
+      }
+      if (!coreOk) throw new Error('Live2D Cubism Core gagal dimuat');
     }
+
+    // 3) pixi-live2d-display
+    if (!window.PIXI?.live2d?.Live2DModel) {
+      const live2dUrls = [
+        'https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js',
+        'https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/index.min.js',
+        'https://unpkg.com/pixi-live2d-display@0.4.0/dist/index.min.js',
+      ];
+
+      let live2dOk = false;
+      for (const url of live2dUrls) {
+        try {
+          await loadScript(url);
+          if (window.PIXI?.live2d?.Live2DModel) {
+            live2dOk = true;
+            break;
+          }
+        } catch (_) {}
+      }
+      if (!live2dOk) {
+        throw new Error('Live2DModel.from tidak tersedia. Library Live2D gagal dimuat.');
+      }
+    }
+
+    const Live2DModel = window.PIXI?.live2d?.Live2DModel;
     if (!Live2DModel || typeof Live2DModel.from !== 'function') {
       throw new Error('Live2DModel.from tidak tersedia. Versi library tidak cocok atau belum siap.');
     }
 
+    return Live2DModel;
+  }
+
+  /* ── Helper: wait for Live2D library ─────────────────────────── */
+  function getLive2DModelClass() {
+    const Live2DModel = window.PIXI?.live2d?.Live2DModel;
+    if (!window.PIXI) throw new Error('PIXI gagal dimuat dari CDN');
+    if (!window.PIXI?.live2d) throw new Error('PIXI.live2d tidak tersedia. Cek script pixi-live2d-display.');
+    if (!Live2DModel || typeof Live2DModel.from !== 'function') {
+      throw new Error('Live2DModel.from tidak tersedia. Versi library tidak cocok atau belum siap.');
+    }
     return Live2DModel;
   }
 
@@ -903,6 +1014,20 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
 
   /* ── DOM refs ───────────────────────────────────────────────── */
   const canvas        = document.getElementById('live2d-canvas');
+
+  // Pastikan runtime Live2D siap sebelum membuat app
+  let Live2DModelClass;
+  try {
+    Live2DModelClass = await ensureLive2DRuntime();
+  } catch (runtimeErr) {
+    console.error('[Runtime] Error:', runtimeErr);
+    loadingEl.classList.add('hidden');
+    errorEl.classList.add('show');
+    errorDetail.textContent = runtimeErr?.message ? runtimeErr.message : String(runtimeErr);
+    document.querySelector('#error-overlay h3').textContent = 'Live2D library gagal dimuat';
+    document.querySelector('#error-overlay p').innerHTML = 'Pastikan CDN dapat diakses dan library Live2D / Pixi berhasil dimuat.';
+    throw runtimeErr;
+  }
   const loadingEl     = document.getElementById('loading-overlay');
   const errorEl       = document.getElementById('error-overlay');
   const errorDetail   = document.getElementById('error-detail');
@@ -974,10 +1099,14 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
 
   /* ── Load model ─────────────────────────────────────────────── */
   try {
-    const Live2DModel = getLive2DModelClass();
     const resolvedModelPath = getModelPath();
 
-    model = await Live2DModel.from(resolvedModelPath, {
+    const response = await fetch(resolvedModelPath, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Model JSON tidak bisa diakses (${response.status})`);
+    }
+
+    model = await Live2DModelClass.from(resolvedModelPath, {
       autoInteract: false,   // kita handle sendiri
     });
 
@@ -998,6 +1127,8 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
     console.error('[Live2D] Load error:', err);
     loadingEl.classList.add('hidden');
     errorEl.classList.add('show');
+    document.querySelector('#error-overlay h3').textContent = 'Model gagal dimuat';
+    document.querySelector('#error-overlay p').innerHTML = 'Pastikan file model, texture, dan library Live2D berada di path yang benar.';
     errorDetail.textContent = err?.message ? err.message : String(err);
   }
 
