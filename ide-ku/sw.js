@@ -1,11 +1,10 @@
-const CACHE = "ideku-v2";
+const CACHE = "ideku-v3";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
-  "/shared/ecosystem-db.js"
 ];
 
 self.addEventListener("install", e => {
@@ -25,6 +24,10 @@ self.addEventListener("activate", e => {
 });
 
 self.addEventListener("fetch", e => {
+  if (new URL(e.request.url).pathname.startsWith('/shared/')) {
+    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match("./")))
   );
