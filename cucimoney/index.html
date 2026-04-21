@@ -3635,8 +3635,13 @@ async function loadFromLS() {
             if (savedMasterBudgets) masterBudgets = savedMasterBudgets;
         }
     } catch(e) {
-        console.warn('IndexedDB error, fallback to seed:', e);
-        seedDefaultData();
+        console.error('[CuciMoney] loadFromLS error:', e);
+        // Jangan seedDefaultData() — bisa menimpa data yang ada!
+        // Hanya seed kalau db benar-benar kosong
+        if (!db || !db.books || db.books.length === 0) {
+            console.warn('[CuciMoney] db kosong, seed default data');
+            seedDefaultData();
+        }
     }
 
     // Boot app setelah data siap
