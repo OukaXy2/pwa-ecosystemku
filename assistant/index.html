@@ -669,6 +669,69 @@
       #model-panel   { height: 42vh; max-height: 80vh; }
     }
   }
+
+  /* ── Apps shortcut button ─────────────────────────────────── */
+  #apps-btn {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.18s ease;
+    flex-shrink: 0;
+  }
+  #apps-btn:hover { border-color: var(--border-lit); color: var(--text-primary); }
+  #apps-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  /* ── Apps panel ───────────────────────────────────────────── */
+  #apps-panel {
+    position: absolute;
+    bottom: 130px; left: 18px; right: 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-lit);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    z-index: 20;
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    animation: msg-in 0.18s ease;
+  }
+  #apps-panel.show { display: flex; }
+
+  #apps-panel .panel-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .app-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 13px;
+    font-family: var(--font-body);
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .app-link:hover { border-color: var(--border-lit); background: var(--accent-dim); }
+  .app-link .app-icon { font-size: 16px; width: 20px; text-align: center; }
+  .app-link .app-name { font-weight: 500; }
+  .app-link .app-desc { font-size: 11px; color: var(--text-muted); margin-left: auto; }
 </style>
 </head>
 
@@ -735,10 +798,35 @@
           rows="1"
           placeholder="Ketik pesan…"
         ></textarea>
+        <button id="apps-btn" title="Buka app">⚡</button>
         <button id="mute-btn" title="Mute/unmute suara Liro">🔊</button>
         <button id="send-btn">↑</button>
       </div>
       <div class="input-hint">Enter untuk kirim · Shift+Enter baris baru</div>
+    </div>
+
+    <div id="apps-panel">
+      <div class="panel-title">Buka App</div>
+      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/daily-os/" target="_blank">
+        <span class="app-icon">📅</span>
+        <span class="app-name">Daily OS</span>
+        <span class="app-desc">Habit & Todo</span>
+      </a>
+      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/ide-ku/" target="_blank">
+        <span class="app-icon">💡</span>
+        <span class="app-name">IdeKu</span>
+        <span class="app-desc">Ide & Wishlist</span>
+      </a>
+      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/cucimoney/" target="_blank">
+        <span class="app-icon">💰</span>
+        <span class="app-name">CuciMoney+</span>
+        <span class="app-desc">Keuangan</span>
+      </a>
+      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/kronik/" target="_blank">
+        <span class="app-icon">📖</span>
+        <span class="app-name">Kronik</span>
+        <span class="app-desc">Jurnal</span>
+      </a>
     </div>
 
     <div id="chat-toast"></div>
@@ -818,7 +906,12 @@ Gunakan data ini sebagai konteks, bukan bacaan literal. Jangan sebutkan data sec
 
 ## Hal Lain
 - Kamu juga bisa bantu hal di luar ekosistem: ngobrol santai, nulis, coding, math, dll.
-- Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
+- Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.
+
+## Navigasi App
+Kalau pengguna minta buka salah satu app, tambahkan tag [OPEN:nama] di akhir responsmu.
+Nama yang valid: dailyos, ideku, cucimoney, kronik.
+Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku]"`;
 
   /* ── Ecosystem context loader ────────────────────────────────── */
 
@@ -1119,6 +1212,53 @@ Gunakan data ini sebagai konteks, bukan bacaan literal. Jangan sebutkan data sec
 
     statusEl.textContent = '· idle';
     initChat();
+
+  /* ================================================================
+     APPS PANEL — shortcut + AI-triggered navigation
+  ================================================================ */
+
+  const PWA_URLS = {
+    'dailyos':   'https://pwa-ecosystemku.vercel.app/daily-os/',
+    'daily-os':  'https://pwa-ecosystemku.vercel.app/daily-os/',
+    'ideku':     'https://pwa-ecosystemku.vercel.app/ide-ku/',
+    'ide-ku':    'https://pwa-ecosystemku.vercel.app/ide-ku/',
+    'cucimoney': 'https://pwa-ecosystemku.vercel.app/cucimoney/',
+    'kronik':    'https://pwa-ecosystemku.vercel.app/kronik/',
+  };
+
+  // Toggle apps panel
+  const appsBtn   = document.getElementById('apps-btn');
+  const appsPanel = document.getElementById('apps-panel');
+
+  appsBtn.addEventListener('click', () => {
+    const isOpen = appsPanel.classList.toggle('show');
+    appsBtn.classList.toggle('active', isOpen);
+  });
+
+  // Tutup panel kalau klik di luar
+  document.addEventListener('click', (e) => {
+    if (!appsPanel.contains(e.target) && e.target !== appsBtn) {
+      appsPanel.classList.remove('show');
+      appsBtn.classList.remove('active');
+    }
+  });
+
+  /**
+   * Parse tag [OPEN:app] dari respons Liro.
+   * Kalau ada → buka PWA di tab baru, hapus tag dari teks.
+   * Return: { cleanText, opened }
+   */
+  function parseOpenTag(text) {
+    const match = text.match(/\[OPEN:([a-z0-9-]+)\]/i);
+    if (!match) return { cleanText: text, opened: false };
+    const key = match[1].toLowerCase();
+    const url = PWA_URLS[key];
+    if (url) window.open(url, '_blank');
+    const cleanText = text.replace(match[0], '').trim();
+    return { cleanText, opened: !!url };
+  }
+
+
 
   } catch (err) {
     console.error('[Live2D] Load error:', err);
@@ -1631,11 +1771,14 @@ Gunakan data ini sebagai konteks, bukan bacaan literal. Jangan sebutkan data sec
       }
 
       const data = await res.json();
-      const replyText = data?.text || data?.message || data?.content || '';
+      const rawReply = data?.text || data?.message || data?.content || '';
 
-      if (!replyText) throw new Error('Respons kosong dari server');
+      if (!rawReply) throw new Error('Respons kosong dari server');
 
-      // Tambah ke history
+      // Parse [OPEN:app] tag — buka PWA kalau ada
+      const { cleanText: replyText } = parseOpenTag(rawReply);
+
+      // Tambah ke history (pakai teks bersih tanpa tag)
       chatHistory.push({ role: 'assistant', content: replyText });
 
       // Hapus typing, tampilkan bubble
