@@ -1,112 +1,1642 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <title>AI Assistant</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    #chat { margin-bottom: 20px; }
-    .msg { margin: 8px 0; }
-    .user { color: blue; }
-    .ai { color: green; }
-    .config { margin-bottom: 20px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+  /* ── Reset & Tokens ───────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg-deep:    #080c12;
+    --bg-mid:     #0d1420;
+    --bg-surface: #131b2e;
+    --bg-card:    #192236;
+    --border:     rgba(100, 140, 220, 0.10);
+    --border-lit: rgba(100, 160, 255, 0.22);
+    --accent:     #5b9cf6;
+    --accent-dim: rgba(91, 156, 246, 0.15);
+    --accent-glow:rgba(91, 156, 246, 0.35);
+    --text-primary:   #e8edf5;
+    --text-secondary: #7a8fad;
+    --text-muted:     #3d4f6a;
+    --status-online:  #4ade80;
+    --font-display: 'Instrument Serif', Georgia, serif;
+    --font-body:    'DM Sans', sans-serif;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --shadow-card: 0 4px 32px rgba(0,0,0,0.5), 0 1px 0 var(--border) inset;
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 14px;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Ambient background ───────────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 70% 40%, rgba(30, 60, 120, 0.25) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 20% 80%, rgba(15, 35, 80, 0.3) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── Layout ───────────────────────────────────────────────── */
+  #app {
+    position: relative; z-index: 1;
+    display: flex;
+    flex-direction: row;   /* desktop: horizontal */
+    width: 100vw; height: 100vh;
+  }
+
+  /* ── Model panel ──────────────────────────────────────────── */
+  #model-panel {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+
+  /* ── Resizer ──────────────────────────────────────────────── */
+  #resizer {
+    flex-shrink: 0;
+    background: transparent;
+    position: relative;
+    z-index: 20;
+    transition: background 0.15s;
+
+    /* Desktop: vertikal */
+    width: 8px;
+    cursor: col-resize;
+    order: 2;   /* antara chat(1) dan model(3) */
+  }
+
+  /* Garis tengah */
+  #resizer::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 50%; transform: translateX(-50%);
+    width: 1px;
+    background: var(--border);
+    transition: background 0.15s;
+  }
+
+  /* Handle pill di tengah */
+  #resizer::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px; height: 36px;
+    border-radius: 3px;
+    background: var(--border-lit);
+    transition: background 0.15s, height 0.15s, width 0.15s;
+  }
+
+  #resizer:hover::before,
+  #resizer.dragging::before { background: var(--accent-dim); }
+
+  #resizer:hover::after,
+  #resizer.dragging::after {
+    background: var(--accent);
+    height: 52px; width: 4px;
+  }
+
+  /* ── Chat panel ───────────────────────────────────────────── */
+  #chat-panel {
+    flex-shrink: 0;
+    width: 360px;
+    min-width: 220px;
+    max-width: 65vw;
+    order: 1;   /* kiri di desktop */
+    display: flex;
+    flex-direction: column;
+    border-right: none;  /* digantikan resizer */
+    background: rgba(8, 12, 18, 0.85);
+    backdrop-filter: blur(20px);
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  #live2d-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: block;
+  }
+
+  /* Gradient ground shadow bawah model */
+  #model-panel::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 120px;
+    background: linear-gradient(to top, var(--bg-deep) 0%, transparent 100%);
+    pointer-events: none; z-index: 2;
+  }
+
+  /* Model name tag */
+  #model-tag {
+    position: absolute;
+    bottom: 28px; right: 28px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(13, 20, 32, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-lit);
+    border-radius: 40px;
+    padding: 6px 14px 6px 10px;
+    font-size: 12px;
+  }
+
+  #model-tag .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--status-online);
+    box-shadow: 0 0 8px var(--status-online);
+    animation: pulse-dot 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.85); }
+  }
+
+  #model-tag .name {
+    color: var(--text-primary);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  #model-tag .status {
+    color: var(--text-secondary);
+    font-size: 11px;
+    transition: color 0.3s;
+  }
+
+  #model-tag.speaking .dot {
+    background: #60a5fa;
+    box-shadow: 0 0 10px #60a5fa;
+    animation: pulse-speaking 0.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes pulse-speaking {
+    from { transform: scale(1);    opacity: 1; }
+    to   { transform: scale(1.35); opacity: 0.7; }
+  }
+
+  /* Loading overlay */
+  #loading-overlay {
+    position: absolute; inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: var(--bg-deep);
+    z-index: 10;
+    transition: opacity 0.6s ease;
+  }
+
+  #loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-family: var(--font-body);
+    letter-spacing: 0.05em;
+  }
+
+  /* Error overlay */
+  #error-overlay {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: var(--bg-deep);
+    z-index: 11;
+    padding: 32px;
+    text-align: center;
+  }
+
+  #error-overlay.show { display: flex; }
+  #error-overlay .err-icon { font-size: 36px; }
+  #error-overlay h3 { color: var(--text-primary); font-family: var(--font-display); font-size: 18px; }
+  #error-overlay p { color: var(--text-secondary); font-size: 12px; line-height: 1.7; max-width: 280px; }
+  #error-overlay code { background: var(--bg-card); padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+  /* ── Chat panel overflow fix ──────────────────────────────── */
+
+  /* Header */
+  #chat-header {
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  #chat-header h1 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text-primary);
+    letter-spacing: 0.01em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  #chat-header h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  #chat-header p {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  /* Messages area */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 18px 18px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    scroll-behavior: smooth;
+  }
+
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 2px; }
+
+  /* Placeholder state */
+  .chat-placeholder {
+    margin: auto;
+    text-align: center;
+    padding: 24px 16px;
+  }
+
+  .chat-placeholder .ph-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  .chat-placeholder p {
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.8;
+  }
+
+  .chat-placeholder strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+
+  /* Message bubbles */
+  .msg {
+    max-width: 92%;
+    animation: msg-in 0.25s ease;
+  }
+
+  @keyframes msg-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .msg.user { align-self: flex-end; }
+  .msg.assistant { align-self: flex-start; }
+
+  .msg-bubble {
+    padding: 9px 13px;
+    border-radius: var(--radius-md);
+    line-height: 1.6;
+    font-size: 13.5px;
+  }
+
+  .msg.user .msg-bubble {
+    background: var(--accent-dim);
+    border: 1px solid rgba(91, 156, 246, 0.2);
+    color: var(--text-primary);
+    border-bottom-right-radius: 4px;
+  }
+
+  .msg.assistant .msg-bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+  }
+
+  .msg-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    padding: 0 2px;
+  }
+  .msg.user .msg-time { text-align: right; }
+
+  /* ── Emotion pills ────────────────────────────────────────── */
+  #expression-bar {
+    padding: 10px 18px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+
+  #expression-bar::-webkit-scrollbar { display: none; }
+
+  .expr-pill {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    font-family: var(--font-body);
+  }
+
+  .expr-pill:hover {
+    border-color: var(--border-lit);
+    color: var(--text-primary);
+    background: var(--accent-dim);
+  }
+
+  .expr-pill.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  /* ── Input area ───────────────────────────────────────────── */
+  #input-area {
+    padding: 14px 18px 18px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+  }
+
+  #msg-input {
+    flex: 1;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 13px;
+    resize: none;
+    outline: none;
+    min-height: 42px;
+    max-height: 110px;
+    line-height: 1.5;
+    transition: border-color 0.15s;
+  }
+
+  #msg-input::placeholder { color: var(--text-muted); }
+  #msg-input:focus { border-color: var(--border-lit); }
+
+  #send-btn {
+    width: 42px; height: 42px;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+
+  #send-btn:hover { opacity: 0.85; }
+  #send-btn:active { transform: scale(0.93); }
+  #send-btn:disabled { opacity: 0.3; cursor: default; }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Typing indicator ─────────────────────────────────────── */
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    align-self: flex-start;
+    animation: msg-in 0.2s ease;
+  }
+
+  .typing-dots {
+    display: flex;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    border-bottom-left-radius: 4px;
+    padding: 10px 14px;
+  }
+
+  .typing-dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    animation: typing-bounce 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.30s; }
+
+  @keyframes typing-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* ── Error toast ──────────────────────────────────────────── */
+  #chat-toast {
+    position: absolute;
+    bottom: 80px; left: 18px; right: 18px;
+    background: rgba(220, 60, 60, 0.15);
+    border: 1px solid rgba(220, 60, 60, 0.35);
+    color: #f87171;
+    font-size: 12px;
+    padding: 9px 13px;
+    border-radius: var(--radius-sm);
+    display: none;
+    z-index: 10;
+    animation: msg-in 0.2s ease;
+    line-height: 1.5;
+  }
+  #chat-toast.show { display: block; }
+
+  /* ── Debug panel (hidden by default) ─────────────────────── */
+  #debug-panel {
+    position: fixed;
+    bottom: 16px; right: 16px;
+    background: rgba(10, 14, 20, 0.9);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 11px;
+    color: var(--text-muted);
+    z-index: 100;
+    min-width: 180px;
+    display: none;
+    font-family: monospace;
+    line-height: 1.7;
+  }
+
+  #debug-panel.show { display: block; }
+  #debug-panel .dbg-row { display: flex; justify-content: space-between; gap: 12px; }
+  #debug-panel .dbg-val { color: var(--accent); }
+
+  /* ── Mobile layout ────────────────────────────────────────── */
+  @media (max-width: 700px) {
+    html, body { overflow: hidden; height: 100%; }
+
+    #app {
+      flex-direction: column;  /* vertikal di mobile */
+      height: 100dvh;
+    }
+
+    /* Model di atas */
+    #model-panel {
+      order: 1;
+      flex: none;
+      width: 100%;
+      height: 42dvh;   /* default, JS akan override via style */
+      min-height: 120px;
+      max-height: 80dvh;
+    }
+
+    /* Resizer horizontal di mobile */
+    #resizer {
+      order: 2;
+      width: 100%;
+      height: 18px;    /* area sentuh lebih besar */
+      cursor: row-resize;
+    }
+
+    /* Garis horizontal */
+    #resizer::before {
+      top: 50%; bottom: auto;
+      left: 0; right: 0;
+      width: 100%; height: 1px;
+      transform: translateY(-50%);
+    }
+
+    /* Handle pill horizontal */
+    #resizer::after {
+      width: 40px; height: 4px;
+      border-radius: 3px;
+    }
+
+    #resizer:hover::after,
+    #resizer.dragging::after {
+      width: 56px; height: 4px;
+    }
+
+    /* Chat di bawah */
+    #chat-panel {
+      order: 3;
+      width: 100%;
+      flex: 1;
+      min-width: unset;
+      max-width: unset;
+      min-height: 120px;
+      border-top: none;   /* resizer yang jadi pembatas */
+    }
+
+    #chat-header {
+      padding: 8px 14px 6px;
+      flex-shrink: 0;
+    }
+    #chat-header h1 { font-size: 15px; }
+    #chat-header p  { font-size: 10px; }
+
+    #messages {
+      flex: 1;
+      min-height: 0;
+      padding: 8px 12px 4px;
+      overflow-y: auto;
+    }
+
+    #expression-bar {
+      padding: 5px 12px;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    .expr-pill { padding: 3px 9px; font-size: 11px; }
+
+    #input-area {
+      padding: 6px 12px calc(8px + env(safe-area-inset-bottom)) 12px;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+    #msg-input  { font-size: 16px; min-height: 36px; padding: 8px 12px; }
+    #send-btn   { width: 36px; height: 36px; font-size: 14px; }
+    .input-hint { display: none; }
+
+    #model-tag  { bottom: 8px; right: 10px; font-size: 11px; }
+    #chat-toast { bottom: calc(64px + env(safe-area-inset-bottom)); }
+  }
+
+  @supports not (height: 1dvh) {
+    @media (max-width: 700px) {
+      #app           { height: 100vh; }
+      #model-panel   { height: 42vh; max-height: 80vh; }
+    }
+  }
+</style>
 </head>
+
 <body>
+<div id="app">
 
-<h2>AI Assistant</h2>
+  <!-- ── Model Panel ───────────────────────────────────────── -->
+  <div id="model-panel">
+    <canvas id="live2d-canvas"></canvas>
 
-<div class="config">
-  <input id="apiKey" placeholder="Masukkan Groq API Key" />
-  <button onclick="saveKey()">Simpan API</button>
+    <!-- Loading -->
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <span class="loading-text">Loading model…</span>
+    </div>
+
+    <!-- Error -->
+    <div id="error-overlay">
+      <div class="err-icon">⚠️</div>
+      <h3>Model tidak ditemukan</h3>
+      <p>
+        Pastikan file model berada di path yang benar.<br>
+        File yang dibutuhkan: <code>LiveroiD_A-Y02.model3.json</code>
+      </p>
+      <p id="error-detail" style="color:var(--text-muted); font-size:11px; margin-top:8px;"></p>
+    </div>
+
+    <!-- Name tag -->
+    <div id="model-tag">
+      <span class="dot"></span>
+      <span class="name">LiveroiD</span>
+      <span class="status">· idle</span>
+    </div>
+  </div>
+
+  <!-- ── Resizer ───────────────────────────────────────────── -->
+  <div id="resizer" title="Drag untuk resize"></div>
+
+  <!-- ── Chat Panel ─────────────────────────────────────────── -->
+  <div id="chat-panel">
+
+    <div id="chat-header">
+      <h1>Your <em>Assistant</em></h1>
+      <p id="chat-subtitle">menghubungkan…</p>
+    </div>
+
+    <div id="messages">
+      <!-- Pesan dirender oleh JS -->
+    </div>
+
+    <!-- Expression tester -->
+    <div id="expression-bar">
+      <button class="expr-pill active" data-expr="none">😐 Default</button>
+      <button class="expr-pill" data-expr="blush">😳 Blush</button>
+      <button class="expr-pill" data-expr="browLink">🤨 BrowLink</button>
+      <button class="expr-pill" data-expr="cool">😎 Cool</button>
+      <button class="expr-pill" data-expr="worried">😟 Worried</button>
+    </div>
+
+    <div id="input-area">
+      <div class="input-row">
+        <textarea
+          id="msg-input"
+          rows="1"
+          placeholder="Ketik pesan…"
+        ></textarea>
+        <button id="send-btn">↑</button>
+      </div>
+      <div class="input-hint">Enter untuk kirim · Shift+Enter baris baru</div>
+    </div>
+
+    <div id="chat-toast"></div>
+
+  </div>
 </div>
 
-<div id="chat"></div>
+<!-- Debug -->
+<div id="debug-panel">
+  <div class="dbg-row"><span>fps</span><span class="dbg-val" id="dbg-fps">—</span></div>
+  <div class="dbg-row"><span>expr</span><span class="dbg-val" id="dbg-expr">none</span></div>
+  <div class="dbg-row"><span>cursor</span><span class="dbg-val" id="dbg-cursor">—</span></div>
+  <div class="dbg-row"><span>blink</span><span class="dbg-val" id="dbg-blink">—</span></div>
+</div>
 
-<input id="input" placeholder="Ketik sesuatu..." />
-<button onclick="send()">Kirim</button>
+<!-- ── Scripts ────────────────────────────────────────────────── -->
+<!-- PIXI v6 (LTS — compatible dengan pixi-live2d-display v0.4) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.10/browser/pixi.min.js"></script>
+
+<!--
+  pixi-live2d-display tidak ada di cdnjs.
+  Kita load dari jsDelivr (CDN NPM).
+  Urutan: cubism4 core → pixi-live2d-display bundle
+-->
+<script src="https://cdn.jsdelivr.net/npm/live2dcubismcore@5.0.0/live2dcubismcore.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js"></script>
+<script src="/shared/ecosystem-db.js"></script>
 
 <script>
-const chat = document.getElementById("chat");
+/* ================================================================
+   LIVE2D ASSISTANT — VIEWER + CHAT
+   ================================================================ */
 
-function sleep(ms) {
-  return new Promise(r => setTimeout(r, ms));
-}
+(async () => {
 
-function addMessage(text, type) {
-  const div = document.createElement("div");
-  div.className = "msg " + type;
-  div.innerText = text;
-  chat.appendChild(div);
-}
+  /* ── Config ─────────────────────────────────────────────────── */
+  const MODEL_PATH  = './LiveroiD_A-Y02.model3.json';
+  const CHAT_API    = '/api/chat';
+  const DEBUG       = false;  // ganti true untuk debug panel
 
-async function typeEffect(element, text) {
-  element.innerText = "";
-  for (let char of text) {
-    element.innerText += char;
-    await sleep(15);
+  /* ── System prompt ──────────────────────────────────────────── */
+  const SYSTEM_PROMPT = `Kamu adalah asisten virtual bernama Liro — hangat, perhatian, tapi tetap helpful dan cerdas.
+
+Kepribadianmu:
+- Bicara casual dalam bahasa Indonesia, seperti teman yang sudah kenal dekat
+- Pakai "kamu" dan "aku", bukan "Anda" atau "lo/gue"
+- Hangat dan supportif, tapi tidak lebay atau berlebihan
+- Kalau diminta bantu sesuatu, langsung bantu dengan konkret dan jelas
+- Boleh sedikit bercanda atau ringan, tapi tetap tahu kapan harus serius
+- Jawaban ringkas dan padat — tidak perlu panjang kalau tidak diminta
+- Tidak perlu selalu mengulang nama pengguna di setiap kalimat
+
+Kamu bisa membantu dengan banyak hal: ngobrol santai, brainstorming, nulis, coding, math, dll.
+Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
+
+  /* ── Ecosystem context loader ────────────────────────────────── */
+
+  /**
+   * Baca data dari ecosystem_db dan format jadi ringkasan teks
+   * untuk disertakan di setiap request ke /api/chat.
+   *
+   * Semua read dilakukan paralel (Promise.allSettled) supaya
+   * satu store yang gagal tidak memblok yang lain.
+   *
+   * Return: object { userName, summary } dimana summary adalah
+   * plain-text ringkasan yang bisa langsung dimasukkan ke system prompt.
+   */
+  async function loadEcosystemContext() {
+    // Guard: kalau EcosystemDB belum ter-load (file tidak ada), skip
+    if (typeof EcosystemDB === 'undefined') {
+      console.warn('[Context] ecosystem-db.js belum dimuat, skip.');
+      return null;
+    }
+
+    const [
+      nameRes,
+      habitsRes,
+      todosRes,
+      ideasRes,
+      financesRes,
+      journalRes,
+    ] = await Promise.allSettled([
+      EcosystemDB.kv.kronik.get('profile_name'),
+      EcosystemDB.habits.getAll(),
+      EcosystemDB.todos.getAll(),
+      EcosystemDB.ideas.getAll(),
+      EcosystemDB.kv.finances.get('db'),
+      EcosystemDB.journal.getAll(),
+    ]);
+
+    const val = (res) => res.status === 'fulfilled' ? res.value : null;
+
+    const userName  = val(nameRes)     || null;
+    const habits    = val(habitsRes)   || [];
+    const todos     = val(todosRes)    || [];
+    const ideas     = val(ideasRes)    || [];
+    const finances  = val(financesRes) || null;
+    const journals  = val(journalRes)  || [];
+
+    /* ── Format ringkasan teks ────────────────────────────── */
+    const lines = [];
+
+    if (userName) {
+      lines.push(`Nama pengguna: ${userName}`);
+    }
+
+    // Habits aktif (filter yang belum diarsipkan)
+    const activeHabits = habits.filter(h => !h.archived && !h.deleted);
+    if (activeHabits.length) {
+      const list = activeHabits.slice(0, 10).map(h => h.name || h.title || '?').join(', ');
+      lines.push(`Habit aktif (${activeHabits.length}): ${list}`);
+    }
+
+    // Todos yang belum selesai
+    const openTodos = todos.filter(t => !t.done && !t.completed && !t.deleted);
+    if (openTodos.length) {
+      const list = openTodos.slice(0, 8).map(t => t.text || t.title || '?').join(', ');
+      lines.push(`Todo belum selesai (${openTodos.length}): ${list}`);
+    }
+
+    // Ideas — tampilkan yang status 'Proses' atau 'Ide'
+    const activeIdeas = ideas.filter(i => i.status !== 'Selesai' && i.status !== 'Batal');
+    if (activeIdeas.length) {
+      const list = activeIdeas.slice(0, 6).map(i => `"${i.title || i.name || '?'}" (${i.status || '-'})`).join(', ');
+      lines.push(`Ide aktif (${activeIdeas.length}): ${list}`);
+    }
+
+    // Keuangan — ringkasan saldo kalau tersedia
+    if (finances) {
+      try {
+        const txs = Array.isArray(finances) ? finances
+                  : Array.isArray(finances.transactions) ? finances.transactions
+                  : null;
+        if (txs && txs.length) {
+          const income  = txs.filter(t => t.type === 'income'  || t.amount > 0)
+                            .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+          const expense = txs.filter(t => t.type === 'expense' || t.amount < 0)
+                            .reduce((s, t) => s + Math.abs(t.amount || 0), 0);
+          const fmt = (n) => 'Rp ' + n.toLocaleString('id-ID');
+          lines.push(`Keuangan: pemasukan ${fmt(income)}, pengeluaran ${fmt(expense)} (total ${txs.length} transaksi)`);
+        }
+      } catch (_) { /* skip kalau format tidak dikenali */ }
+    }
+
+    // Jurnal — entri terbaru (max 3)
+    if (journals.length) {
+      const sorted  = [...journals].sort((a, b) => (b.date || b.id || 0) > (a.date || a.id || 0) ? 1 : -1);
+      const recent  = sorted.slice(0, 3);
+      const list    = recent.map(j => {
+        const date    = j.date ? new Date(j.date).toLocaleDateString('id-ID', { day:'numeric', month:'short' }) : '?';
+        const snippet = (j.content || j.text || '').slice(0, 60).replace(/\n/g, ' ');
+        return `[${date}] "${snippet}${snippet.length >= 60 ? '…' : ''}"`;
+      }).join(' | ');
+      lines.push(`Jurnal terbaru: ${list}`);
+    }
+
+    if (!lines.length) return null;
+
+    return {
+      userName,
+      summary: lines.join('\n'),
+    };
   }
-}
 
-// simpan API key
-function saveKey() {
-  const key = document.getElementById("apiKey").value;
-  localStorage.setItem("GROQ_API_KEY", key);
-  alert("API Key disimpan!");
-}
+  /* ── DOM refs ───────────────────────────────────────────────── */
+  const canvas        = document.getElementById('live2d-canvas');
+  const loadingEl     = document.getElementById('loading-overlay');
+  const errorEl       = document.getElementById('error-overlay');
+  const errorDetail   = document.getElementById('error-detail');
+  const statusEl      = document.querySelector('#model-tag .status');
+  const subtitleEl    = document.getElementById('chat-subtitle');
+  const exprPills     = document.querySelectorAll('.expr-pill');
+  const debugPanel    = document.getElementById('debug-panel');
+  const dbgFps        = document.getElementById('dbg-fps');
+  const dbgExpr       = document.getElementById('dbg-expr');
+  const dbgCursor     = document.getElementById('dbg-cursor');
+  const dbgBlink      = document.getElementById('dbg-blink');
 
-async function send() {
-  const input = document.getElementById("input");
-  const text = input.value;
+  // Chat
+  const messagesEl    = document.getElementById('messages');
+  const msgInput      = document.getElementById('msg-input');
+  const sendBtn       = document.getElementById('send-btn');
+  const chatToast     = document.getElementById('chat-toast');
 
-  const apiKey = localStorage.getItem("GROQ_API_KEY");
+  if (DEBUG) debugPanel.classList.add('show');
 
-  if (!apiKey) {
-    alert("Masukkan API key dulu!");
-    return;
+  /* ── State ──────────────────────────────────────────────────── */
+  let model        = null;
+  let currentExpr  = 'none';
+  let blinkTimer   = 0;
+  let blinkState   = 'open';   // open | closing | closed | opening
+  let blinkT       = 0;
+  let idleBreath   = 0;
+  let idleHead     = 0;
+  let cursorX      = 0.5;
+  let cursorY      = 0.5;
+  let smoothCX     = 0.5;
+  let smoothCY     = 0.5;
+  let frameCount   = 0;
+  let lastFpsTime  = performance.now();
+  let fps          = 60;
+
+  // Chat state
+  let chatHistory  = [];       // [{role, content}]
+  let isThinking   = false;    // sedang nunggu respons API
+
+  // TTS / Audio state
+  let audioCtx     = null;     // AudioContext (lazy init, butuh user gesture)
+  let analyser     = null;     // AnalyserNode untuk amplitude
+  let fftBuf       = null;     // Uint8Array untuk getByteFrequencyData
+  let isSpeaking   = false;    // sedang main audio TTS
+  let currentSource = null;    // AudioBufferSourceNode aktif (untuk stop)
+
+  /* ── PixiJS App ─────────────────────────────────────────────── */
+  const panel = document.getElementById('model-panel');
+
+  const app = new PIXI.Application({
+    view: canvas,
+    width:  panel.clientWidth,
+    height: panel.clientHeight,
+    backgroundAlpha: 0,
+    antialias: true,
+    resolution: window.devicePixelRatio || 1,
+    autoDensity: true,
+  });
+
+  /* Resize handler */
+  function resizeApp() {
+    const w = panel.clientWidth;
+    const h = panel.clientHeight;
+    app.renderer.resize(w, h);
+    if (model) positionModel(model, w, h);
   }
+  window.addEventListener('resize', resizeApp);
 
-  if (!text) return;
-
-  addMessage("Kamu: " + text, "user");
-  input.value = "";
-
-  const thinking = document.createElement("div");
-  thinking.className = "msg ai";
-
-  const thinkingText = ["hmm...", "bentar ya...", "aku pikir dulu..."];
-  thinking.innerText = thinkingText[Math.floor(Math.random() * thinkingText.length)];
-
-  chat.appendChild(thinking);
-
-  await sleep(800);
-
+  /* ── Load model ─────────────────────────────────────────────── */
   try {
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: "Kamu asisten santai, bantu user berpikir." },
-          { role: "user", content: text }
-        ]
-      })
+    // pixi-live2d-display mengekspos PIXI.live2d namespace
+    const { Live2DModel } = PIXI.live2d;
+
+    model = await Live2DModel.from(MODEL_PATH, {
+      autoInteract: false,   // kita handle sendiri
     });
 
-    const data = await res.json();
+    app.stage.addChild(model);
+    positionModel(model, app.renderer.width, app.renderer.height);
 
-    const reply = data?.choices?.[0]?.message?.content || JSON.stringify(data);
+    // Sembunyikan loading
+    loadingEl.classList.add('hidden');
+    setTimeout(() => loadingEl.remove(), 700);
 
-    await typeEffect(thinking, "AI: " + reply);
+    // Mulai idle loop
+    app.ticker.add(onTick);
+
+    statusEl.textContent = '· idle';
+    initChat();
 
   } catch (err) {
-    thinking.innerText = "Error: " + err.message;
+    console.error('[Live2D] Load error:', err);
+    loadingEl.classList.add('hidden');
+    errorEl.classList.add('show');
+    errorDetail.textContent = err.message || String(err);
   }
-}
-</script>
 
+  /* ── Position model ─────────────────────────────────────────── */
+  function positionModel(m, W, H) {
+    const isMobile = W < 700;
+
+    // Scale: tampilkan 80% tinggi canvas di desktop, lebih kecil mobile
+    const targetH = isMobile ? H * 0.9 : H * 0.88;
+    const scale   = targetH / (m.internalModel?.height || 800);
+    m.scale.set(scale);
+
+    // Anchor tengah-bawah
+    m.anchor.set(0.5, 1);
+    m.x = isMobile ? W * 0.5 : W * 0.5;
+    m.y = H * (isMobile ? 0.98 : 0.97);
+  }
+
+  /* ── Cursor tracking ─────────────────────────────────────────── */
+  function updateCursor(clientX, clientY) {
+    const rect = panel.getBoundingClientRect();
+    cursorX = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    cursorY = Math.max(0, Math.min(1, (clientY - rect.top)  / rect.height));
+    if (DEBUG) dbgCursor.textContent = `${cursorX.toFixed(2)}, ${cursorY.toFixed(2)}`;
+  }
+
+  window.addEventListener('mousemove', e => updateCursor(e.clientX, e.clientY));
+
+  window.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    updateCursor(t.clientX, t.clientY);
+  }, { passive: true });
+
+  /* ── Auto eye blink ─────────────────────────────────────────── */
+  function scheduleNextBlink() {
+    // Interval acak 2.5–6 detik
+    blinkTimer = 2.5 + Math.random() * 3.5;
+    blinkState = 'open';
+    blinkT     = 0;
+  }
+  scheduleNextBlink();
+
+  function tickBlink(delta) {
+    const dt = delta / 60; // approximate seconds (ticker default 60fps)
+    blinkTimer -= dt;
+
+    if (blinkState === 'open' && blinkTimer <= 0) {
+      blinkState = 'closing';
+      blinkT = 0;
+    }
+
+    let eyeVal = 1; // fully open
+
+    if (blinkState === 'closing') {
+      blinkT += dt / 0.08; // 80ms to close
+      eyeVal = Math.max(0, 1 - blinkT);
+      if (blinkT >= 1) {
+        blinkState = 'closed';
+        blinkT = 0;
+      }
+    } else if (blinkState === 'closed') {
+      blinkT += dt / 0.05; // 50ms closed
+      eyeVal = 0;
+      if (blinkT >= 1) {
+        blinkState = 'opening';
+        blinkT = 0;
+      }
+    } else if (blinkState === 'opening') {
+      blinkT += dt / 0.10; // 100ms to open
+      eyeVal = Math.min(1, blinkT);
+      if (blinkT >= 1) {
+        scheduleNextBlink();
+        eyeVal = 1;
+      }
+    }
+
+    if (model) {
+      setCoreParam('ParamEyeROpen', eyeVal);
+      setCoreParam('ParamEyeLOpen', eyeVal);
+    }
+
+    if (DEBUG) dbgBlink.textContent = blinkState;
+  }
+
+  /* ── Idle animation ─────────────────────────────────────────── */
+  function tickIdle(delta) {
+    const dt = delta / 60;
+    idleBreath += dt;
+    idleHead   += dt;
+
+    if (!model) return;
+
+    // Napas: siklus ~4 detik, amplitudo kecil
+    const breathVal = Math.sin(idleBreath * (Math.PI * 2 / 4)) * 0.4;
+    setCoreParam('ParamBreath', breathVal);
+
+    // Kepala goyang pelan: siklus ~7 detik
+    const headAngle = Math.sin(idleHead * (Math.PI * 2 / 7)) * 4;
+    setCoreParam('ParamAngleZ', headAngle);
+  }
+
+  /* ── Cursor follow ───────────────────────────────────────────── */
+  function tickFollow(delta) {
+    if (!model) return;
+    const dt = delta / 60;
+    const lerpSpeed = 3.5 * dt;
+
+    // Smooth lerp
+    smoothCX += (cursorX - smoothCX) * lerpSpeed;
+    smoothCY += (cursorY - smoothCY) * lerpSpeed;
+
+    // Map ke range Live2D parameter
+    // X: -1..1 → ParamAngleX: cursor kiri = negatif (kepala ke kiri)
+    const angleX  = (smoothCX - 0.5) * 2 * 20;   // max ±20
+    const angleY  = (0.5 - smoothCY) * 2 * 15;    // max ±15, invert Y
+    const eyeX    = (smoothCX - 0.5) * 2 * 1;     // ±1
+    const eyeY    = (0.5 - smoothCY) * 2 * 0.6;
+    const bodyX   = angleX * 0.12;
+
+    setCoreParam('ParamAngleX', angleX);
+    setCoreParam('ParamAngleY', angleY);
+    setCoreParam('ParamEyeBallX', eyeX);
+    setCoreParam('ParamEyeBallY', eyeY);
+    setCoreParam('ParamBodyAngleX', bodyX);
+  }
+
+  /* ── Lip sync ────────────────────────────────────────────────── */
+  // Dipanggil tiap frame. Kalau tidak speaking → tutup mulut pelan.
+  let smoothMouth = 0;   // nilai terakhir (untuk smooth close)
+
+  function tickLipSync() {
+    if (!model) return;
+
+    let targetMouth = 0;
+
+    if (isSpeaking && analyser && fftBuf) {
+      analyser.getByteFrequencyData(fftBuf);
+
+      // Ambil rata-rata bin frekuensi vokal (kira-kira 300Hz–3kHz)
+      // Dengan sampleRate 44100 dan fftSize 256 → bin size ≈ 172Hz
+      // Bin 2..18 ≈ 344Hz..3096Hz
+      const start = 2, end = Math.min(18, fftBuf.length - 1);
+      let sum = 0;
+      for (let i = start; i <= end; i++) sum += fftBuf[i];
+      const avg = sum / (end - start + 1);   // 0–255
+
+      // Normalize ke 0–1, dengan sedikit boost
+      targetMouth = Math.min(1, (avg / 255) * 2.2);
+    }
+
+    // Smooth: buka cepat (0.35), tutup lebih lambat (0.12)
+    const speed = targetMouth > smoothMouth ? 0.35 : 0.12;
+    smoothMouth += (targetMouth - smoothMouth) * speed;
+
+    setCoreParam('ParamMouthOpenY', smoothMouth);
+    // ParamMouthForm: sedikit senyum saat berbicara
+    setCoreParam('ParamMouthForm', isSpeaking ? 0.3 : 0);
+  }
+  function onTick(delta) {
+    tickBlink(delta);
+    tickIdle(delta);
+    tickFollow(delta);
+    tickLipSync();             // ← baca amplitude → ParamMouthOpenY
+
+    // FPS counter
+    if (DEBUG) {
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFpsTime >= 1000) {
+        fps = Math.round(frameCount * 1000 / (now - lastFpsTime));
+        dbgFps.textContent = fps;
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+    }
+  }
+
+  /* ── Set core parameter helper ───────────────────────────────── */
+  function setCoreParam(name, value) {
+    try {
+      const core = model?.internalModel?.coreModel;
+      if (!core) return;
+      const idx = core.getParameterIndex(name);
+      if (idx < 0) return;
+      core.setParameterValueByIndex(idx, value, 1.0);
+    } catch(_) {}
+  }
+
+  /* ── Expression control ──────────────────────────────────────── */
+  function setExpression(name) {
+    if (!model) return;
+    currentExpr = name;
+    if (DEBUG) dbgExpr.textContent = name;
+
+    try {
+      if (name === 'none') {
+        // Reset expression manager
+        model.expression();
+      } else {
+        model.expression(name);
+      }
+    } catch (err) {
+      console.warn('[Live2D] expression error:', err);
+    }
+
+    // Update pill UI
+    exprPills.forEach(p => {
+      p.classList.toggle('active', p.dataset.expr === name);
+    });
+
+    // Update status tag
+    statusEl.textContent = name === 'none' ? '· idle' : `· ${name}`;
+  }
+
+  exprPills.forEach(pill => {
+    pill.addEventListener('click', () => setExpression(pill.dataset.expr));
+  });
+
+  /* ── Tap model → random blink ────────────────────────────────── */
+  canvas.addEventListener('click', () => {
+    if (blinkState === 'open') {
+      blinkTimer = 0; // trigger blink segera
+    }
+  });
+
+  /* ── Keyboard shortcut: D = toggle debug ─────────────────────── */
+  window.addEventListener('keydown', e => {
+    if (e.key === 'd' || e.key === 'D') {
+      debugPanel.classList.toggle('show');
+    }
+  });
+
+  /* ================================================================
+     RESIZER — drag to resize model vs chat panel
+  ================================================================ */
+  (() => {
+    const resizer   = document.getElementById('resizer');
+    const chatPanel = document.getElementById('chat-panel');
+    const modelPanel = document.getElementById('model-panel');
+    const appEl     = document.getElementById('app');
+
+    const STORAGE_KEY = 'assistant_panel_size';
+    const isMobile    = () => window.innerWidth <= 700;
+
+    // Batas min/max
+    const DESKTOP_MIN = 220;   // px chat width
+    const DESKTOP_MAX = () => window.innerWidth * 0.65;
+    const MOBILE_MIN  = 100;   // px model height
+    const MOBILE_MAX  = () => window.innerHeight * 0.82;
+
+    // Load saved size
+    function loadSaved() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        if (isMobile() && saved.modelH) {
+          modelPanel.style.height = clamp(saved.modelH, MOBILE_MIN, MOBILE_MAX()) + 'px';
+        } else if (!isMobile() && saved.chatW) {
+          chatPanel.style.width = clamp(saved.chatW, DESKTOP_MIN, DESKTOP_MAX()) + 'px';
+        }
+      } catch (_) {}
+    }
+
+    function saveSize(key, val) {
+      try {
+        const prev = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...prev, [key]: val }));
+      } catch (_) {}
+    }
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    loadSaved();
+    window.addEventListener('resize', loadSaved);
+
+    let dragging = false;
+    let startPos = 0;
+    let startSize = 0;
+
+    function onDragStart(e) {
+      dragging  = true;
+      resizer.classList.add('dragging');
+      document.body.style.userSelect   = 'none';
+      document.body.style.cursor       = isMobile() ? 'row-resize' : 'col-resize';
+
+      if (isMobile()) {
+        startPos  = e.touches ? e.touches[0].clientY : e.clientY;
+        startSize = modelPanel.getBoundingClientRect().height;
+      } else {
+        startPos  = e.touches ? e.touches[0].clientX : e.clientX;
+        startSize = chatPanel.getBoundingClientRect().width;
+      }
+
+      e.preventDefault();
+    }
+
+    function onDragMove(e) {
+      if (!dragging) return;
+      const pos = e.touches ? e.touches[0].clientY || e.touches[0].clientX : (isMobile() ? e.clientY : e.clientX);
+
+      if (isMobile()) {
+        const delta   = pos - startPos;
+        const newH    = clamp(startSize + delta, MOBILE_MIN, MOBILE_MAX());
+        modelPanel.style.height = newH + 'px';
+        modelPanel.style.flex   = 'none';
+        // Resize pixi canvas
+        if (typeof resizeApp === 'function') resizeApp();
+      } else {
+        const delta   = pos - startPos;
+        const newW    = clamp(startSize + delta, DESKTOP_MIN, DESKTOP_MAX());
+        chatPanel.style.width = newW + 'px';
+        if (typeof resizeApp === 'function') resizeApp();
+      }
+    }
+
+    function onDragEnd() {
+      if (!dragging) return;
+      dragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.userSelect = '';
+      document.body.style.cursor     = '';
+
+      // Simpan ukuran
+      if (isMobile()) {
+        saveSize('modelH', parseFloat(modelPanel.style.height));
+      } else {
+        saveSize('chatW', parseFloat(chatPanel.style.width));
+      }
+
+      if (typeof resizeApp === 'function') resizeApp();
+    }
+
+    // Mouse events
+    resizer.addEventListener('mousedown',  onDragStart);
+    window.addEventListener('mousemove',   onDragMove);
+    window.addEventListener('mouseup',     onDragEnd);
+
+    // Touch events
+    resizer.addEventListener('touchstart',  onDragStart, { passive: false });
+    window.addEventListener('touchmove',    onDragMove,  { passive: true });
+    window.addEventListener('touchend',     onDragEnd);
+
+    // Double-tap resizer → reset ke default
+    let lastTap = 0;
+    resizer.addEventListener('touchend', () => {
+      const now = Date.now();
+      if (now - lastTap < 300) {
+        // Reset
+        if (isMobile()) {
+          modelPanel.style.height = '';
+          modelPanel.style.flex   = '';
+          saveSize('modelH', null);
+        } else {
+          chatPanel.style.width = '360px';
+          saveSize('chatW', 360);
+        }
+        if (typeof resizeApp === 'function') resizeApp();
+      }
+      lastTap = now;
+    });
+  })();
+
+  /* ================================================================
+     CHAT SYSTEM
+  ================================================================ */
+
+  /* ── Init chat ───────────────────────────────────────────────── */
+  function initChat() {
+    subtitleEl.textContent = 'online · siap ngobrol';
+    renderWelcome();       // async, fire-and-forget — bubble muncul setelah resolve
+    setupInputHandlers();
+  }
+
+  async function renderWelcome() {
+    let name = null;
+    try {
+      if (typeof EcosystemDB !== 'undefined') {
+        name = await EcosystemDB.kv.kronik.get('profile_name');
+      }
+    } catch (_) {}
+    const greeting = name ? `Hei, ${name}! ` : 'Hei! ';
+    appendMessage('assistant', `${greeting}Aku Liro. Ada yang bisa aku bantu hari ini? 😊`);
+  }
+
+  /* ── Input handlers ─────────────────────────────────────────── */
+  function setupInputHandlers() {
+    // Auto-resize textarea
+    msgInput.addEventListener('input', () => {
+      msgInput.style.height = 'auto';
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 110) + 'px';
+    });
+
+    // Enter = kirim, Shift+Enter = baris baru
+    msgInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+
+    sendBtn.addEventListener('click', handleSend);
+  }
+
+  /* ── Handle send ─────────────────────────────────────────────── */
+  async function handleSend() {
+    const text = msgInput.value.trim();
+    if (!text || isThinking) return;
+
+    // Reset input
+    msgInput.value = '';
+    msgInput.style.height = 'auto';
+
+    // Tampilkan bubble user
+    appendMessage('user', text);
+
+    // Tambah ke history
+    chatHistory.push({ role: 'user', content: text });
+
+    // Kirim ke API
+    await sendToAPI();
+  }
+
+  /* ── Send to /api/chat ───────────────────────────────────────── */
+  async function sendToAPI() {
+    isThinking = true;
+    setUIThinking(true);
+
+    // Typing indicator
+    const typingEl = appendTyping();
+
+    try {
+      // Baca ecosystem context paralel dengan typing indicator tampil
+      const ecosystemCtx = await loadEcosystemContext();
+
+      // Bangun system prompt final — inject context kalau ada
+      let finalSystemPrompt = SYSTEM_PROMPT;
+      if (ecosystemCtx?.summary) {
+        const greeting = ecosystemCtx.userName ? `Nama pengguna adalah ${ecosystemCtx.userName}.` : '';
+        finalSystemPrompt += `\n\n---\nDATA PENGGUNA (dari ekosistem app):\n${greeting ? greeting + '\n' : ''}${ecosystemCtx.summary}\n\nGunakan data ini sebagai konteks percakapan bila relevan. Jangan sebutkan data ini secara eksplisit kecuali pengguna bertanya atau jelas relevan.`;
+      }
+
+      const body = {
+        messages: chatHistory,
+        context: {
+          systemPrompt: finalSystemPrompt,
+          expression:   currentExpr,
+          ...(ecosystemCtx ? {
+            userName:   ecosystemCtx.userName,
+            ecosystem:  ecosystemCtx.summary,
+          } : {}),
+        },
+      };
+
+      const res = await fetch(CHAT_API, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(`HTTP ${res.status}${errText ? ': ' + errText : ''}`);
+      }
+
+      const data = await res.json();
+      const replyText = data?.text || data?.message || data?.content || '';
+
+      if (!replyText) throw new Error('Respons kosong dari server');
+
+      // Tambah ke history
+      chatHistory.push({ role: 'assistant', content: replyText });
+
+      // Hapus typing, tampilkan bubble
+      typingEl.remove();
+      appendMessage('assistant', replyText);
+
+      // Set ekspresi dari konten
+      autoExpression(replyText);
+
+      // TTS — fire and forget, error ditangani di dalam playTTS()
+      playTTS(replyText);
+
+    } catch (err) {
+      typingEl.remove();
+      showToast(`Gagal menghubungi server: ${err.message}`);
+      console.error('[Chat] API error:', err);
+    } finally {
+      isThinking = false;
+      setUIThinking(false);
+    }
+  }
+
+  /* ── UI state helpers ────────────────────────────────────────── */
+  function setUIThinking(on) {
+    sendBtn.disabled = on;
+    msgInput.disabled = on;
+    statusEl.textContent = on ? '· mengetik…' : `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+  }
+
+  /* ── Render helpers ──────────────────────────────────────────── */
+  function appendMessage(role, text) {
+    // Hapus placeholder kalau masih ada
+    const ph = messagesEl.querySelector('.chat-placeholder');
+    if (ph) ph.remove();
+
+    const now    = new Date();
+    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `msg ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'msg-bubble';
+    bubble.textContent = text;
+
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'msg-time';
+    timeDiv.textContent = timeStr;
+
+    msgDiv.appendChild(bubble);
+    msgDiv.appendChild(timeDiv);
+    messagesEl.appendChild(msgDiv);
+    scrollToBottom();
+
+    return msgDiv;
+  }
+
+  function appendTyping() {
+    const el = document.createElement('div');
+    el.className = 'typing-indicator';
+    el.innerHTML = `
+      <div class="typing-dots">
+        <span></span><span></span><span></span>
+      </div>`;
+    messagesEl.appendChild(el);
+    scrollToBottom();
+    return el;
+  }
+
+  function scrollToBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  /* ── Toast error ─────────────────────────────────────────────── */
+  let toastTimer = null;
+  function showToast(msg) {
+    chatToast.textContent = msg;
+    chatToast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => chatToast.classList.remove('show'), 5000);
+  }
+
+  /* ================================================================
+     TTS SYSTEM
+  ================================================================ */
+
+  /**
+   * Inisialisasi AudioContext (harus setelah user gesture).
+   * Dipanggil lazy saat TTS pertama kali dipakai.
+   */
+  function ensureAudioCtx() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Analyser untuk lip sync
+    analyser         = audioCtx.createAnalyser();
+    analyser.fftSize = 256;   // 128 bin
+    fftBuf           = new Uint8Array(analyser.frequencyBinCount);
+    analyser.connect(audioCtx.destination);
+  }
+
+  /**
+   * Minta audio dari /api/tts, decode, dan mainkan.
+   * Pipeline: fetch → ArrayBuffer → decodeAudioData → AudioBufferSourceNode
+   *           → AnalyserNode → destination
+   *
+   * @param {string} text - Teks yang akan di-TTS
+   */
+  async function playTTS(text) {
+    if (!text) return;
+
+    // Inisialisasi AudioContext (perlu user gesture — sudah terpenuhi via send button)
+    ensureAudioCtx();
+
+    // Kalau ada audio sebelumnya, hentikan
+    if (currentSource) {
+      try { currentSource.stop(); } catch (_) {}
+      currentSource = null;
+    }
+
+    try {
+      // Resume context kalau suspended (mobile)
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+      statusEl.textContent = '· berbicara…';
+
+      const res = await fetch('/api/tts', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text }),
+      });
+
+      if (!res.ok) throw new Error(`TTS HTTP ${res.status}`);
+
+      const arrayBuf   = await res.arrayBuffer();
+      const audioBuf   = await audioCtx.decodeAudioData(arrayBuf);
+
+      const source     = audioCtx.createBufferSource();
+      source.buffer    = audioBuf;
+
+      // Route: source → analyser → destination
+      source.connect(analyser);
+
+      isSpeaking    = true;
+      currentSource = source;
+      document.getElementById('model-tag').classList.add('speaking');
+
+      source.start(0);
+
+      source.onended = () => {
+        isSpeaking    = false;
+        currentSource = null;
+        smoothMouth   = 0;
+        setCoreParam('ParamMouthOpenY', 0);
+        setCoreParam('ParamMouthForm',  0);
+        document.getElementById('model-tag').classList.remove('speaking');
+        statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+      };
+
+    } catch (err) {
+      isSpeaking = false;
+      console.warn('[TTS] Error:', err);
+      // TTS gagal tidak harus tampil toast — respons teks tetap terbaca
+      statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+    }
+  }
+
+  /* ── Auto expression (updated) ───────────────────────────────── */
+  // Mapping sesuai spesifikasi prompt:
+  //   senang/bagus/oke      → none (default/normal)
+  //   maaf/sedih            → worried
+  //   hehe/lucu             → blush
+  //   serius/penting        → cool
+  function autoExpression(text) {
+    const lower = text.toLowerCase();
+    let expr = 'none';
+
+    if      (/hehe|haha|lucu|😄|😆|wkwk/.test(lower))               expr = 'blush';
+    else if (/maaf|sedih|khawatir|kasihan|😟|😢|duh|aduh/.test(lower)) expr = 'worried';
+    else if (/serius|penting|perlu diperhatikan|hati-hati|😐/.test(lower)) expr = 'cool';
+    // "senang/bagus/oke" → biarkan 'none' (sudah default)
+
+    if (expr !== 'none') {
+      setExpression(expr);
+      // Ekspresi kembali ke normal setelah audio selesai, atau 5 detik
+      setTimeout(() => setExpression('none'), 5000);
+    }
+  }
+
+})();
+</script>
 </body>
 </html>
