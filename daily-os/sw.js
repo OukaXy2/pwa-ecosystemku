@@ -1,26 +1,21 @@
-const CACHE_NAME = 'dailyos-v4';
+const CACHE_NAME = 'dailyos-v5';
 const ASSETS = [
   './app.html',
   './manifest.json',
   './icon.svg',
-  '/shared/ecosystem-db.js',
   'https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap',
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
-// ===== INSTALL — cache semua aset =====
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS).catch(() => {
-        // Abaikan error jika ada aset eksternal yang gagal
-      });
+      return cache.addAll(ASSETS).catch(() => {});
     })
   );
   self.skipWaiting();
 });
 
-// ===== ACTIVATE — hapus cache lama =====
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
@@ -32,12 +27,14 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// ===== FETCH — serve dari cache, fallback ke network =====
 self.addEventListener('fetch', event => {
+  if (new URL(event.request.url).pathname.startsWith('/shared/')) {
+    event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+    return;
+  }
   event.respondWith(
     caches.match(event.request).then(cached => {
       return cached || fetch(event.request).then(response => {
-        // Cache response baru untuk request yang berhasil
         if (response && response.status === 200 && response.type === 'basic') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
@@ -45,7 +42,6 @@ self.addEventListener('fetch', event => {
         return response;
       });
     }).catch(() => {
-      // Offline fallback ke app.html
       if (event.request.destination === 'document') {
         return caches.match('./app.html');
       }
@@ -53,18 +49,15 @@ self.addEventListener('fetch', event => {
   );
 });
 
-// ===== NOTIFICATION CLICK =====
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      // Fokus ke tab yang sudah terbuka
       for (const client of clientList) {
         if (client.url.includes('app.html') && 'focus' in client) {
           return client.focus();
         }
       }
-      // Buka tab baru kalau belum ada
       if (clients.openWindow) {
         return clients.openWindow('./app.html');
       }
@@ -72,7 +65,6 @@ self.addEventListener('notificationclick', event => {
   );
 });
 
-// ===== SCHEDULED NOTIFICATION via postMessage =====
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SCHEDULE_NOTIFICATION') {
     const { title, body, delay, tag } = event.data;
