@@ -586,9 +586,9 @@
       order: 1;
       flex: none;
       width: 100%;
-      height: 42dvh;   /* default, JS akan override via style */
-      min-height: 35dvh;   /* minimum 35% layar — model tetap kelihatan */
-      max-height: 72dvh;
+      height: 55dvh;   /* default lebih besar */
+      min-height: 35dvh;
+      max-height: 80dvh;
     }
 
     /* Resizer horizontal di mobile */
@@ -699,7 +699,7 @@
   @supports not (height: 1dvh) {
     @media (max-width: 700px) {
       #app           { height: 100vh; }
-      #model-panel   { height: 42vh; min-height: 35vh; max-height: 72vh; }
+      #model-panel   { height: 55vh; min-height: 35vh; max-height: 80vh; }
     }
   }
 
@@ -1355,8 +1355,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   function positionModel(m, W, H) {
     const isMobile = W < 700;
 
-    // Scale: tampilkan 80% tinggi canvas di desktop, lebih kecil mobile
-    const targetH = isMobile ? H * 0.9 : H * 0.88;
+    // Scale: tampilkan 80% tinggi canvas di desktop, lebih besar di mobile
+    const targetH = isMobile ? H * 1.15 : H * 0.88;
     const scale   = targetH / (m.internalModel?.height || 800);
     m.scale.set(scale);
 
@@ -1631,7 +1631,7 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     const DESKTOP_MIN = 220;   // px chat width
     const DESKTOP_MAX = () => window.innerWidth * 0.65;
     const MOBILE_MIN  = () => Math.round(window.innerHeight * 0.35);  // min 35% layar
-    const MOBILE_MAX  = () => Math.round(window.innerHeight * 0.72);  // max 72% layar
+    const MOBILE_MAX  = () => Math.round(window.innerHeight * 0.80);  // max 80% layar
 
     // Load saved size
     function loadSaved() {
