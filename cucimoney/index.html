@@ -863,8 +863,6 @@
         .kb-top-btn.kb-member-btn { color: var(--text-light); }
         .kb-top-btn.kb-acc-btn {
           color: var(--text-main);
-          flex: 0.75;
-          min-width: 75px;
           flex-direction: row;
           gap: 0.5rem;
           font-size: 0.85rem;
@@ -876,6 +874,9 @@
           cursor: pointer;
           transition: 0.15s;
           white-space: nowrap;
+          /* Gunakan lebar fixed agar konsisten di semua tab */
+          width: 90px;
+          flex-shrink: 0;
       }
       .kb-top-btn.kb-acc-btn.hidden {
           display: none; 
@@ -3633,6 +3634,17 @@ async function loadFromLS() {
             if (savedBudgets) budgets = savedBudgets;
             const savedMasterBudgets = await idbGet('masterBudgets');
             if (savedMasterBudgets) masterBudgets = savedMasterBudgets;
+
+            // Muat preferensi UI yang persisten
+            const savedPrefs = await idbGet('appPrefs');
+            if (savedPrefs) {
+                if (savedPrefs.visibility !== undefined) state.visibility = savedPrefs.visibility;
+                if (savedPrefs.selectedAccType)         state.selectedAccType = savedPrefs.selectedAccType;
+                if (savedPrefs.selectedAccIcon !== undefined) state.selectedAccIcon = savedPrefs.selectedAccIcon;
+                if (savedPrefs.trxMemberId)             state.trxMemberId = savedPrefs.trxMemberId;
+                if (savedPrefs.analysisPeriod)          analyticsState.analysisPeriod = savedPrefs.analysisPeriod;
+                if (savedPrefs.analysisTab)             analyticsState.analysisTab = savedPrefs.analysisTab;
+            }
         }
     } catch(e) {
         console.warn('IndexedDB error, fallback to seed:', e);
@@ -3644,6 +3656,8 @@ async function loadFromLS() {
     const currentBook = db.books.find(b => b.id === state.currentBookId);
     if (currentBook) document.getElementById('current-book-name').textContent = currentBook.name;
     renderApp();
+    // Sync tampilan tab analisis & period pill agar sesuai dengan preferensi yang dimuat
+    _syncAnalysisTabUI();
     // Periodic flush setiap 30 detik sebagai safety net (markSave handles real-time)
     setInterval(flushSave, 30000);
 }
@@ -3813,6 +3827,15 @@ function flushSave() {
     idbSet('db', db).catch(e => console.warn('IDB save db:', e));
     idbSet('budgets', budgets).catch(e => console.warn('IDB save budgets:', e));
     idbSet('masterBudgets', masterBudgets).catch(e => console.warn('IDB save masterBudgets:', e));
+    // Simpan preferensi UI yang harus persisten
+    idbSet('appPrefs', {
+        visibility:      state.visibility,
+        selectedAccType: state.selectedAccType,
+        selectedAccIcon: state.selectedAccIcon,
+        trxMemberId:     state.trxMemberId,
+        analysisPeriod:  analyticsState.analysisPeriod,
+        analysisTab:     analyticsState.analysisTab,
+    }).catch(e => console.warn('IDB save prefs:', e));
 }
 
 document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
@@ -4143,6 +4166,7 @@ function setAnalysisPeriod(period, el) {
     monthlyMetrics = {};
     document.querySelectorAll('#view-analisis .period-tab').forEach(t => t.classList.remove('active'));
     el.classList.add('active');
+    markSave();
     renderAnalysis();
 }
 
@@ -4169,6 +4193,7 @@ function switchAnalysisTab(tab, el) {
         bar.scrollLeft = elLeft - (barWidth / 2) + (elWidth / 2);
     }
 
+    markSave();
     renderAnalysis();
 }
 
@@ -4986,6 +5011,26 @@ function renderAnalysis() {
     else if (analyticsState.analysisTab === 'tren') renderCashFlowChart();
 }
 
+/* Sync DOM pills & tab visibility agar sesuai state (dipanggil saat boot) */
+function _syncAnalysisTabUI() {
+    // Sync period pill
+    const period = analyticsState.analysisPeriod;
+    document.querySelectorAll('#view-analisis .period-tab').forEach(t => {
+        const p = t.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+        t.classList.toggle('active', p === period);
+    });
+    // Sync analysis tab pill & content visibility
+    const tab = analyticsState.analysisTab;
+    document.querySelectorAll('.analysis-tab').forEach(t => {
+        const tp = t.getAttribute('onclick')?.match(/'(\w+)'/)?.[1];
+        t.classList.toggle('active', tp === tab);
+    });
+    document.getElementById('analysis-tab-expense').style.display = tab === 'expense' ? 'block' : 'none';
+    document.getElementById('analysis-tab-income').style.display  = tab === 'income'  ? 'block' : 'none';
+    document.getElementById('analysis-tab-budget').style.display  = tab === 'budget'  ? 'block' : 'none';
+    document.getElementById('analysis-tab-tren').style.display    = tab === 'tren'    ? 'block' : 'none';
+}
+
 // Legacy alias (keep backward compat)
 function renderAnalisis() { renderAnalysis(); }
 
@@ -5321,6 +5366,7 @@ function showNotification(msg, type='success') {
 function toggleVisibility() {
     state.visibility = !state.visibility;
     markDirty();
+    markSave();
     renderApp();
 }
 
@@ -5641,10 +5687,7 @@ function renderWalletModalList() {
         </div>`;
     });
     document.getElementById('wallet-modal-list').innerHTML = html;
-    // update header title to selected acc
-    const acc = getAccount(state.trxAccountId);
-    const titleEl = document.getElementById('wallet-modal-acc-name');
-    if (titleEl) titleEl.textContent = acc?.name || 'Pilih Akun';
+    // Jangan timpa judul yang sudah diset oleh openWalletModalTransfer/openWalletModal
 }
 function selectWalletAccount(id) {
     // Untuk transfer, atur berdasarkan target (from/to)
@@ -6251,6 +6294,7 @@ function selectMember(id) {
     state.trxMemberId = id;
     updateMemberKbLabel();
     renderMemberList();
+    markSave();
     // brief highlight then close
     setTimeout(() => closeMemberModal(), 180);
 }
@@ -6646,6 +6690,7 @@ function selectAccType(typeId) {
     state.selectedAccIcon = null; // reset custom icon saat ganti tipe
     renderAccTypePicker();
     updateAccDisplay();
+    markSave();
 }
 
 function updateAccDisplay() {
@@ -6696,12 +6741,14 @@ function openIconPicker() {
 function selectAccIcon(emoji) {
     state.selectedAccIcon = emoji;
     updateAccDisplay();
+    markSave();
     document.getElementById('acc-icon-picker-panel')?.remove();
 }
 
 function resetAccIcon() {
     state.selectedAccIcon = null;
     updateAccDisplay();
+    markSave();
     document.getElementById('acc-icon-picker-panel')?.remove();
 }
 
