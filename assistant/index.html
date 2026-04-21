@@ -942,7 +942,16 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
     antialias: true,
     resolution: window.devicePixelRatio || 1,
     autoDensity: true,
+    powerPreference: 'default',
+    sharedTicker: false,
   });
+
+  // Fix blending untuk tekstur dengan transparansi
+  app.renderer.gl.pixelStorei(app.renderer.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+
+  // Batasi FPS ke 60 untuk hindari glitch/flicker di mobile
+  app.ticker.maxFPS = 60;
+  app.ticker.minFPS = 30;
 
   /* Resize handler */
   function resizeApp() {
@@ -959,8 +968,17 @@ Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.`;
     const { Live2DModel } = PIXI.live2d;
 
     model = await Live2DModel.from(MODEL_PATH, {
-      autoInteract: false,   // kita handle sendiri
+      autoInteract: false,
+      // Fix untuk rendering tekstur
+      onLoad() {
+        if (model?.internalModel?.coreModel) {
+          console.log('[Live2D] Model loaded OK');
+        }
+      }
     });
+
+    // Fix alpha/blending
+    model.alpha = 1;
 
     app.stage.addChild(model);
     positionModel(model, app.renderer.width, app.renderer.height);
