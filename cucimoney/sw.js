@@ -1,15 +1,14 @@
 // ============================================
-// CuciMoney+ — Service Worker
+// CuciMoney+ — Service Worker v4
 // ============================================
 
 const CACHE_NAME = 'cucimoney-v4';
 const ASSETS = [
   './index.html',
   './manifest.json',
-  '/shared/ecosystem-db.js',
 ];
 
-// Install — cache assets
+// Install — cache assets (tanpa /shared/ — di-handle terpisah)
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
@@ -27,8 +26,19 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch — cache first, fallback ke network
+// Fetch — network-first untuk /shared/, cache-first untuk yang lain
 self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // /shared/ selalu ambil dari network dulu (jangan cache lama)
+  if (url.pathname.startsWith('/shared/')) {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // File lain — cache first, fallback network
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );

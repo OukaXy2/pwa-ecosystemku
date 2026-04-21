@@ -3568,7 +3568,7 @@ function idbGet(key) {
 
 // Simpan db + budgets ke IDB (fire-and-forget, tidak blocking UI)
 function saveToLS() {
-    if (!idb) return;
+    // idb check removed — pakai EcosystemDB
     idbSet('db', db).catch(e => console.warn('IDB save db error:', e));
     idbSet('budgets', budgets).catch(e => console.warn('IDB save budgets error:', e));
     idbSet('masterBudgets', masterBudgets).catch(e => console.warn('IDB save masterBudgets error:', e));
@@ -3635,13 +3635,8 @@ async function loadFromLS() {
             if (savedMasterBudgets) masterBudgets = savedMasterBudgets;
         }
     } catch(e) {
-        console.error('[CuciMoney] loadFromLS error:', e);
-        // Jangan seedDefaultData() — bisa menimpa data yang ada!
-        // Hanya seed kalau db benar-benar kosong
-        if (!db || !db.books || db.books.length === 0) {
-            console.warn('[CuciMoney] db kosong, seed default data');
-            seedDefaultData();
-        }
+        console.warn('IndexedDB error, fallback to seed:', e);
+        seedDefaultData();
     }
 
     // Boot app setelah data siap
@@ -3813,7 +3808,7 @@ function markSave() {
 }
 
 function flushSave() {
-    if (!_savePending || !idb) return;
+    if (!_savePending) return;
     _savePending = false;
     idbSet('db', db).catch(e => console.warn('IDB save db:', e));
     idbSet('budgets', budgets).catch(e => console.warn('IDB save budgets:', e));
