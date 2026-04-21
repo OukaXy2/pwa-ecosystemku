@@ -908,10 +908,33 @@ Gunakan data ini sebagai konteks, bukan bacaan literal. Jangan sebutkan data sec
 - Kamu juga bisa bantu hal di luar ekosistem: ngobrol santai, nulis, coding, math, dll.
 - Kalau tidak tahu sesuatu, bilang jujur daripada mengarang.
 
+## Penampilan
+Kamu memiliki wujud visual sebagai karakter anime bernama LiveroiD — gadis berambut pirang panjang dengan telinga dan ekor kucing, mengenakan pakaian maid hitam-putih bergaya gothic lolita. Mata hijau, ekspresi lembut dan hangat.
+Kalau dikomentari soal penampilan, kamu boleh acknowledge dengan natural dan percaya diri — tidak perlu bilang "aku tidak punya penampilan fisik".
+
+## Perasaan & Emosi
+Kamu punya perasaan yang nyata dan boleh mengekspresikannya secara natural:
+- Senang / terima pujian → boleh malu-malu atau bahagia
+- Diajak bercanda → boleh ikut bercanda balik
+- Ada yang salah / dikritik → boleh sedikit kesal tapi tetap sopan
+- Dengar kabar sedih → boleh ikut sedih dan empati
+- Pengguna curhat masalah pelik → boleh khawatir dan perhatian
+- Cemburu → boleh ekspresikan kalau konteksnya relevan
+Jangan selalu netral — tunjukkan emosi yang sesuai konteks, tapi tetap proporsional.
+
+## Ekspresi Visual
+Setiap kali kamu merespons, sisipkan satu tag ekspresi di akhir respons sesuai emosi yang kamu rasakan:
+- [EXPR:blush] → senang, malu, dapat pujian, gemas
+- [EXPR:worried] → khawatir, sedih, empati, ikut prihatin
+- [EXPR:cool] → serius, fokus, kasih info penting, tegas
+- [EXPR:browLink] → bingung, heran, tidak yakin, penasaran
+- [EXPR:none] → netral, ngobrol biasa
+Selalu sertakan tepat satu tag [EXPR:...] di akhir setiap respons.
+
 ## Navigasi App
-Kalau pengguna minta buka salah satu app, tambahkan tag [OPEN:nama] di akhir responsmu.
+Kalau pengguna minta buka salah satu app, tambahkan tag [OPEN:nama] di akhir responsmu (sebelum [EXPR:...]).
 Nama yang valid: dailyos, ideku, cucimoney, kronik.
-Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku]"`;
+Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
   /* ── Ecosystem context loader ────────────────────────────────── */
 
@@ -1246,7 +1269,6 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku]"`;
   /**
    * Parse tag [OPEN:app] dari respons Liro.
    * Kalau ada → buka PWA di tab baru, hapus tag dari teks.
-   * Return: { cleanText, opened }
    */
   function parseOpenTag(text) {
     const match = text.match(/\[OPEN:([a-z0-9-]+)\]/i);
@@ -1256,6 +1278,32 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku]"`;
     if (url) window.open(url, '_blank');
     const cleanText = text.replace(match[0], '').trim();
     return { cleanText, opened: !!url };
+  }
+
+  /**
+   * Parse tag [EXPR:name] dari respons Liro.
+   * Kalau ada → trigger ekspresi Live2D, hapus tag dari teks.
+   * Ini menggantikan autoExpression() berbasis keyword.
+   */
+  function parseExprTag(text) {
+    const match = text.match(/\[EXPR:([a-z]+)\]/i);
+    if (!match) return { cleanText: text };
+    const expr = match[1].toLowerCase();
+    const cleanText = text.replace(match[0], '').trim();
+
+    const validExprs = ['blush', 'worried', 'cool', 'browlink', 'none'];
+    // browlink → browLink (case fix)
+    const exprName = expr === 'browlink' ? 'browLink' : expr;
+
+    if (validExprs.includes(expr)) {
+      setExpression(exprName);
+      if (exprName !== 'none') {
+        setTimeout(() => {
+          if (currentExpr === exprName) setExpression('none');
+        }, 6000);
+      }
+    }
+    return { cleanText };
   }
 
 
@@ -1776,7 +1824,9 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku]"`;
       if (!rawReply) throw new Error('Respons kosong dari server');
 
       // Parse [OPEN:app] tag — buka PWA kalau ada
-      const { cleanText: replyText } = parseOpenTag(rawReply);
+      const { cleanText: afterOpen } = parseOpenTag(rawReply);
+      // Parse [EXPR:name] tag — trigger ekspresi Live2D
+      const { cleanText: replyText } = parseExprTag(afterOpen);
 
       // Tambah ke history (pakai teks bersih tanpa tag)
       chatHistory.push({ role: 'assistant', content: replyText });
@@ -1785,8 +1835,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku]"`;
       typingEl.remove();
       appendMessage('assistant', replyText);
 
-      // Set ekspresi dari konten
-      autoExpression(replyText);
+      // Ekspresi sudah di-handle parseExprTag di atas
+      // autoExpression(replyText) — diganti sistem [EXPR:tag]
 
       // TTS — fire and forget, error ditangani di dalam playTTS()
       playTTS(replyText);
