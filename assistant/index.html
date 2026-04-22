@@ -143,8 +143,9 @@
   #live2d-canvas {
     position: absolute;
     top: 0; left: 0;
-    width: 100%; height: 100%;
     display: block;
+    /* Dimensi diset PIXI via autoDensity — jangan override dengan %
+       agar model tidak CSS-scale saat panel di-drag. */
   }
 
   /* Gradient ground shadow bawah model */
