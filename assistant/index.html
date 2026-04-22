@@ -1232,18 +1232,14 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   app.ticker.maxFPS = 60;
   app.ticker.minFPS = 30;
 
-  /* Resize handler — dibatasi satu kali per animation frame supaya
-     app.renderer.resize() tidak dipanggil berulang saat drag & menyebabkan flicker. */
-  let _resizeRaf = null;
+  /* Resize handler — hanya dipanggil saat drag SELESAI dan window resize,
+     bukan saat drag berlangsung. app.renderer.resize() adalah operasi WebGL
+     yang clear buffer (menyebabkan flicker kalau dipanggil tiap frame). */
   function resizeApp() {
-    if (_resizeRaf) return;
-    _resizeRaf = requestAnimationFrame(() => {
-      _resizeRaf = null;
-      const w = panel.clientWidth;
-      const h = panel.clientHeight;
-      app.renderer.resize(w, h);
-      if (model) positionModel(model, w, h);
-    });
+    const w = panel.clientWidth;
+    const h = panel.clientHeight;
+    app.renderer.resize(w, h);
+    if (model) positionModel(model, w, h);
   }
   window.addEventListener('resize', resizeApp);
 
@@ -1372,7 +1368,7 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     // Anchor tengah-bawah
     m.anchor.set(0.5, 1);
     m.x = W * 0.5;
-    m.y = H * (isMobile ? 1.0 : 0.98);
+    m.y = H * (isMobile ? 0.99 : 0.98);
   }
 
   /* ── Cursor tracking ─────────────────────────────────────────── */
@@ -1694,17 +1690,16 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       const pos = e.touches ? e.touches[0].clientY || e.touches[0].clientX : (isMobile() ? e.clientY : e.clientX);
 
       if (isMobile()) {
-        const delta   = pos - startPos;
-        const newH    = clamp(startSize + delta, MOBILE_MIN(), MOBILE_MAX());
+        const delta = pos - startPos;
+        const newH  = clamp(startSize + delta, MOBILE_MIN(), MOBILE_MAX());
         modelPanel.style.height = newH + 'px';
         modelPanel.style.flex   = 'none';
-        // Resize pixi canvas
-        if (typeof resizeApp === 'function') resizeApp();
+        // Tidak panggil resizeApp() di sini — canvas CSS ikut stretch otomatis
+        // via width/height: 100%, WebGL resize hanya di onDragEnd.
       } else {
-        const delta   = pos - startPos;
-        const newW    = clamp(startSize + delta, DESKTOP_MIN, DESKTOP_MAX());
+        const delta = pos - startPos;
+        const newW  = clamp(startSize + delta, DESKTOP_MIN, DESKTOP_MAX());
         chatPanel.style.width = newW + 'px';
-        if (typeof resizeApp === 'function') resizeApp();
       }
     }
 
