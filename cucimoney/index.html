@@ -6653,9 +6653,10 @@ function reverseAccountBalance(trx) {
 /* ===========================
    ACCOUNT
 =========================== */
-function openAddAccountModal(fromDetail = false) {
-    // Reset hanya saat tambah baru, bukan edit
-    if (!state.editingAccountId) {
+function openAddAccountModal(fromDetail = false, forEdit = false) {
+    // Kalau bukan untuk edit, selalu reset state
+    if (!forEdit) {
+        state.editingAccountId = null;
         state.selectedAccType = 'cash';
         state.selectedAccIcon = null;
     }
@@ -7343,7 +7344,7 @@ function openEditAccountFromDetail() {
     state.selectedAccIcon = acc?.icon || null;
     // Buka modal edit di atas modal detail (jangan closeAllModals)
     // sehingga urutan back: modal edit → modal detail → view
-    openAddAccountModal(true); // fromDetail=true, skip openOverlay
+    openAddAccountModal(true, true); // fromDetail=true, forEdit=true
     if (acc) {
         document.getElementById('acc-name').value = acc.name;
         document.getElementById('acc-balance').value = acc.balance;
