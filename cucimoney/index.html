@@ -2630,7 +2630,7 @@
     <div class="modal-cat-trx" id="sheet-category-transactions">
         <!-- Header teal seperti screenshot -->
         <div class="modal-cat-trx-header">
-            <button class="icon-btn" onclick="closeCatTrxModal()" style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.2);color:#fff;">
+            <button class="icon-btn" onclick="history.back()" style="width:38px;height:38px;background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.2);color:#fff;">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
             <div class="modal-cat-trx-title" id="sheet-cat-title">Kategori</div>
@@ -2654,7 +2654,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;padding:0.25rem 1.25rem 0.75rem;">
             <div style="font-size:1rem;font-weight:800;color:var(--text-main);" id="sheet-budget-title">Budget Bulanan</div>
             <div style="display:flex;gap:0.5rem;">
-                <button class="icon-btn" onclick="closeAllModals();setTimeout(()=>openMasterBudgetModal(true),50);" style="color:var(--primary);border-color:rgba(0,191,165,0.3);">
+                <button class="icon-btn" onclick="openMasterBudgetModal(true, true);" style="color:var(--primary);border-color:rgba(0,191,165,0.3);">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
                 <button class="icon-btn" onclick="deleteMasterBudget()" style="color:var(--expense);">
@@ -2682,7 +2682,7 @@
     <!-- MODAL: Setup Master Budget -->
     <div class="modal-fs" id="modal-add-budget">
         <div class="modal-header">
-            <button class="icon-btn" onclick="closeAllModals()">
+            <button class="icon-btn" onclick="history.back()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <div class="title" id="budget-modal-title">Atur Budget Bulanan</div>
@@ -2725,7 +2725,7 @@
             </div>
         </div>
         <div class="form-buttons">
-            <button class="btn btn-secondary" onclick="closeAllModals()">Batal</button>
+            <button class="btn btn-secondary" onclick="history.back()">Batal</button>
             <button class="btn btn-primary" onclick="saveMasterBudget()" style="flex: 2;">Simpan</button>
         </div>
     </div>
@@ -2859,7 +2859,7 @@
     </button>
 
     <!-- OVERLAY -->
-    <div class="overlay" id="main-overlay" onclick="closeAllModals()"></div>
+    <div class="overlay" id="main-overlay" onclick="history.back()"></div>
 
     <!-- TRX DETAIL DIALOG (centered card) -->
     <div id="modal-trx-detail">
@@ -2899,7 +2899,7 @@
     <!-- ACCOUNT DETAIL MODAL -->
 <div class="modal-fs" id="modal-account-detail">
     <div class="modal-header">
-        <button class="icon-btn" onclick="closeAllModals()">
+        <button class="icon-btn" onclick="history.back()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
         <div class="title">Detail Akun</div>
@@ -2992,7 +2992,7 @@
     <!-- ADD/EDIT ACCOUNT MODAL -->
 <div class="modal-fs" id="modal-add-account">
     <div class="modal-header">
-        <button class="icon-btn" onclick="closeAllModals()">
+        <button class="icon-btn" onclick="history.back()">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="title" id="modal-acc-title">Tambah Akun</div>
@@ -3086,7 +3086,7 @@
 
     <!-- BUTTONS -->
     <div class="form-buttons">
-        <button class="btn btn-secondary" onclick="closeAllModals()">Batal</button>
+        <button class="btn btn-secondary" onclick="history.back()">Batal</button>
         <button class="btn btn-primary" onclick="saveAccountNew()" style="flex:2">Simpan</button>
     </div>
 </div>
@@ -3095,7 +3095,7 @@
     <div class="modal-fs" id="modal-add-transaction">
         <!-- Top type bar: close | Pengeluaran | Pemasukan | Transfer -->
         <div class="trx-type-bar">
-            <div class="trx-type-close" onclick="closeAllModals()">
+            <div class="trx-type-close" onclick="history.back()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </div>
             <div class="trx-type-tabs">
@@ -3366,7 +3366,7 @@
     <!-- SEARCH MODAL -->
     <div class="modal-fs" id="modal-search">
         <div class="modal-header">
-            <button class="icon-btn" onclick="closeAllModals()">
+            <button class="icon-btn" onclick="history.back()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
             <div class="search-bar">
@@ -3378,40 +3378,7 @@
         <div id="search-results" style="padding:1rem 1.25rem 2rem; overflow-y:auto; flex:1;"></div>
     </div>
 
-    <!-- ADD ACCOUNT MODAL -->
-    <div class="modal-fs" id="modal-add-account">
-        <div class="modal-header">
-            <button class="icon-btn" onclick="closeAllModals()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-            <div class="title">Tambah Akun</div>
-            <div style="width:38px"></div>
-        </div>
-        <div class="form-layout">
-            <div class="form-group">
-                <label>Nama Akun</label>
-                <input type="text" id="acc-name" placeholder="Misal: BCA, GoPay...">
-            </div>
-            <div class="form-group">
-                <label>Tipe</label>
-                <select id="acc-type">
-                    <option value="cash">💵 Tunai</option>
-                    <option value="bank">🏦 Bank</option>
-                    <option value="ewallet">📱 E-Wallet</option>
-                    <option value="credit">💳 Kartu Kredit</option>
-                    <option value="saving">🐷 Tabungan</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Saldo Awal</label>
-                <input type="number" id="acc-balance" placeholder="0" min="0" value="0">
-            </div>
-        </div>
-        <div class="form-buttons">
-            <button class="btn btn-secondary" onclick="closeAllModals()">Batal</button>
-            <button class="btn btn-primary" onclick="saveAccount()" style="flex:2">Simpan</button>
-        </div>
-    </div>
+
 
 </div>
 
@@ -4833,7 +4800,7 @@ function renderBudgetTab() {
 }
 
 /* Buka modal master budget */
-function openMasterBudgetModal(isEdit = false) {
+function openMasterBudgetModal(isEdit = false, fromSheet = false) {
     const mb = getActiveMasterBudget(analyticsState.analysisMonth, analyticsState.analysisYear);
 
     // Set default tanggal
@@ -4850,7 +4817,7 @@ function openMasterBudgetModal(isEdit = false) {
 
     document.getElementById('modal-add-budget').classList.add('active');
     _pushModalState('modal-add-budget');
-    openOverlay();
+    if (!fromSheet) openOverlay();
 }
 
 // Alias backward compat
@@ -4970,7 +4937,7 @@ function openBudgetDetailSheet() {
         const barPct = spent > 0 ? Math.min(100, Math.round(amount / spent * 100)) : 0;
         const color = amount > 0 ? DONUT_COLORS[withSpend.indexOf(cat) % DONUT_COLORS.length] : 'var(--border-strong)';
         catsHtml += `
-        <div class="budget-detail-cat-row" onclick="openCategoryTransactions('${cat.name}','out');_closeTopLayer();">
+        <div class="budget-detail-cat-row" onclick="openCategoryTransactions('${cat.name}','out');">
             <div class="budget-detail-cat-icon">${cat.emoji}</div>
             <div class="budget-detail-cat-info">
                 <div class="budget-detail-cat-name">${cat.name}</div>
@@ -5149,12 +5116,8 @@ function switchView(name, el) {
     el.classList.add('active');
     closeAllModals();
 
-    // Push ke history saat pindah view (kecuali buku = base)
-    if (name === 'buku') {
-        history.replaceState({ layer: 'view', view: 'buku' }, '');
-    } else if (prevView !== name) {
-        history.pushState({ layer: 'view', view: name }, '');
-    }
+    // Navigasi antar view SELALU replaceState — tidak menambah stack.
+    history.replaceState({ layer: 'view', view: name }, '');
 
     // FAB hanya tampil di view Buku
     const fab = document.getElementById('fab-add-trx');
@@ -5215,6 +5178,10 @@ function _getOpenLayers() {
 
     const memberCreate = document.getElementById('member-create-modal');
     if (memberCreate?.classList.contains('active')) layers.push({ el: memberCreate, type: 'sub-modal' });
+
+    // Cat transactions modal (modal-cat-trx class, bukan bottom-sheet/modal-fs)
+    const catTrxModal = document.getElementById('sheet-category-transactions');
+    if (catTrxModal?.classList.contains('active')) layers.push({ el: catTrxModal, type: 'sheet' });
 
     // Bottom sheets
     document.querySelectorAll('.bottom-sheet.active').forEach(el => layers.push({ el, type: 'sheet' }));
@@ -5302,11 +5269,7 @@ function _closeTopLayer() {
 
 // Ganti semua view non-base → push state
 function _pushViewState(viewName) {
-    if (viewName === 'buku') {
-        history.replaceState({ layer: 'view', view: 'buku' }, '');
-    } else {
-        history.pushState({ layer: 'view', view: viewName }, '');
-    }
+    history.replaceState({ layer: 'view', view: viewName }, '');
 }
 
 // Setiap modal/sheet buka → push state
@@ -5314,43 +5277,62 @@ function _pushModalState(id) {
     history.pushState({ layer: 'modal', id }, '');
 }
 
-window.addEventListener('popstate', (e) => {
-    const state = e.state;
+// "Klik 2x untuk keluar" state
+let _exitPressedOnce = false;
+let _exitToastEl = null;
 
-    // Ada layer modal terbuka → tutup satu
+function _showExitToast() {
+    if (_exitToastEl) _exitToastEl.remove();
+    _exitToastEl = document.createElement('div');
+    _exitToastEl.textContent = 'Tekan sekali lagi untuk keluar';
+    _exitToastEl.style.cssText = [
+        'position:fixed', 'bottom:96px', 'left:50%',
+        'transform:translateX(-50%)',
+        'background:rgba(30,33,48,0.96)',
+        'color:#EEF0F8', 'font-size:0.85rem', 'font-weight:600',
+        'padding:0.65rem 1.25rem', 'border-radius:2rem',
+        'box-shadow:0 4px 20px rgba(0,0,0,0.5)',
+        'z-index:99999', 'pointer-events:none',
+        'animation:fadeUp 0.2s ease-out',
+        'white-space:nowrap',
+    ].join(';');
+    document.body.appendChild(_exitToastEl);
+    setTimeout(() => {
+        if (_exitToastEl) { _exitToastEl.remove(); _exitToastEl = null; }
+        _exitPressedOnce = false;
+    }, 2000);
+}
+
+window.addEventListener('popstate', (e) => {
+    const s = e.state;
+
+    // Ada layer modal terbuka → tutup satu, push guard agar back berikutnya tertangkap
     if (_getOpenLayers().length > 0) {
         _closeTopLayer();
+        // Selalu push guard supaya popstate berikutnya tertangkap JS, bukan browser
+        history.pushState({ layer: 'modal', id: 'guard' }, '');
         return;
     }
 
-    // Tidak ada modal — navigasi antar view
-    if (state?.layer === 'view' && state.view) {
-        const targetView = state.view;
-        if (targetView !== _activeView) {
-            // Pindah ke view di stack (tanpa push state baru)
-            _activeView = targetView;
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            document.getElementById('view-' + targetView)?.classList.add('active');
-            // Update nav item active
-            const navItems = document.querySelectorAll('.nav-item');
-            const viewOrder = ['buku', 'dompet', 'analisis', 'lebih'];
-            const idx = viewOrder.indexOf(targetView);
-            if (navItems[idx]) navItems[idx].classList.add('active');
-            // Render jika dirty
-            if (_dirty[targetView]) _renderView(targetView);
-            const fab = document.getElementById('fab-add-trx');
-            if (fab) fab.classList.toggle('visible', targetView === 'buku');
-        }
-        return;
-    }
+    // Tidak ada modal → intent keluar
+    // Klik 2x untuk keluar HANYA berlaku di view utama (buku, dompet, analisis, lebih)
+    const _mainViews = ['buku', 'dompet', 'analisis', 'lebih'];
+    if (!_mainViews.includes(_activeView)) return;
 
-    // state null / base → kita di view buku, biarkan browser exit app
-    // Tidak perlu handle — browser akan minimize/exit secara natural
+    if (_exitPressedOnce) {
+        return; // biarkan browser keluar/minimize
+    }
+    _exitPressedOnce = true;
+    _showExitToast();
+    history.pushState({ layer: 'view', view: _activeView }, '');
 });
 
 // Init: set base state
-history.replaceState({ layer: 'view', view: 'buku' }, '');
+// Push dummy entry dulu sebagai buffer, lalu replaceState entry aktif di atasnya.
+// Ini memastikan browser selalu punya 1 entry di bawah base, sehingga
+// hardware back tidak pernah langsung close website — selalu ter-intercept popstate.
+history.replaceState({ layer: 'buffer' }, '');
+history.pushState({ layer: 'view', view: 'buku' }, '');
 
 function closeAllModals() {
     document.querySelectorAll('.bottom-sheet, .modal-fs').forEach(m => m.classList.remove('active'));
@@ -5369,8 +5351,9 @@ function closeAllModals() {
 }
 
 function openOverlay() {
+    // Overlay hanya visual — tidak push history entry
+    // History dikelola oleh _pushModalState dari masing-masing modal
     document.getElementById('main-overlay').classList.add('active');
-    _pushModalState('overlay');
 }
 
 
@@ -5696,7 +5679,7 @@ function renderWalletModalList() {
 
     bookAccounts.forEach(a => {
         const active = a.id == activeId;
-        html += `<div class="wallet-picker-item ${active ? 'selected' : ''}" onclick="selectWalletAccount(${a.id})">
+        html += `<div class="wallet-picker-item ${active ? 'selected' : ''}" onclick="selectWalletAccount('${a.id}')">
             <div class="wallet-picker-icon">${getAccIcon(a)}</div>
             <div class="wallet-picker-info">
                 <div class="wallet-picker-name">${a.name}</div>
@@ -6670,9 +6653,8 @@ function reverseAccountBalance(trx) {
 /* ===========================
    ACCOUNT
 =========================== */
-function openAddAccountModal() {
-    // Jika editingAccountId sudah diset (dari openEditAccountFromDetail),
-    // jangan reset type/icon — nilai yang sudah diset dari data akun tetap berlaku.
+function openAddAccountModal(fromDetail = false) {
+    // Reset hanya saat tambah baru, bukan edit
     if (!state.editingAccountId) {
         state.selectedAccType = 'cash';
         state.selectedAccIcon = null;
@@ -6690,7 +6672,8 @@ function openAddAccountModal() {
     updateAccDisplay();
     document.getElementById('modal-add-account').classList.add('active');
     _pushModalState('modal-add-account');
-    openOverlay();
+    // Jika dipanggil dari detail akun, overlay sudah aktif — tidak perlu push lagi
+    if (!fromDetail) openOverlay();
 }
 
 function renderAccTypePicker() {
@@ -7160,7 +7143,9 @@ function openAccountDetailModal(accountId) {
     renderAccountDetail();
     document.getElementById('modal-account-detail').classList.add('active');
     _pushModalState('modal-account-detail');
-    openOverlay();
+    // Tampilkan overlay visual saja, tanpa push history entry tambahan
+    // supaya stack: [view, modal-account-detail] — 1 back entry = tutup modal, bukan exit
+    document.getElementById('main-overlay').classList.add('active');
 }
 
 function renderAccountDetail() {
@@ -7352,27 +7337,24 @@ function switchAccDetailTab(tab, el) {
 function openEditAccountFromDetail() {
     const accId = accountDetailState.accountId;
     const acc = getAccount(accId);
-    closeAllModals();
-    setTimeout(() => {
-        // Set state BEFORE openAddAccountModal so it doesn't get overwritten
-        state.editingAccountId = accId;
-        state.selectedAccType = acc?.type || 'cash';
-        state.selectedAccIcon = acc?.icon || null;
-        openAddAccountModal();
-        if (acc) {
-            // Re-apply editingAccountId since openAddAccountModal resets it to null
-            state.editingAccountId = accId;
-            document.getElementById('acc-name').value = acc.name;
-            document.getElementById('acc-balance').value = acc.balance;
-            document.getElementById('acc-notes').value = acc.notes || '';
-            document.getElementById('acc-use-in-book').checked = acc.useInBook !== false;
-            document.getElementById('acc-include-asset').checked = acc.includeAsset !== false;
-            document.getElementById('modal-acc-title').textContent = 'Edit Akun';
-            document.getElementById('modal-acc-delete-btn').style.display = 'flex';
-            renderAccTypePicker();
-            updateAccDisplay();
-        }
-    }, 100);
+    // Set state dulu sebelum openAddAccountModal
+    state.editingAccountId = accId;
+    state.selectedAccType = acc?.type || 'cash';
+    state.selectedAccIcon = acc?.icon || null;
+    // Buka modal edit di atas modal detail (jangan closeAllModals)
+    // sehingga urutan back: modal edit → modal detail → view
+    openAddAccountModal(true); // fromDetail=true, skip openOverlay
+    if (acc) {
+        document.getElementById('acc-name').value = acc.name;
+        document.getElementById('acc-balance').value = acc.balance;
+        document.getElementById('acc-notes').value = acc.notes || '';
+        document.getElementById('acc-use-in-book').checked = acc.useInBook !== false;
+        document.getElementById('acc-include-asset').checked = acc.includeAsset !== false;
+        document.getElementById('modal-acc-title').textContent = 'Edit Akun';
+        document.getElementById('modal-acc-delete-btn').style.display = 'flex';
+        renderAccTypePicker();
+        updateAccDisplay();
+    }
 }
 
 loadFromLS(); // async — boots app setelah IDB siap
