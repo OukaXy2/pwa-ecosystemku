@@ -3594,6 +3594,14 @@ async function loadFromLS() {
                 db = savedDb;
                 db.books.forEach(b => { if (!b.accountIds) b.accountIds = []; });
                 if (!db.members) db.members = [{ id: 'm1', name: 'diri sendiri', emoji: '😄' }];
+                // Migrasi: isi createdAt untuk transaksi lama yang belum punya.
+                // generateId() = Date.now() + random, sehingga parseInt(id) mengembalikan timestamp.
+                db.transactions.forEach(t => {
+                    if (!t.createdAt) {
+                        const ts = parseInt(String(t.id));
+                        t.createdAt = (ts > 1_000_000_000_000) ? ts : Date.now();
+                    }
+                });
             } else {
                 seedDefaultData();
                 await idbSet('db', db);
