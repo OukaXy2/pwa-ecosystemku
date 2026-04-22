@@ -966,23 +966,18 @@ Setiap kali kamu merespons, sisipkan satu tag ekspresi di akhir respons sesuai e
 Selalu sertakan tepat satu tag [EXPR:...] di akhir setiap respons.
 
 ## Navigasi App
-Kalau pengguna minta buka salah satu app, tambahkan tag [OPEN:nama] di akhir responsmu (sebelum [EXPR:...]).
+Tambahkan tag [OPEN:nama] HANYA kalau pengguna secara eksplisit menyuruh kamu membuka atau menuju ke app — misalnya "buka IdeKu", "pergi ke Daily OS", "launch cucimoney dong". JANGAN tambahkan tag ini hanya karena nama app disebut dalam percakapan biasa, pengguna bertanya tentang app tersebut, atau kamu merekomendasikan app tanpa diminta buka.
 Nama yang valid: dailyos, ideku, cucimoney, kronik.
 Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
   /* ── Ecosystem context loader ────────────────────────────────── */
 
-  /**
-   * Baca data dari ecosystem_db dan format jadi ringkasan teks
-   * untuk disertakan di setiap request ke /api/chat.
-   *
-   * Semua read dilakukan paralel (Promise.allSettled) supaya
-   * satu store yang gagal tidak memblok yang lain.
-   *
-   * Return: object { userName, summary } dimana summary adalah
-   * plain-text ringkasan yang bisa langsung dimasukkan ke system prompt.
-   */
+  let _ecoCache    = null;   // { userName, summary }
+  let _ecoCacheAt  = 0;      // timestamp ms
+  const ECO_TTL    = 60_000; // 60 detik
+
   async function loadEcosystemContext() {
+    if (_ecoCache && (Date.now() - _ecoCacheAt) < ECO_TTL) return _ecoCache;
     // Guard: kalau EcosystemDB belum ter-load (file tidak ada), skip
     if (typeof EcosystemDB === 'undefined') {
       console.warn('[Context] ecosystem-db.js belum dimuat, skip.');
@@ -1139,12 +1134,15 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       lines.push(`Jurnal terbaru: ${list}`);
     }
 
-    if (!lines.length) return null;
+    if (!lines.length) {
+      _ecoCache   = null;
+      _ecoCacheAt = Date.now();
+      return null;
+    }
 
-    return {
-      userName,
-      summary: lines.join('\n'),
-    };
+    _ecoCache   = { userName, summary: lines.join('\n') };
+    _ecoCacheAt = Date.now();
+    return _ecoCache;
   }
 
   /* ── DOM refs ───────────────────────────────────────────────── */
@@ -1304,22 +1302,21 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
   /**
    * Parse tag [OPEN:app] dari respons Liro.
-   * Kalau ada → buka PWA di tab baru, hapus tag dari teks.
+   * Hapus tag dari teks dan kembalikan URL-nya — jangan buka sekarang,
+   * buka setelah TTS selesai (lihat sendToAPI).
    */
   function parseOpenTag(text) {
     const match = text.match(/\[OPEN:([a-z0-9-]+)\]/i);
-    if (!match) return { cleanText: text, opened: false };
-    const key = match[1].toLowerCase();
-    const url = PWA_URLS[key];
-    if (url) window.open(url, '_blank');
+    if (!match) return { cleanText: text, openUrl: null };
+    const key     = match[1].toLowerCase();
+    const openUrl = PWA_URLS[key] || null;
     const cleanText = text.replace(match[0], '').trim();
-    return { cleanText, opened: !!url };
+    return { cleanText, openUrl };
   }
 
   /**
    * Parse tag [EXPR:name] dari respons Liro.
    * Kalau ada → trigger ekspresi Live2D, hapus tag dari teks.
-   * Ini menggantikan autoExpression() berbasis keyword.
    */
   function parseExprTag(text) {
     const match = text.match(/\[EXPR:([a-z]+)\]/i);
@@ -1879,10 +1876,9 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
       if (!rawReply) throw new Error('Respons kosong dari server');
 
-      // Parse [OPEN:app] tag — buka PWA kalau ada
-      const { cleanText: afterOpen } = parseOpenTag(rawReply);
-      // Parse [EXPR:name] tag — trigger ekspresi Live2D
-      const { cleanText: replyText } = parseExprTag(afterOpen);
+      // Parse tag — hapus dari teks, simpan URL untuk dibuka setelah TTS
+      const { cleanText: afterOpen, openUrl } = parseOpenTag(rawReply);
+      const { cleanText: replyText }          = parseExprTag(afterOpen);
 
       // Tambah ke history (pakai teks bersih tanpa tag)
       chatHistory.push({ role: 'assistant', content: replyText });
@@ -1891,11 +1887,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       typingEl.remove();
       appendMessage('assistant', replyText);
 
-      // Ekspresi sudah di-handle parseExprTag di atas
-      // autoExpression(replyText) — diganti sistem [EXPR:tag]
-
-      // TTS — fire and forget, error ditangani di dalam playTTS()
-      playTTS(replyText);
+      // Buka app setelah TTS selesai (atau setelah jeda estimasi kalau muted)
+      playTTS(replyText, openUrl ? () => window.open(openUrl, '_blank') : null);
 
     } catch (err) {
       typingEl.remove();
@@ -1993,9 +1986,14 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
    *
    * @param {string} text - Teks yang akan di-TTS
    */
-  async function playTTS(text) {
-    if (!text) return;
-    if (isMuted) return;   // ← skip kalau mute
+  async function playTTS(text, onComplete = null) {
+    if (!text) { onComplete?.(); return; }
+    if (isMuted) {
+      // Muted — tetap jalankan callback setelah jeda baca estimasi
+      const delay = Math.min(Math.max(text.length * 35, 800), 3500);
+      setTimeout(() => onComplete?.(), delay);
+      return;
+    }
 
     // Inisialisasi AudioContext (perlu user gesture — sudah terpenuhi via send button)
     ensureAudioCtx();
@@ -2043,33 +2041,18 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
         setCoreParam('ParamMouthForm',  0);
         document.getElementById('model-tag').classList.remove('speaking');
         statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+        onComplete?.();
       };
 
     } catch (err) {
       isSpeaking = false;
       console.warn('[TTS] Error:', err);
-      // TTS gagal tidak harus tampil toast — respons teks tetap terbaca
       statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+      // TTS gagal — tetap jalankan callback setelah jeda singkat
+      setTimeout(() => onComplete?.(), 500);
     }
   }
 
-  /* ── Auto expression (updated) ───────────────────────────────── */
-  function autoExpression(text) {
-    const lower = text.toLowerCase();
-    let expr = 'none';
-
-    if      (/hehe|haha|lucu|😄|😆|wkwk|senang|seru|asik/.test(lower))                  expr = 'blush';
-    else if (/maaf|sedih|khawatir|kasihan|😟|😢|duh|aduh|sayang sekali/.test(lower))     expr = 'worried';
-    else if (/serius|penting|perlu diperhatikan|hati-hati|😐|fokus|catat/.test(lower))   expr = 'cool';
-    else if (/bingung|hmm|eh\?|lho|hah|kok|masa/.test(lower))                            expr = 'browLink';
-
-    if (expr !== 'none') {
-      setExpression(expr);
-      setTimeout(() => {
-        if (currentExpr === expr) setExpression('none');
-      }, 5000);
-    }
-  }
 
 })();
 </script>
