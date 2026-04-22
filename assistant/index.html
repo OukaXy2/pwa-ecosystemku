@@ -972,17 +972,12 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
   /* ── Ecosystem context loader ────────────────────────────────── */
 
-  /**
-   * Baca data dari ecosystem_db dan format jadi ringkasan teks
-   * untuk disertakan di setiap request ke /api/chat.
-   *
-   * Semua read dilakukan paralel (Promise.allSettled) supaya
-   * satu store yang gagal tidak memblok yang lain.
-   *
-   * Return: object { userName, summary } dimana summary adalah
-   * plain-text ringkasan yang bisa langsung dimasukkan ke system prompt.
-   */
+  let _ecoCache    = null;   // { userName, summary }
+  let _ecoCacheAt  = 0;      // timestamp ms
+  const ECO_TTL    = 60_000; // 60 detik
+
   async function loadEcosystemContext() {
+    if (_ecoCache && (Date.now() - _ecoCacheAt) < ECO_TTL) return _ecoCache;
     // Guard: kalau EcosystemDB belum ter-load (file tidak ada), skip
     if (typeof EcosystemDB === 'undefined') {
       console.warn('[Context] ecosystem-db.js belum dimuat, skip.');
@@ -1139,12 +1134,15 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       lines.push(`Jurnal terbaru: ${list}`);
     }
 
-    if (!lines.length) return null;
+    if (!lines.length) {
+      _ecoCache   = null;
+      _ecoCacheAt = Date.now();
+      return null;
+    }
 
-    return {
-      userName,
-      summary: lines.join('\n'),
-    };
+    _ecoCache   = { userName, summary: lines.join('\n') };
+    _ecoCacheAt = Date.now();
+    return _ecoCache;
   }
 
   /* ── DOM refs ───────────────────────────────────────────────── */
@@ -1319,7 +1317,6 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   /**
    * Parse tag [EXPR:name] dari respons Liro.
    * Kalau ada → trigger ekspresi Live2D, hapus tag dari teks.
-   * Ini menggantikan autoExpression() berbasis keyword.
    */
   function parseExprTag(text) {
     const match = text.match(/\[EXPR:([a-z]+)\]/i);
@@ -1891,9 +1888,6 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       typingEl.remove();
       appendMessage('assistant', replyText);
 
-      // Ekspresi sudah di-handle parseExprTag di atas
-      // autoExpression(replyText) — diganti sistem [EXPR:tag]
-
       // TTS — fire and forget, error ditangani di dalam playTTS()
       playTTS(replyText);
 
@@ -2053,23 +2047,6 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     }
   }
 
-  /* ── Auto expression (updated) ───────────────────────────────── */
-  function autoExpression(text) {
-    const lower = text.toLowerCase();
-    let expr = 'none';
-
-    if      (/hehe|haha|lucu|😄|😆|wkwk|senang|seru|asik/.test(lower))                  expr = 'blush';
-    else if (/maaf|sedih|khawatir|kasihan|😟|😢|duh|aduh|sayang sekali/.test(lower))     expr = 'worried';
-    else if (/serius|penting|perlu diperhatikan|hati-hati|😐|fokus|catat/.test(lower))   expr = 'cool';
-    else if (/bingung|hmm|eh\?|lho|hah|kok|masa/.test(lower))                            expr = 'browLink';
-
-    if (expr !== 'none') {
-      setExpression(expr);
-      setTimeout(() => {
-        if (currentExpr === expr) setExpression('none');
-      }, 5000);
-    }
-  }
 
 })();
 </script>
