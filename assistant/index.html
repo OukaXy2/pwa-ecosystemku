@@ -1232,12 +1232,18 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   app.ticker.maxFPS = 60;
   app.ticker.minFPS = 30;
 
-  /* Resize handler */
+  /* Resize handler — dibatasi satu kali per animation frame supaya
+     app.renderer.resize() tidak dipanggil berulang saat drag & menyebabkan flicker. */
+  let _resizeRaf = null;
   function resizeApp() {
-    const w = panel.clientWidth;
-    const h = panel.clientHeight;
-    app.renderer.resize(w, h);
-    if (model) positionModel(model, w, h);
+    if (_resizeRaf) return;
+    _resizeRaf = requestAnimationFrame(() => {
+      _resizeRaf = null;
+      const w = panel.clientWidth;
+      const h = panel.clientHeight;
+      app.renderer.resize(w, h);
+      if (model) positionModel(model, w, h);
+    });
   }
   window.addEventListener('resize', resizeApp);
 
@@ -1357,15 +1363,16 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   function positionModel(m, W, H) {
     const isMobile = W < 700;
 
-    // Scale: tampilkan 80% tinggi canvas di desktop, lebih kecil mobile
-    const targetH = isMobile ? H * 0.9 : H * 0.88;
+    // Scale: mobile 1.08× panel height (sedikit crop atas, tapi body penuh terlihat)
+    //        desktop 0.96× panel height (masih ada breathing room atas)
+    const targetH = isMobile ? H * 1.08 : H * 0.96;
     const scale   = targetH / (m.internalModel?.height || 800);
     m.scale.set(scale);
 
     // Anchor tengah-bawah
     m.anchor.set(0.5, 1);
-    m.x = isMobile ? W * 0.5 : W * 0.5;
-    m.y = H * (isMobile ? 0.98 : 0.97);
+    m.x = W * 0.5;
+    m.y = H * (isMobile ? 1.0 : 0.98);
   }
 
   /* ── Cursor tracking ─────────────────────────────────────────── */
