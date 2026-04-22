@@ -721,50 +721,50 @@
   #apps-btn:hover { border-color: var(--border-lit); color: var(--text-primary); }
   #apps-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
-  /* ── Apps panel ───────────────────────────────────────────── */
+  /* ── Apps panel — grid 2×2 ───────────────────────────────── */
   #apps-panel {
     position: absolute;
     bottom: calc(100% + 6px); left: 0; right: 0;
     background: var(--bg-card);
     border: 1px solid var(--border-lit);
     border-radius: var(--radius-md);
-    padding: 14px;
+    padding: 10px;
     z-index: 20;
     display: none;
-    flex-direction: column;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     animation: msg-in 0.18s ease;
   }
-  #apps-panel.show { display: flex; }
-
-  #apps-panel .panel-title {
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-  }
+  #apps-panel.show { display: grid; }
 
   .app-link {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
+    justify-content: center;
+    gap: 7px;
+    padding: 14px 8px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--bg-surface);
+    border: 1px solid transparent;
     color: var(--text-primary);
     text-decoration: none;
-    font-size: 13px;
     font-family: var(--font-body);
-    transition: all 0.15s ease;
+    transition: filter 0.15s ease, transform 0.1s ease;
     cursor: pointer;
+    text-align: center;
   }
-  .app-link:hover { border-color: var(--border-lit); background: var(--accent-dim); }
-  .app-link .app-icon { font-size: 16px; width: 20px; text-align: center; }
-  .app-link .app-name { font-weight: 500; }
-  .app-link .app-desc { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+  .app-link:hover  { filter: brightness(1.15); }
+  .app-link:active { transform: scale(0.95); }
+
+  .app-link .app-icon { font-size: 24px; line-height: 1; }
+  .app-link .app-name { font-size: 12px; font-weight: 500; }
+
+  /* Warna accent per app */
+  .app-dailyos  { background: rgba(91,156,246,0.12); border-color: rgba(91,156,246,0.22); }
+  .app-ideku    { background: rgba(251,191,36,0.10); border-color: rgba(251,191,36,0.22); }
+  .app-cucimoney{ background: rgba(74,222,128,0.10); border-color: rgba(74,222,128,0.22); }
+  .app-kronik   { background: rgba(167,139,250,0.10);border-color: rgba(167,139,250,0.22); }
 </style>
 </head>
 
@@ -827,26 +827,21 @@
 
     <div id="input-area">
       <div id="apps-panel">
-        <div class="panel-title">Buka App</div>
-        <a class="app-link" href="https://pwa-ecosystemku.vercel.app/daily-os/" target="_blank">
+        <a class="app-link app-dailyos" href="https://pwa-ecosystemku.vercel.app/daily-os/" target="_blank">
           <span class="app-icon">📅</span>
           <span class="app-name">Daily OS</span>
-          <span class="app-desc">Habit & Todo</span>
         </a>
-        <a class="app-link" href="https://pwa-ecosystemku.vercel.app/ide-ku/" target="_blank">
+        <a class="app-link app-ideku" href="https://pwa-ecosystemku.vercel.app/ide-ku/" target="_blank">
           <span class="app-icon">💡</span>
           <span class="app-name">IdeKu</span>
-          <span class="app-desc">Ide & Wishlist</span>
         </a>
-        <a class="app-link" href="https://pwa-ecosystemku.vercel.app/cucimoney/" target="_blank">
+        <a class="app-link app-cucimoney" href="https://pwa-ecosystemku.vercel.app/cucimoney/" target="_blank">
           <span class="app-icon">💰</span>
           <span class="app-name">CuciMoney+</span>
-          <span class="app-desc">Keuangan</span>
         </a>
-        <a class="app-link" href="https://pwa-ecosystemku.vercel.app/kronik/" target="_blank">
+        <a class="app-link app-kronik" href="https://pwa-ecosystemku.vercel.app/kronik/" target="_blank">
           <span class="app-icon">📖</span>
           <span class="app-name">Kronik</span>
-          <span class="app-desc">Jurnal</span>
         </a>
       </div>
       <div class="input-row">
