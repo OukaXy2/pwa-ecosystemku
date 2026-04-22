@@ -966,7 +966,7 @@ Setiap kali kamu merespons, sisipkan satu tag ekspresi di akhir respons sesuai e
 Selalu sertakan tepat satu tag [EXPR:...] di akhir setiap respons.
 
 ## Navigasi App
-Kalau pengguna minta buka salah satu app, tambahkan tag [OPEN:nama] di akhir responsmu (sebelum [EXPR:...]).
+Tambahkan tag [OPEN:nama] HANYA kalau pengguna secara eksplisit menyuruh kamu membuka atau menuju ke app — misalnya "buka IdeKu", "pergi ke Daily OS", "launch cucimoney dong". JANGAN tambahkan tag ini hanya karena nama app disebut dalam percakapan biasa, pengguna bertanya tentang app tersebut, atau kamu merekomendasikan app tanpa diminta buka.
 Nama yang valid: dailyos, ideku, cucimoney, kronik.
 Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
@@ -1302,16 +1302,16 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
   /**
    * Parse tag [OPEN:app] dari respons Liro.
-   * Kalau ada → buka PWA di tab baru, hapus tag dari teks.
+   * Hapus tag dari teks dan kembalikan URL-nya — jangan buka sekarang,
+   * buka setelah TTS selesai (lihat sendToAPI).
    */
   function parseOpenTag(text) {
     const match = text.match(/\[OPEN:([a-z0-9-]+)\]/i);
-    if (!match) return { cleanText: text, opened: false };
-    const key = match[1].toLowerCase();
-    const url = PWA_URLS[key];
-    if (url) window.open(url, '_blank');
+    if (!match) return { cleanText: text, openUrl: null };
+    const key     = match[1].toLowerCase();
+    const openUrl = PWA_URLS[key] || null;
     const cleanText = text.replace(match[0], '').trim();
-    return { cleanText, opened: !!url };
+    return { cleanText, openUrl };
   }
 
   /**
@@ -1876,10 +1876,9 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
       if (!rawReply) throw new Error('Respons kosong dari server');
 
-      // Parse [OPEN:app] tag — buka PWA kalau ada
-      const { cleanText: afterOpen } = parseOpenTag(rawReply);
-      // Parse [EXPR:name] tag — trigger ekspresi Live2D
-      const { cleanText: replyText } = parseExprTag(afterOpen);
+      // Parse tag — hapus dari teks, simpan URL untuk dibuka setelah TTS
+      const { cleanText: afterOpen, openUrl } = parseOpenTag(rawReply);
+      const { cleanText: replyText }          = parseExprTag(afterOpen);
 
       // Tambah ke history (pakai teks bersih tanpa tag)
       chatHistory.push({ role: 'assistant', content: replyText });
@@ -1888,8 +1887,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       typingEl.remove();
       appendMessage('assistant', replyText);
 
-      // TTS — fire and forget, error ditangani di dalam playTTS()
-      playTTS(replyText);
+      // Buka app setelah TTS selesai (atau setelah jeda estimasi kalau muted)
+      playTTS(replyText, openUrl ? () => window.open(openUrl, '_blank') : null);
 
     } catch (err) {
       typingEl.remove();
@@ -1987,9 +1986,14 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
    *
    * @param {string} text - Teks yang akan di-TTS
    */
-  async function playTTS(text) {
-    if (!text) return;
-    if (isMuted) return;   // ← skip kalau mute
+  async function playTTS(text, onComplete = null) {
+    if (!text) { onComplete?.(); return; }
+    if (isMuted) {
+      // Muted — tetap jalankan callback setelah jeda baca estimasi
+      const delay = Math.min(Math.max(text.length * 35, 800), 3500);
+      setTimeout(() => onComplete?.(), delay);
+      return;
+    }
 
     // Inisialisasi AudioContext (perlu user gesture — sudah terpenuhi via send button)
     ensureAudioCtx();
@@ -2037,13 +2041,15 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
         setCoreParam('ParamMouthForm',  0);
         document.getElementById('model-tag').classList.remove('speaking');
         statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+        onComplete?.();
       };
 
     } catch (err) {
       isSpeaking = false;
       console.warn('[TTS] Error:', err);
-      // TTS gagal tidak harus tampil toast — respons teks tetap terbaca
       statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+      // TTS gagal — tetap jalankan callback setelah jeda singkat
+      setTimeout(() => onComplete?.(), 500);
     }
   }
 
