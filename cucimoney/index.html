@@ -3594,6 +3594,14 @@ async function loadFromLS() {
                 db = savedDb;
                 db.books.forEach(b => { if (!b.accountIds) b.accountIds = []; });
                 if (!db.members) db.members = [{ id: 'm1', name: 'diri sendiri', emoji: '😄' }];
+                // Migrasi: isi createdAt untuk transaksi lama yang belum punya.
+                // generateId() = Date.now() + random, sehingga parseInt(id) mengembalikan timestamp.
+                db.transactions.forEach(t => {
+                    if (!t.createdAt) {
+                        const ts = parseInt(String(t.id));
+                        t.createdAt = (ts > 1_000_000_000_000) ? ts : Date.now();
+                    }
+                });
             } else {
                 seedDefaultData();
                 await idbSet('db', db);
@@ -3967,7 +3975,7 @@ function openBudgetDetailSheetFromBuku() {
 function renderBuku() {
     const trxs = getFilteredTrx('month');
     let income = 0, expense = 0;
-    trxs.forEach(t => { if (t.direction === 'in') income += t.amount; else expense += t.amount; });
+    trxs.forEach(t => { if (t.transferPair) return; if (t.direction === 'in') income += t.amount; else expense += t.amount; });
 
     // Hanya hitung saldo akun yang terdaftar di buku aktif
     const currentBook = db.books.find(b => b.id === state.currentBookId);
@@ -4005,8 +4013,8 @@ function renderBuku() {
     // Bangun array HTML per-group, lalu render via virtual list
     const groupHTMLs = sortedDates.map(date => {
         const items = groups[date];
-        const dayIn  = items.filter(t=>t.direction==='in').reduce((s,t)=>s+t.amount,0);
-        const dayOut = items.filter(t=>t.direction==='out').reduce((s,t)=>s+t.amount,0);
+        const dayIn  = items.filter(t=>!t.transferPair && t.direction==='in').reduce((s,t)=>s+t.amount,0);
+        const dayOut = items.filter(t=>!t.transferPair && t.direction==='out').reduce((s,t)=>s+t.amount,0);
         const d = new Date(date + 'T00:00:00');
         const dayLabel = d.toLocaleDateString('id-ID', {weekday:'short', day:'numeric', month:'short'}).toUpperCase();
 
@@ -4264,9 +4272,10 @@ function getPeriodMetrics() {
     if (period === 'month') {
         return getMonthlyMetrics(analyticsState.analysisMonth, analyticsState.analysisYear);
     }
-    const bookTrx = period === 'year'
+    const rawTrx = period === 'year'
         ? getTrxForYear(state.currentBookId, analyticsState.analysisYear)
         : getTrxForBook(state.currentBookId);
+    const bookTrx = rawTrx.filter(t => !t.transferPair);
     const income  = bookTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
     const expense = bookTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
     return { income, expense, savings: income - expense };
@@ -4282,7 +4291,7 @@ function getPrevPeriodMetrics() {
     }
     if (period === 'year') {
         const prevYear = analyticsState.analysisYear - 1;
-        const bookTrx = getTrxForYear(state.currentBookId, prevYear);
+        const bookTrx = getTrxForYear(state.currentBookId, prevYear).filter(t => !t.transferPair);
         const income  = bookTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
         const expense = bookTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
         return { income, expense, savings: income - expense };
@@ -4301,7 +4310,8 @@ function getAnalysisFilteredTrx(direction) {
     } else {
         bookTrx = getTrxForBook(state.currentBookId);
     }
-    return direction ? bookTrx.filter(t => t.direction === direction) : bookTrx;
+    const nonTransfer = bookTrx.filter(t => !t.transferPair);
+    return direction ? nonTransfer.filter(t => t.direction === direction) : nonTransfer;
 }
 
 /* ── Smart metrics cache invalidation ──────────────────────────
@@ -4324,7 +4334,7 @@ function invalidateMetricsCache(trx) {
 function getMonthlyMetrics(month, year) {
     const key = `${year}-${String(month + 1).padStart(2, '0')}`;
     if (monthlyMetrics[key]) return monthlyMetrics[key];
-    const bookTrx = getTrxForMonth(state.currentBookId, year, month);
+    const bookTrx = getTrxForMonth(state.currentBookId, year, month).filter(t => !t.transferPair);
     const income  = bookTrx.filter(t => t.direction === 'in').reduce((s,t) => s + t.amount, 0);
     const expense = bookTrx.filter(t => t.direction === 'out').reduce((s,t) => s + t.amount, 0);
     monthlyMetrics[key] = { income, expense, savings: income - expense };
@@ -4656,7 +4666,7 @@ function getActiveMasterBudget(month, year) {
 function getSpentInRange(startDate, endDate) {
     return db.transactions
         .filter(t => {
-            if (t.bookId !== state.currentBookId || t.direction !== 'out') return false;
+            if (t.bookId !== state.currentBookId || t.direction !== 'out' || t.transferPair) return false;
             return t.date >= startDate && t.date <= endDate;
         })
         .reduce((s, t) => s + t.amount, 0);
@@ -4666,7 +4676,7 @@ function getSpentInRange(startDate, endDate) {
 function getSpentThisMonth(month, year) {
     return db.transactions
         .filter(t => {
-            if (t.bookId !== state.currentBookId || t.direction !== 'out') return false;
+            if (t.bookId !== state.currentBookId || t.direction !== 'out' || t.transferPair) return false;
             const d = new Date(t.date);
             return d.getFullYear() === year && d.getMonth() === month;
         })
@@ -5517,11 +5527,29 @@ function deleteFromDetail() {
     if (!id) return;
     const t = getTransaction(id);
     if (!t) return;
-    if (!confirm('Hapus transaksi ini?')) return;
+    const isTransfer = !!t.transferPair;
+    const confirmMsg = isTransfer
+        ? 'Hapus transaksi transfer ini? Kedua sisi transfer (keluar & masuk) akan dihapus.'
+        : 'Hapus transaksi ini?';
+    if (!confirm(confirmMsg)) return;
+
+    const idsToDelete = new Set([id]);
+
+    // Jika transfer, cari dan hapus paired transaction juga
+    if (isTransfer) {
+        const paired = db.transactions.find(x => x.transferPair === t.transferPair && x.id !== id);
+        if (paired) {
+            reverseAccountBalance(paired);
+            _indexRemove(paired);
+            invalidateMetricsCache(paired);
+            idsToDelete.add(paired.id);
+        }
+    }
+
     reverseAccountBalance(t);
     _indexRemove(t);
-    db.transactions = db.transactions.filter(x => x.id !== id);
     invalidateMetricsCache(t);
+    db.transactions = db.transactions.filter(x => !idsToDelete.has(x.id));
     markDirty(); markSave();
     closeDetailModal();
     renderApp();
@@ -6517,22 +6545,39 @@ function saveTrxFromKeyboard() {
         if (state.trxAccountId === state.trxToAccountId) { showNotification('Akun asal & tujuan sama', 'error'); return; }
         // Create 2 transactions: out from, in to
         const transferId = generateId();
+        const transferCreatedAt = Date.now();
         const outTrx = {
             id: generateId(), bookId: state.currentBookId,
             title: `Transfer ke ${getAccount(state.trxToAccountId)?.name}`,
             amount, direction:'out', category_id: 12,
             account_id: state.trxAccountId, date: state.trxDate,
-            transferPair: transferId
+            transferPair: transferId, createdAt: transferCreatedAt
         };
         const inTrx = {
             id: generateId(), bookId: state.currentBookId,
             title: `Transfer dari ${getAccount(state.trxAccountId)?.name}`,
             amount, direction:'in', category_id: 12,
             account_id: state.trxToAccountId, date: state.trxDate,
-            transferPair: transferId
+            transferPair: transferId, createdAt: transferCreatedAt
         };
+        // Jika sedang edit transfer, hapus transaksi lama beserta pasangannya
         if (state.editingTrxId) {
-            // just overwrite for simplicity
+            const oldTrx = getTransaction(state.editingTrxId);
+            if (oldTrx) {
+                reverseAccountBalance(oldTrx);
+                _indexRemove(oldTrx);
+                invalidateMetricsCache(oldTrx);
+                // Hapus paired transaction jika ada
+                const pairedId = oldTrx.transferPair;
+                const pairedTrx = pairedId ? db.transactions.find(t => t.transferPair === pairedId && t.id !== oldTrx.id) : null;
+                if (pairedTrx) {
+                    reverseAccountBalance(pairedTrx);
+                    _indexRemove(pairedTrx);
+                    invalidateMetricsCache(pairedTrx);
+                    db.transactions = db.transactions.filter(t => t.id !== pairedTrx.id);
+                }
+                db.transactions = db.transactions.filter(t => t.id !== oldTrx.id);
+            }
         }
         db.transactions.unshift(inTrx);
         db.transactions.unshift(outTrx);
@@ -6548,7 +6593,7 @@ function saveTrxFromKeyboard() {
 
         invalidateMetricsCache(outTrx);
         markDirty(); markSave(); closeAllModals(); renderApp();
-        showNotification('Transfer berhasil');
+        showNotification(state.editingTrxId ? 'Transfer diperbarui' : 'Transfer berhasil');
         return;
     }
 
@@ -6876,60 +6921,21 @@ function closeSearchModal() {
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            if (!query) {
-                document.getElementById('search-results').innerHTML = '';
-                return;
-            }
-            
-            // Search transactions — pakai index per buku
+        searchInput.addEventListener('input', e => {
+            const q = e.target.value.toLowerCase().trim();
+            if (!q) { renderSearchResults([]); return; }
             const bookTrx = getTrxForBook(state.currentBookId);
-            const results = bookTrx.filter(t => 
-                t.title.toLowerCase().includes(query) ||
-                getCategory(t.category_id)?.name.toLowerCase().includes(query) ||
-                getAccount(t.account_id)?.name.toLowerCase().includes(query)
-            );
-            
-            // Render results
-            let html = '';
-            if (results.length === 0) {
-                html = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">Tidak ada transaksi ditemukan</div></div>';
-            } else {
-                results.forEach(t => {
-                    const cat = getCategory(t.category_id);
-                    const icon = getCatIcon(cat?.name);
-                    const cls = t.direction === 'in' ? 'in' : 'out';
-                    const sign = t.direction === 'in' ? '+' : '-';
-                    const acc = getAccount(t.account_id);
-                    html += `<div class="trx-item" onclick="openTrxDetail('${t.id}')">
-                        <div class="trx-item-left">
-                            <div class="trx-icon ${cls}">${icon}</div>
-                            <div class="trx-info">
-                                <div class="trx-title">${t.title}</div>
-                                <div class="trx-cat">${cat?.name || 'Lainnya'} · ${acc?.name || ''}</div>
-                            </div>
-                        </div>
-                        <div class="trx-amount ${cls}">${sign} ${formatCurrency(t.amount)}</div>
-                    </div>`;
-                });
-            }
-            document.getElementById('search-results').innerHTML = html;
+            const results = bookTrx.filter(t => {
+                const cat = getCategory(t.category_id);
+                const acc = getAccount(t.account_id);
+                return t.title.toLowerCase().includes(q) ||
+                    cat?.name.toLowerCase().includes(q) ||
+                    acc?.name.toLowerCase().includes(q) ||
+                    t.date.includes(q);
+            });
+            renderSearchResults(results);
         });
     }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('search-input').addEventListener('input', e => {
-        const q = e.target.value.toLowerCase().trim();
-        if (!q) { renderSearchResults([]); return; }
-        const bookTrx = getTrxForBook(state.currentBookId);
-        const results = bookTrx.filter(t => {
-            const cat = getCategory(t.category_id);
-            return t.title.toLowerCase().includes(q) || cat?.name.toLowerCase().includes(q) || t.date.includes(q);
-        });
-        renderSearchResults(results);
-    });
 });
 
 function renderSearchResults(results) {
