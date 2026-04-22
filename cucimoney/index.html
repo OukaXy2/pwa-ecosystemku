@@ -5517,11 +5517,29 @@ function deleteFromDetail() {
     if (!id) return;
     const t = getTransaction(id);
     if (!t) return;
-    if (!confirm('Hapus transaksi ini?')) return;
+    const isTransfer = !!t.transferPair;
+    const confirmMsg = isTransfer
+        ? 'Hapus transaksi transfer ini? Kedua sisi transfer (keluar & masuk) akan dihapus.'
+        : 'Hapus transaksi ini?';
+    if (!confirm(confirmMsg)) return;
+
+    const idsToDelete = new Set([id]);
+
+    // Jika transfer, cari dan hapus paired transaction juga
+    if (isTransfer) {
+        const paired = db.transactions.find(x => x.transferPair === t.transferPair && x.id !== id);
+        if (paired) {
+            reverseAccountBalance(paired);
+            _indexRemove(paired);
+            invalidateMetricsCache(paired);
+            idsToDelete.add(paired.id);
+        }
+    }
+
     reverseAccountBalance(t);
     _indexRemove(t);
-    db.transactions = db.transactions.filter(x => x.id !== id);
     invalidateMetricsCache(t);
+    db.transactions = db.transactions.filter(x => !idsToDelete.has(x.id));
     markDirty(); markSave();
     closeDetailModal();
     renderApp();
@@ -6531,8 +6549,24 @@ function saveTrxFromKeyboard() {
             account_id: state.trxToAccountId, date: state.trxDate,
             transferPair: transferId
         };
+        // Jika sedang edit transfer, hapus transaksi lama beserta pasangannya
         if (state.editingTrxId) {
-            // just overwrite for simplicity
+            const oldTrx = getTransaction(state.editingTrxId);
+            if (oldTrx) {
+                reverseAccountBalance(oldTrx);
+                _indexRemove(oldTrx);
+                invalidateMetricsCache(oldTrx);
+                // Hapus paired transaction jika ada
+                const pairedId = oldTrx.transferPair;
+                const pairedTrx = pairedId ? db.transactions.find(t => t.transferPair === pairedId && t.id !== oldTrx.id) : null;
+                if (pairedTrx) {
+                    reverseAccountBalance(pairedTrx);
+                    _indexRemove(pairedTrx);
+                    invalidateMetricsCache(pairedTrx);
+                    db.transactions = db.transactions.filter(t => t.id !== pairedTrx.id);
+                }
+                db.transactions = db.transactions.filter(t => t.id !== oldTrx.id);
+            }
         }
         db.transactions.unshift(inTrx);
         db.transactions.unshift(outTrx);
@@ -6548,7 +6582,7 @@ function saveTrxFromKeyboard() {
 
         invalidateMetricsCache(outTrx);
         markDirty(); markSave(); closeAllModals(); renderApp();
-        showNotification('Transfer berhasil');
+        showNotification(state.editingTrxId ? 'Transfer diperbarui' : 'Transfer berhasil');
         return;
     }
 
@@ -6876,60 +6910,21 @@ function closeSearchModal() {
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            if (!query) {
-                document.getElementById('search-results').innerHTML = '';
-                return;
-            }
-            
-            // Search transactions — pakai index per buku
+        searchInput.addEventListener('input', e => {
+            const q = e.target.value.toLowerCase().trim();
+            if (!q) { renderSearchResults([]); return; }
             const bookTrx = getTrxForBook(state.currentBookId);
-            const results = bookTrx.filter(t => 
-                t.title.toLowerCase().includes(query) ||
-                getCategory(t.category_id)?.name.toLowerCase().includes(query) ||
-                getAccount(t.account_id)?.name.toLowerCase().includes(query)
-            );
-            
-            // Render results
-            let html = '';
-            if (results.length === 0) {
-                html = '<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-text">Tidak ada transaksi ditemukan</div></div>';
-            } else {
-                results.forEach(t => {
-                    const cat = getCategory(t.category_id);
-                    const icon = getCatIcon(cat?.name);
-                    const cls = t.direction === 'in' ? 'in' : 'out';
-                    const sign = t.direction === 'in' ? '+' : '-';
-                    const acc = getAccount(t.account_id);
-                    html += `<div class="trx-item" onclick="openTrxDetail('${t.id}')">
-                        <div class="trx-item-left">
-                            <div class="trx-icon ${cls}">${icon}</div>
-                            <div class="trx-info">
-                                <div class="trx-title">${t.title}</div>
-                                <div class="trx-cat">${cat?.name || 'Lainnya'} · ${acc?.name || ''}</div>
-                            </div>
-                        </div>
-                        <div class="trx-amount ${cls}">${sign} ${formatCurrency(t.amount)}</div>
-                    </div>`;
-                });
-            }
-            document.getElementById('search-results').innerHTML = html;
+            const results = bookTrx.filter(t => {
+                const cat = getCategory(t.category_id);
+                const acc = getAccount(t.account_id);
+                return t.title.toLowerCase().includes(q) ||
+                    cat?.name.toLowerCase().includes(q) ||
+                    acc?.name.toLowerCase().includes(q) ||
+                    t.date.includes(q);
+            });
+            renderSearchResults(results);
         });
     }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('search-input').addEventListener('input', e => {
-        const q = e.target.value.toLowerCase().trim();
-        if (!q) { renderSearchResults([]); return; }
-        const bookTrx = getTrxForBook(state.currentBookId);
-        const results = bookTrx.filter(t => {
-            const cat = getCategory(t.category_id);
-            return t.title.toLowerCase().includes(q) || cat?.name.toLowerCase().includes(q) || t.date.includes(q);
-        });
-        renderSearchResults(results);
-    });
 });
 
 function renderSearchResults(results) {
