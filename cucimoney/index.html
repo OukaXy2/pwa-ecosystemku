@@ -3513,6 +3513,8 @@ let state = {
     accPickerTarget: 'from', // 'from'|'to'
     selectedAccType: 'cash',
     selectedAccIcon: null, // custom icon override
+    bukuBudgetCollapsed: false,
+    collapsedTrxDates: {},
 };
 
 let memberModalMode = 'select'; // 'select' | 'edit'
@@ -3644,6 +3646,8 @@ async function loadFromLS() {
                 if (savedPrefs.trxMemberId)             state.trxMemberId = savedPrefs.trxMemberId;
                 if (savedPrefs.analysisPeriod)          analyticsState.analysisPeriod = savedPrefs.analysisPeriod;
                 if (savedPrefs.analysisTab)             analyticsState.analysisTab = savedPrefs.analysisTab;
+                if (savedPrefs.bukuBudgetCollapsed !== undefined) state.bukuBudgetCollapsed = savedPrefs.bukuBudgetCollapsed;
+                if (savedPrefs.collapsedTrxDates)       state.collapsedTrxDates = savedPrefs.collapsedTrxDates;
             }
         }
     } catch(e) {
@@ -3829,12 +3833,14 @@ function flushSave() {
     idbSet('masterBudgets', masterBudgets).catch(e => console.warn('IDB save masterBudgets:', e));
     // Simpan preferensi UI yang harus persisten
     idbSet('appPrefs', {
-        visibility:      state.visibility,
-        selectedAccType: state.selectedAccType,
-        selectedAccIcon: state.selectedAccIcon,
-        trxMemberId:     state.trxMemberId,
-        analysisPeriod:  analyticsState.analysisPeriod,
-        analysisTab:     analyticsState.analysisTab,
+        visibility:           state.visibility,
+        selectedAccType:      state.selectedAccType,
+        selectedAccIcon:      state.selectedAccIcon,
+        trxMemberId:          state.trxMemberId,
+        analysisPeriod:       analyticsState.analysisPeriod,
+        analysisTab:          analyticsState.analysisTab,
+        bukuBudgetCollapsed:  state.bukuBudgetCollapsed,
+        collapsedTrxDates:    state.collapsedTrxDates,
     }).catch(e => console.warn('IDB save prefs:', e));
 }
 
@@ -3937,8 +3943,8 @@ function renderBukuBudget() {
         ? formatCurrency(remaining, true)
         : '−' + formatCurrency(Math.abs(remaining), true);
 
-    // Preserve collapsed state
-    const wasCollapsed = wrap.querySelector('.buku-budget-section.collapsed') !== null;
+    // Preserve collapsed state dari state (persisten lintas refresh)
+    const wasCollapsed = state.bukuBudgetCollapsed;
 
     wrap.innerHTML = `
     <div class="buku-budget-section${wasCollapsed ? ' collapsed' : ''}" id="buku-budget-section">
@@ -3977,7 +3983,11 @@ function renderBukuBudget() {
 
 function toggleBukuBudget() {
     const sec = document.getElementById('buku-budget-section');
-    if (sec) sec.classList.toggle('collapsed');
+    if (sec) {
+        sec.classList.toggle('collapsed');
+        state.bukuBudgetCollapsed = sec.classList.contains('collapsed');
+        markSave();
+    }
 }
 
 function openBudgetDetailSheetFromBuku() {
@@ -4054,7 +4064,7 @@ function renderBuku() {
             </div>`;
         }).join('');
 
-        return `<div class="trx-group" data-date="${date}">
+        return `<div class="trx-group${state.collapsedTrxDates[date] ? ' collapsed' : ''}" data-date="${date}">
             <div class="trx-group-header" onclick="toggleTrxGroup(this)">
                 <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
                     <svg class="trx-group-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -4076,6 +4086,15 @@ function renderBuku() {
 function toggleTrxGroup(headerEl) {
     const groupEl = headerEl.parentElement;
     groupEl.classList.toggle('collapsed');
+    const date = groupEl.dataset.date;
+    if (date) {
+        if (groupEl.classList.contains('collapsed')) {
+            state.collapsedTrxDates[date] = true;
+        } else {
+            delete state.collapsedTrxDates[date];
+        }
+        markSave();
+    }
 }
 /* ===== DOMPET ===== */
 function renderDompet() {
@@ -6652,9 +6671,12 @@ function reverseAccountBalance(trx) {
    ACCOUNT
 =========================== */
 function openAddAccountModal() {
-    state.editingAccountId = null;
-    state.selectedAccType = 'cash';
-    state.selectedAccIcon = null;
+    // Jika editingAccountId sudah diset (dari openEditAccountFromDetail),
+    // jangan reset type/icon — nilai yang sudah diset dari data akun tetap berlaku.
+    if (!state.editingAccountId) {
+        state.selectedAccType = 'cash';
+        state.selectedAccIcon = null;
+    }
     document.getElementById('modal-acc-title').textContent = 'Tambah Akun';
     document.getElementById('modal-acc-delete-btn').style.display = 'none';
     
