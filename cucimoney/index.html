@@ -428,6 +428,8 @@
         }
         .trx-icon.in { background: var(--income-dim); }
         .trx-icon.out { background: var(--expense-dim); }
+        .trx-icon.transfer { background: rgba(99, 179, 237, 0.15); font-size: 1.1rem; }
+        .trx-amount.transfer { color: #63B3ED; }
 
         .trx-info { min-width: 0; }
         .trx-title {
@@ -4021,7 +4023,33 @@ function renderBuku() {
         // Urutkan transaksi dalam group: terbaru di atas
         items.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
+        const renderedTransferPairs = new Set();
         let itemsHTML = items.map(t => {
+            // Transfer — gabung dua record jadi satu card
+            if (t.transferPair) {
+                if (renderedTransferPairs.has(t.transferPair)) return '';
+                renderedTransferPairs.add(t.transferPair);
+
+                const pair = items.find(x => x.transferPair === t.transferPair && x.id !== t.id)
+                           || db.transactions.find(x => x.transferPair === t.transferPair && x.id !== t.id);
+                const outTrx = t.direction === 'out' ? t : pair;
+                const inTrx  = t.direction === 'in'  ? t : pair;
+                const fromAcc = getAccount(outTrx?.account_id)?.name || 'Akun';
+                const toAcc   = getAccount(inTrx?.account_id)?.name  || 'Akun';
+
+                return `<div class="trx-item" onclick="openTrxDetail('${outTrx?.id || t.id}')">
+                    <div class="trx-item-left">
+                        <div class="trx-icon transfer">⇄</div>
+                        <div class="trx-info">
+                            <div class="trx-title">${fromAcc} → ${toAcc}</div>
+                            <div class="trx-cat">Transfer</div>
+                        </div>
+                    </div>
+                    <div class="trx-amount transfer">${formatCurrency(t.amount)}</div>
+                </div>`;
+            }
+
+            // Transaksi biasa
             const cat  = getCategory(t.category_id);
             const icon = getCatIcon(cat?.name);
             const cls  = t.direction === 'in' ? 'in' : 'out';
