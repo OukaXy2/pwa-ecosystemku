@@ -6537,19 +6537,20 @@ function saveTrxFromKeyboard() {
         if (state.trxAccountId === state.trxToAccountId) { showNotification('Akun asal & tujuan sama', 'error'); return; }
         // Create 2 transactions: out from, in to
         const transferId = generateId();
+        const transferCreatedAt = Date.now();
         const outTrx = {
             id: generateId(), bookId: state.currentBookId,
             title: `Transfer ke ${getAccount(state.trxToAccountId)?.name}`,
             amount, direction:'out', category_id: 12,
             account_id: state.trxAccountId, date: state.trxDate,
-            transferPair: transferId
+            transferPair: transferId, createdAt: transferCreatedAt
         };
         const inTrx = {
             id: generateId(), bookId: state.currentBookId,
             title: `Transfer dari ${getAccount(state.trxAccountId)?.name}`,
             amount, direction:'in', category_id: 12,
             account_id: state.trxToAccountId, date: state.trxDate,
-            transferPair: transferId
+            transferPair: transferId, createdAt: transferCreatedAt
         };
         // Jika sedang edit transfer, hapus transaksi lama beserta pasangannya
         if (state.editingTrxId) {
