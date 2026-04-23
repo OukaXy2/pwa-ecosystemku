@@ -37,6 +37,12 @@ const EcosystemDB = (() => {
   function open() {
     if (_db) return Promise.resolve(_db);
 
+    // Minta persistent storage agar browser tidak menghapus data sembarangan.
+    // Dipanggil sekali saja; tidak memblok buka DB.
+    if (navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist();
+    }
+
     return new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
 
