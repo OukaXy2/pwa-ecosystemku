@@ -246,6 +246,27 @@ svg{display:block;flex-shrink:0}
 
 .bar-actions{display:flex;gap:6px;align-items:center}
 
+.overflow-menu{position:relative}
+.overflow-dropdown{
+  position:absolute;right:0;top:42px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:6px;min-width:172px;
+  z-index:200;box-shadow:0 8px 32px rgba(0,0,0,.35);
+  display:flex;flex-direction:column;gap:2px;
+  animation:fadeIn .12s ease;
+}
+.overflow-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:8px;
+  background:none;border:none;color:var(--text);
+  font-size:13px;font-family:var(--sans);font-weight:400;
+  cursor:pointer;text-align:left;width:100%;
+  transition:background .12s;
+}
+.overflow-item:hover{background:var(--surface)}
+.overflow-item.danger{color:#f87171}
+.overflow-sep{height:1px;background:var(--border);margin:3px 4px}
+
 .icon-btn{
   width:34px;height:34px;
   border-radius:8px;
@@ -968,7 +989,7 @@ svg{display:block;flex-shrink:0}
     </div>
     <div class="bar-actions">
       <!-- Language toggle -->
-      <button class="import-btn" id="langToggle" onclick="setLang(_lang==='id'?'en':'id')" title="Switch language / Ganti bahasa" style="min-width:36px;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.5px">EN</button>
+      <button class="icon-btn" id="langToggle" onclick="setLang(_lang==='id'?'en':'id')" title="Switch language / Ganti bahasa" style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.5px">EN</button>
       <!-- Breach check -->
       <button class="icon-btn" id="breachCheckBtn" onclick="checkAllBreaches()" style="display:none" data-i18n-title="breach.btnTitle">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
@@ -977,23 +998,31 @@ svg{display:block;flex-shrink:0}
       <button class="icon-btn" id="bioToggleBtn" onclick="toggleBiometric()" style="display:none">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg>
       </button>
-      <!-- Import — labeled -->
-      <button class="import-btn" onclick="importTrigger()" data-i18n-title="app.importBtn">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        <span data-i18n="app.importBtn">Import</span>
-      </button>
-      <!-- Export -->
-      <button class="icon-btn" onclick="exportData()" data-i18n-title="app.exportTitle">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      </button>
-      <!-- Change password -->
-      <button class="icon-btn" onclick="openChangePw()" data-i18n-title="app.changePwTitle">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/></svg>
-      </button>
       <!-- Lock -->
       <button class="icon-btn" onclick="lockVault()" data-i18n-title="app.lockTitle">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </button>
+      <!-- Overflow menu -->
+      <div class="overflow-menu" id="overflowMenu">
+        <button class="icon-btn" id="overflowBtn" onclick="toggleOverflow()" aria-label="More options">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+        </button>
+        <div class="overflow-dropdown" id="overflowDropdown" style="display:none">
+          <button class="overflow-item" onclick="importTrigger();closeOverflow()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span data-i18n="app.importBtn">Import</span>
+          </button>
+          <button class="overflow-item" onclick="exportData();closeOverflow()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span data-i18n="app.exportTitle">Export</span>
+          </button>
+          <div class="overflow-sep"></div>
+          <button class="overflow-item" onclick="openChangePw();closeOverflow()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/></svg>
+            <span data-i18n="app.changePwTitle">Ganti Password</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2007,6 +2036,20 @@ async function loadItems(){
     showToast(t('toast.decryptFailed', {n: failed.length}), 'err');
   }
 }
+
+// ===== OVERFLOW MENU =====
+function toggleOverflow(){
+  const dd = document.getElementById('overflowDropdown');
+  dd.style.display = dd.style.display==='none' ? 'flex' : 'none';
+}
+function closeOverflow(){
+  const dd = document.getElementById('overflowDropdown');
+  if(dd) dd.style.display='none';
+}
+document.addEventListener('click', e=>{
+  const menu = document.getElementById('overflowMenu');
+  if(menu && !menu.contains(e.target)) closeOverflow();
+});
 
 function showApp(){
   document.getElementById('lockScreen').style.display='none';
