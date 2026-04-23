@@ -594,6 +594,7 @@ let L=[],C=[],PC=[],cur='all',flt='all',q='',eid=null,pm=false,pBuf='',pCb=null,
 // ── INDEXEDDB STORAGE ──
 let _db=null;
 function openDB(){
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
   return new Promise((res,rej)=>{
     if(_db){res(_db);return}
     const req=indexedDB.open('linkkuDB',1);
