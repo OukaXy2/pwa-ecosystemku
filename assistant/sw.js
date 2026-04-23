@@ -1,10 +1,9 @@
 // ============================================
-// Assistant — Service Worker v1
+// Assistant — Service Worker v3
 // ============================================
 
-const CACHE_NAME = 'assistant-v2';
+const CACHE_NAME = 'assistant-v3';
 const ASSETS = [
-  './index.html',
   './manifest.json',
   './LiveroiD_A-Y02.model3.json',
   './LiveroiD_A-Y02.moc3',
@@ -40,12 +39,22 @@ self.addEventListener('activate', e => {
 });
 
 // Fetch strategy:
-// - /shared/    → network first (jangan cache lama)
-// - /api/       → network only (tidak perlu cache)
-// - model files → cache first (besar, mahal di-download ulang)
+// - index.html  → network first (update kode langsung aktif)
+// - /shared/    → network first
+// - /api/       → network only
+// - CDN         → cache first (pixi, live2d — mahal di-refetch)
+// - model files → cache first (besar)
 // - lainnya     → cache first, fallback network
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
+
+  // index.html — network first agar perubahan kode langsung aktif
+  if (url.pathname === '/assistant/' || url.pathname === '/assistant/index.html') {
+    e.respondWith(
+      fetch(e.request).catch(() => caches.match(e.request))
+    );
+    return;
+  }
 
   // /shared/ — network first
   if (url.pathname.startsWith('/shared/')) {
@@ -62,7 +71,7 @@ self.addEventListener('fetch', e => {
   }
 
   // CDN (pixi, live2d) — cache first
-  if (url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('cdnjs.cloudflare.com')) {
+  if (url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('cdnjs.cloudflare.com') || url.hostname.includes('cubism.live2d.com')) {
     e.respondWith(
       caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
         const clone = res.clone();
@@ -73,8 +82,12 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Semua lainnya — cache first
+  // Semua lainnya (model files, icons, dll) — cache first, fallback network
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
+      const clone = res.clone();
+      caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+      return res;
+    }))
   );
 });

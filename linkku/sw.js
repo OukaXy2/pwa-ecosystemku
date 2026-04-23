@@ -1,4 +1,4 @@
-const CACHE = 'linkku-v1';
+const CACHE = 'linkku-v2';
 const ASSETS = [
   './index.html',
   './manifest.json',

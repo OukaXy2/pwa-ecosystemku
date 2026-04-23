@@ -3,10 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#0d1117">
+<meta name="theme-color" content="#080c12">
 <link rel="manifest" href="./manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Assistant</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Liro">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Liro Assistant</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -143,8 +146,9 @@
   #live2d-canvas {
     position: absolute;
     top: 0; left: 0;
-    width: 100%; height: 100%;
     display: block;
+    /* Dimensi diset PIXI via autoDensity — jangan override dengan %
+       agar model tidak CSS-scale saat panel di-drag. */
   }
 
   /* Gradient ground shadow bawah model */
@@ -381,13 +385,22 @@
 
   /* ── Emotion pills ────────────────────────────────────────── */
   #expression-bar {
-    padding: 10px 18px;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
     display: flex;
     gap: 6px;
     flex-shrink: 0;
-    overflow-x: auto;
+    overflow: hidden;
+    max-height: 0;
+    padding: 0 18px;
+    border-top: none;
+    border-bottom: none;
+    transition: max-height 0.22s ease, padding 0.22s ease;
+  }
+
+  #expression-bar.open {
+    max-height: 48px;
+    padding: 8px 18px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
   }
 
   #expression-bar::-webkit-scrollbar { display: none; }
@@ -426,6 +439,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+    position: relative;
   }
 
   .input-row {
@@ -500,6 +514,28 @@
     color: var(--text-muted);
     letter-spacing: 0.02em;
   }
+
+  /* ── Expression bar toggle ────────────────────────────────── */
+  #expr-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px 4px 14px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    cursor: pointer;
+    font-family: var(--font-body);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  #expr-toggle:hover { color: var(--text-secondary); }
+  #expr-toggle .toggle-arrow { font-size: 9px; margin-left: auto; transition: transform 0.2s; }
+  #expr-toggle.open .toggle-arrow { transform: rotate(180deg); }
 
   /* ── Typing indicator ─────────────────────────────────────── */
   .typing-indicator {
@@ -643,43 +679,10 @@
       overflow-y: auto;
     }
 
-    #expression-bar {
-      padding: 0 12px;
-      gap: 5px;
-      flex-shrink: 0;
-      max-height: 0;
-      overflow: hidden;
-      border-top: none;
-      border-bottom: none;
-      transition: max-height 0.2s ease, padding 0.2s ease;
-    }
-    #expression-bar.open {
-      max-height: 44px;
-      padding: 5px 12px;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
+    #expression-bar { padding: 0 12px; gap: 5px; }
+    #expression-bar.open { padding: 5px 12px; max-height: 44px; }
     .expr-pill { padding: 3px 9px; font-size: 11px; }
-
-    /* Tombol toggle expression bar */
-    #expr-toggle {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px 3px 12px;
-      font-size: 11px;
-      color: var(--text-muted);
-      background: none;
-      border: none;
-      border-top: 1px solid var(--border);
-      width: 100%;
-      cursor: pointer;
-      font-family: var(--font-body);
-      letter-spacing: 0.02em;
-      flex-shrink: 0;
-    }
-    #expr-toggle .toggle-arrow { font-size: 9px; margin-left: auto; transition: transform 0.2s; }
-    #expr-toggle.open .toggle-arrow { transform: rotate(180deg); }
+    #expr-toggle { font-size: 11px; padding: 3px 10px 3px 12px; }
 
     #input-area {
       padding: 6px 12px calc(8px + env(safe-area-inset-bottom)) 12px;
@@ -721,50 +724,50 @@
   #apps-btn:hover { border-color: var(--border-lit); color: var(--text-primary); }
   #apps-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
-  /* ── Apps panel ───────────────────────────────────────────── */
+  /* ── Apps panel — grid 2×2 ───────────────────────────────── */
   #apps-panel {
     position: absolute;
-    bottom: 130px; left: 18px; right: 18px;
+    bottom: calc(100% + 6px); left: 0; right: 0;
     background: var(--bg-card);
     border: 1px solid var(--border-lit);
     border-radius: var(--radius-md);
-    padding: 14px;
+    padding: 10px;
     z-index: 20;
     display: none;
-    flex-direction: column;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
     animation: msg-in 0.18s ease;
   }
-  #apps-panel.show { display: flex; }
-
-  #apps-panel .panel-title {
-    font-size: 11px;
-    color: var(--text-muted);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-  }
+  #apps-panel.show { display: grid; }
 
   .app-link {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
+    justify-content: center;
+    gap: 7px;
+    padding: 14px 8px;
     border-radius: var(--radius-sm);
-    border: 1px solid var(--border);
-    background: var(--bg-surface);
+    border: 1px solid transparent;
     color: var(--text-primary);
     text-decoration: none;
-    font-size: 13px;
     font-family: var(--font-body);
-    transition: all 0.15s ease;
+    transition: filter 0.15s ease, transform 0.1s ease;
     cursor: pointer;
+    text-align: center;
   }
-  .app-link:hover { border-color: var(--border-lit); background: var(--accent-dim); }
-  .app-link .app-icon { font-size: 16px; width: 20px; text-align: center; }
-  .app-link .app-name { font-weight: 500; }
-  .app-link .app-desc { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+  .app-link:hover  { filter: brightness(1.15); }
+  .app-link:active { transform: scale(0.95); }
+
+  .app-link .app-icon { font-size: 24px; line-height: 1; }
+  .app-link .app-name { font-size: 12px; font-weight: 500; }
+
+  /* Warna accent per app */
+  .app-dailyos  { background: rgba(91,156,246,0.12); border-color: rgba(91,156,246,0.22); }
+  .app-ideku    { background: rgba(251,191,36,0.10); border-color: rgba(251,191,36,0.22); }
+  .app-cucimoney{ background: rgba(74,222,128,0.10); border-color: rgba(74,222,128,0.22); }
+  .app-kronik   { background: rgba(167,139,250,0.10);border-color: rgba(167,139,250,0.22); }
 </style>
 </head>
 
@@ -826,41 +829,39 @@
     </div>
 
     <div id="input-area">
+      <div id="apps-panel">
+        <a class="app-link app-dailyos" href="https://pwa-ecosystemku.vercel.app/daily-os/" target="_blank">
+          <span class="app-icon">📅</span>
+          <span class="app-name">Daily OS</span>
+        </a>
+        <a class="app-link app-ideku" href="https://pwa-ecosystemku.vercel.app/ide-ku/" target="_blank">
+          <span class="app-icon">💡</span>
+          <span class="app-name">IdeKu</span>
+        </a>
+        <a class="app-link app-cucimoney" href="https://pwa-ecosystemku.vercel.app/cucimoney/" target="_blank">
+          <span class="app-icon">💰</span>
+          <span class="app-name">CuciMoney+</span>
+        </a>
+        <a class="app-link app-kronik" href="https://pwa-ecosystemku.vercel.app/kronik/" target="_blank">
+          <span class="app-icon">📖</span>
+          <span class="app-name">Kronik</span>
+        </a>
+      </div>
       <div class="input-row">
         <textarea
           id="msg-input"
           rows="1"
-          placeholder="Ketik pesan…"
+          placeholder="Ngobrol sama Liro…"
         ></textarea>
         <button id="apps-btn" title="Buka app">⚡</button>
         <button id="mute-btn" title="Mute/unmute suara Liro">🔊</button>
-        <button id="send-btn">↑</button>
+        <button id="send-btn" title="Kirim">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M1 14L7.5 1L14 14M7.5 1L3 10.5H12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
       <div class="input-hint">Enter untuk kirim · Shift+Enter baris baru</div>
-    </div>
-
-    <div id="apps-panel">
-      <div class="panel-title">Buka App</div>
-      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/daily-os/" target="_blank">
-        <span class="app-icon">📅</span>
-        <span class="app-name">Daily OS</span>
-        <span class="app-desc">Habit & Todo</span>
-      </a>
-      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/ide-ku/" target="_blank">
-        <span class="app-icon">💡</span>
-        <span class="app-name">IdeKu</span>
-        <span class="app-desc">Ide & Wishlist</span>
-      </a>
-      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/cucimoney/" target="_blank">
-        <span class="app-icon">💰</span>
-        <span class="app-name">CuciMoney+</span>
-        <span class="app-desc">Keuangan</span>
-      </a>
-      <a class="app-link" href="https://pwa-ecosystemku.vercel.app/kronik/" target="_blank">
-        <span class="app-icon">📖</span>
-        <span class="app-name">Kronik</span>
-        <span class="app-desc">Jurnal</span>
-      </a>
     </div>
 
     <div id="chat-toast"></div>
@@ -966,23 +967,18 @@ Setiap kali kamu merespons, sisipkan satu tag ekspresi di akhir respons sesuai e
 Selalu sertakan tepat satu tag [EXPR:...] di akhir setiap respons.
 
 ## Navigasi App
-Kalau pengguna minta buka salah satu app, tambahkan tag [OPEN:nama] di akhir responsmu (sebelum [EXPR:...]).
+Tambahkan tag [OPEN:nama] HANYA kalau pengguna secara eksplisit menyuruh kamu membuka atau menuju ke app — misalnya "buka IdeKu", "pergi ke Daily OS", "launch cucimoney dong". JANGAN tambahkan tag ini hanya karena nama app disebut dalam percakapan biasa, pengguna bertanya tentang app tersebut, atau kamu merekomendasikan app tanpa diminta buka.
 Nama yang valid: dailyos, ideku, cucimoney, kronik.
 Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
   /* ── Ecosystem context loader ────────────────────────────────── */
 
-  /**
-   * Baca data dari ecosystem_db dan format jadi ringkasan teks
-   * untuk disertakan di setiap request ke /api/chat.
-   *
-   * Semua read dilakukan paralel (Promise.allSettled) supaya
-   * satu store yang gagal tidak memblok yang lain.
-   *
-   * Return: object { userName, summary } dimana summary adalah
-   * plain-text ringkasan yang bisa langsung dimasukkan ke system prompt.
-   */
+  let _ecoCache    = null;   // { userName, summary }
+  let _ecoCacheAt  = 0;      // timestamp ms
+  const ECO_TTL    = 60_000; // 60 detik
+
   async function loadEcosystemContext() {
+    if (_ecoCache && (Date.now() - _ecoCacheAt) < ECO_TTL) return _ecoCache;
     // Guard: kalau EcosystemDB belum ter-load (file tidak ada), skip
     if (typeof EcosystemDB === 'undefined') {
       console.warn('[Context] ecosystem-db.js belum dimuat, skip.');
@@ -1139,12 +1135,15 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       lines.push(`Jurnal terbaru: ${list}`);
     }
 
-    if (!lines.length) return null;
+    if (!lines.length) {
+      _ecoCache   = null;
+      _ecoCacheAt = Date.now();
+      return null;
+    }
 
-    return {
-      userName,
-      summary: lines.join('\n'),
-    };
+    _ecoCache   = { userName, summary: lines.join('\n') };
+    _ecoCacheAt = Date.now();
+    return _ecoCache;
   }
 
   /* ── DOM refs ───────────────────────────────────────────────── */
@@ -1187,6 +1186,12 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   let frameCount   = 0;
   let lastFpsTime  = performance.now();
   let fps          = 60;
+
+  // Petting state
+  let petActive    = false;   // pointer sedang ditekan di zona kepala
+  let petIntensity = 0;       // 0→1, naik saat dielus, turun saat berhenti
+  let petHairT     = 0;       // phase osilasi rambut
+  let idleAngleZ   = 0;       // nilai AngleZ dari tickIdle agar tickPet bisa menambahkannya
 
   // Expression state — smooth fade via setCoreParam (bypass model.expression())
   // Semua exp3.json pakai Blend:"Add", jadi kita set langsung ke coreModel
@@ -1232,7 +1237,9 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   app.ticker.maxFPS = 60;
   app.ticker.minFPS = 30;
 
-  /* Resize handler */
+  /* Resize handler — hanya dipanggil saat drag SELESAI dan window resize,
+     bukan saat drag berlangsung. app.renderer.resize() adalah operasi WebGL
+     yang clear buffer (menyebabkan flicker kalau dipanggil tiap frame). */
   function resizeApp() {
     const w = panel.clientWidth;
     const h = panel.clientHeight;
@@ -1260,11 +1267,14 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     model.alpha = 1;
 
     app.stage.addChild(model);
-    positionModel(model, app.renderer.width, app.renderer.height);
 
     // Sembunyikan loading
     loadingEl.classList.add('hidden');
     setTimeout(() => loadingEl.remove(), 700);
+
+    // Resize canvas ke dimensi DOM yang sudah final, lalu posisikan model.
+    // rAF memastikan layout selesai sebelum kita baca clientWidth/Height.
+    requestAnimationFrame(() => resizeApp());
 
     // Mulai idle loop
     app.ticker.add(onTick);
@@ -1304,22 +1314,21 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
   /**
    * Parse tag [OPEN:app] dari respons Liro.
-   * Kalau ada → buka PWA di tab baru, hapus tag dari teks.
+   * Hapus tag dari teks dan kembalikan URL-nya — jangan buka sekarang,
+   * buka setelah TTS selesai (lihat sendToAPI).
    */
   function parseOpenTag(text) {
     const match = text.match(/\[OPEN:([a-z0-9-]+)\]/i);
-    if (!match) return { cleanText: text, opened: false };
-    const key = match[1].toLowerCase();
-    const url = PWA_URLS[key];
-    if (url) window.open(url, '_blank');
+    if (!match) return { cleanText: text, openUrl: null };
+    const key     = match[1].toLowerCase();
+    const openUrl = PWA_URLS[key] || null;
     const cleanText = text.replace(match[0], '').trim();
-    return { cleanText, opened: !!url };
+    return { cleanText, openUrl };
   }
 
   /**
    * Parse tag [EXPR:name] dari respons Liro.
    * Kalau ada → trigger ekspresi Live2D, hapus tag dari teks.
-   * Ini menggantikan autoExpression() berbasis keyword.
    */
   function parseExprTag(text) {
     const match = text.match(/\[EXPR:([a-z]+)\]/i);
@@ -1355,15 +1364,16 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
   function positionModel(m, W, H) {
     const isMobile = W < 700;
 
-    // Scale: tampilkan 80% tinggi canvas di desktop, lebih kecil mobile
-    const targetH = isMobile ? H * 0.9 : H * 0.88;
+    // Scale: mobile 1.08× panel height (sedikit crop atas, tapi body penuh terlihat)
+    //        desktop 0.96× panel height (masih ada breathing room atas)
+    const targetH = isMobile ? H * 1.08 : H * 0.96;
     const scale   = targetH / (m.internalModel?.height || 800);
     m.scale.set(scale);
 
     // Anchor tengah-bawah
     m.anchor.set(0.5, 1);
-    m.x = isMobile ? W * 0.5 : W * 0.5;
-    m.y = H * (isMobile ? 0.98 : 0.97);
+    m.x = W * 0.5;
+    m.y = H * (isMobile ? 0.99 : 0.98);
   }
 
   /* ── Cursor tracking ─────────────────────────────────────────── */
@@ -1445,8 +1455,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     setCoreParam('ParamBreath', breathVal);
 
     // Kepala goyang pelan: siklus ~7 detik
-    const headAngle = Math.sin(idleHead * (Math.PI * 2 / 7)) * 4;
-    setCoreParam('ParamAngleZ', headAngle);
+    idleAngleZ = Math.sin(idleHead * (Math.PI * 2 / 7)) * 4;
+    setCoreParam('ParamAngleZ', idleAngleZ);
   }
 
   /* ── Cursor follow ───────────────────────────────────────────── */
@@ -1524,6 +1534,7 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     tickFollow(delta);
     tickLipSync();
     tickExpression();
+    tickPet(delta);   // terakhir agar efek elus menimpa animasi lain
 
     // FPS counter
     if (DEBUG) {
@@ -1587,9 +1598,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     pill.addEventListener('click', () => setExpression(pill.dataset.expr));
   });
 
-  /* ── Mobile: expression bar toggle ──────────────────────────── */
+  /* ── Expression bar toggle (mobile & desktop) ───────────────── */
   function initExprToggle() {
-    if (window.innerWidth > 700) return; // desktop: selalu tampil
     exprToggle.style.display = 'flex';
     exprToggle.addEventListener('click', () => {
       const isOpen = exprBar.classList.toggle('open');
@@ -1607,6 +1617,74 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       blinkTimer = 0; // trigger blink segera
     }
   });
+
+  /* ── Head petting ────────────────────────────────────────────── */
+  // Area kepala = atas ~35% canvas (model di-anchor bawah, kepala di atas)
+  function isHeadZone(relY, relX) {
+    return relY < 0.35 && relX > 0.12 && relX < 0.88;
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const y = (e.clientY - rect.top)  / rect.height;
+    const x = (e.clientX - rect.left) / rect.width;
+    if (isHeadZone(y, x)) petActive = true;
+  });
+  canvas.addEventListener('pointerup',     () => { petActive = false; });
+  canvas.addEventListener('pointerleave',  () => { petActive = false; });
+  canvas.addEventListener('pointercancel', () => { petActive = false; });
+
+  function tickPet(delta) {
+    if (!model) return;
+    const dt = delta / 60;
+
+    // Intensity naik cepat (4×/s) saat dielus, turun lebih lambat (2×/s) saat berhenti
+    const targetI = petActive ? 1 : 0;
+    petIntensity += (targetI - petIntensity) * (petActive ? 4 * dt : 2 * dt);
+
+    if (petIntensity < 0.001) {
+      if (petIntensity > 0) {
+        // Reset semua param sekali saat benar-benar berhenti
+        petIntensity = 0;
+        setCoreParam('ParamEyeLSmile', 0);
+        setCoreParam('ParamEyeRSmile', 0);
+        setCoreParam('ParamHairFrontL1', 0); setCoreParam('ParamHairFrontL2', 0);
+        setCoreParam('ParamHairFrontR1', 0); setCoreParam('ParamHairFrontR2', 0);
+        setCoreParam('ParamHairSideL1',  0); setCoreParam('ParamHairSideR1',  0);
+        exprParams.ParamBlush.target = currentExpr === 'blush' ? 1 : 0;
+      }
+      return;
+    }
+
+    if (petActive) petHairT += dt;
+    const t = petHairT;
+    const i = petIntensity;
+
+    // Blush — tumpang tindih dengan ekspresi aktif
+    exprParams.ParamBlush.target = Math.max(currentExpr === 'blush' ? 1 : 0, i);
+
+    // Mata setengah tertutup senang (eye smile)
+    setCoreParam('ParamEyeLSmile', i * 0.9);
+    setCoreParam('ParamEyeRSmile', i * 0.9);
+
+    // Mulut senyum kecil (tidak saat bicara — lip sync mengambil alih)
+    if (!isSpeaking) setCoreParam('ParamMouthForm', i * 0.5);
+
+    // Kepala miring + goyang kecil di atas nilai idle
+    setCoreParam('ParamAngleZ', idleAngleZ + i * (4 + Math.sin(t * 1.3) * 1.8));
+
+    // Rambut depan terusik — osilasi berlapis
+    const ha = i * 0.5;
+    setCoreParam('ParamHairFrontL1', Math.sin(t * 3.1)       * ha);
+    setCoreParam('ParamHairFrontL2', Math.sin(t * 3.1 + 0.9) * ha);
+    setCoreParam('ParamHairFrontR1', Math.sin(t * 2.9 + 0.5) * ha);
+    setCoreParam('ParamHairFrontR2', Math.sin(t * 2.9 + 1.4) * ha);
+
+    // Rambut samping sedikit ikut bergerak
+    const sa = i * 0.35;
+    setCoreParam('ParamHairSideL1', Math.sin(t * 2.3 + 0.3) * sa);
+    setCoreParam('ParamHairSideR1', Math.sin(t * 2.1 + 0.7) * sa);
+  }
 
   /* ── Keyboard shortcut: D = toggle debug ─────────────────────── */
   window.addEventListener('keydown', e => {
@@ -1657,6 +1735,7 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
     }
 
     loadSaved();
+    requestAnimationFrame(() => { if (typeof resizeApp === 'function') resizeApp(); });
     window.addEventListener('resize', loadSaved);
 
     let dragging = false;
@@ -1685,17 +1764,16 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       const pos = e.touches ? e.touches[0].clientY || e.touches[0].clientX : (isMobile() ? e.clientY : e.clientX);
 
       if (isMobile()) {
-        const delta   = pos - startPos;
-        const newH    = clamp(startSize + delta, MOBILE_MIN(), MOBILE_MAX());
+        const delta = pos - startPos;
+        const newH  = clamp(startSize + delta, MOBILE_MIN(), MOBILE_MAX());
         modelPanel.style.height = newH + 'px';
         modelPanel.style.flex   = 'none';
-        // Resize pixi canvas
-        if (typeof resizeApp === 'function') resizeApp();
+        // Tidak panggil resizeApp() di sini — canvas CSS ikut stretch otomatis
+        // via width/height: 100%, WebGL resize hanya di onDragEnd.
       } else {
-        const delta   = pos - startPos;
-        const newW    = clamp(startSize + delta, DESKTOP_MIN, DESKTOP_MAX());
+        const delta = pos - startPos;
+        const newW  = clamp(startSize + delta, DESKTOP_MIN, DESKTOP_MAX());
         chatPanel.style.width = newW + 'px';
-        if (typeof resizeApp === 'function') resizeApp();
       }
     }
 
@@ -1879,10 +1957,9 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
 
       if (!rawReply) throw new Error('Respons kosong dari server');
 
-      // Parse [OPEN:app] tag — buka PWA kalau ada
-      const { cleanText: afterOpen } = parseOpenTag(rawReply);
-      // Parse [EXPR:name] tag — trigger ekspresi Live2D
-      const { cleanText: replyText } = parseExprTag(afterOpen);
+      // Parse tag — hapus dari teks, simpan URL untuk dibuka setelah TTS
+      const { cleanText: afterOpen, openUrl } = parseOpenTag(rawReply);
+      const { cleanText: replyText }          = parseExprTag(afterOpen);
 
       // Tambah ke history (pakai teks bersih tanpa tag)
       chatHistory.push({ role: 'assistant', content: replyText });
@@ -1891,11 +1968,8 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
       typingEl.remove();
       appendMessage('assistant', replyText);
 
-      // Ekspresi sudah di-handle parseExprTag di atas
-      // autoExpression(replyText) — diganti sistem [EXPR:tag]
-
-      // TTS — fire and forget, error ditangani di dalam playTTS()
-      playTTS(replyText);
+      // Buka app setelah TTS selesai (atau setelah jeda estimasi kalau muted)
+      playTTS(replyText, openUrl ? () => window.open(openUrl, '_blank') : null);
 
     } catch (err) {
       typingEl.remove();
@@ -1993,9 +2067,14 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
    *
    * @param {string} text - Teks yang akan di-TTS
    */
-  async function playTTS(text) {
-    if (!text) return;
-    if (isMuted) return;   // ← skip kalau mute
+  async function playTTS(text, onComplete = null) {
+    if (!text) { onComplete?.(); return; }
+    if (isMuted) {
+      // Muted — tetap jalankan callback setelah jeda baca estimasi
+      const delay = Math.min(Math.max(text.length * 35, 800), 3500);
+      setTimeout(() => onComplete?.(), delay);
+      return;
+    }
 
     // Inisialisasi AudioContext (perlu user gesture — sudah terpenuhi via send button)
     ensureAudioCtx();
@@ -2043,33 +2122,18 @@ Contoh: "Oke, aku bukain IdeKu sekarang! [OPEN:ideku] [EXPR:blush]"`;
         setCoreParam('ParamMouthForm',  0);
         document.getElementById('model-tag').classList.remove('speaking');
         statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+        onComplete?.();
       };
 
     } catch (err) {
       isSpeaking = false;
       console.warn('[TTS] Error:', err);
-      // TTS gagal tidak harus tampil toast — respons teks tetap terbaca
       statusEl.textContent = `· ${currentExpr === 'none' ? 'idle' : currentExpr}`;
+      // TTS gagal — tetap jalankan callback setelah jeda singkat
+      setTimeout(() => onComplete?.(), 500);
     }
   }
 
-  /* ── Auto expression (updated) ───────────────────────────────── */
-  function autoExpression(text) {
-    const lower = text.toLowerCase();
-    let expr = 'none';
-
-    if      (/hehe|haha|lucu|😄|😆|wkwk|senang|seru|asik/.test(lower))                  expr = 'blush';
-    else if (/maaf|sedih|khawatir|kasihan|😟|😢|duh|aduh|sayang sekali/.test(lower))     expr = 'worried';
-    else if (/serius|penting|perlu diperhatikan|hati-hati|😐|fokus|catat/.test(lower))   expr = 'cool';
-    else if (/bingung|hmm|eh\?|lho|hah|kok|masa/.test(lower))                            expr = 'browLink';
-
-    if (expr !== 'none') {
-      setExpression(expr);
-      setTimeout(() => {
-        if (currentExpr === expr) setExpression('none');
-      }, 5000);
-    }
-  }
 
 })();
 </script>
