@@ -1297,6 +1297,7 @@ let _secretTimers = new Map();
 
 // ===== INDEXEDDB =====
 function openDB(){
+  if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
   return new Promise((res,rej)=>{
     const req = indexedDB.open(DB_NAME, DB_VER);
     req.onupgradeneeded = e => {
