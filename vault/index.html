@@ -400,6 +400,15 @@ svg{display:block;flex-shrink:0}
   opacity:.8;
 }
 
+.breach-badge{
+  font-size:9px;font-family:var(--mono);font-weight:500;
+  padding:1px 6px;border-radius:10px;flex-shrink:0;
+}
+.breach-safe{background:rgba(74,222,128,.15);color:#4ade80}
+.breach-pwned{background:rgba(239,68,68,.18);color:#f87171;animation:breach-pulse 1.8s ease-in-out infinite}
+.breach-checking{background:rgba(148,163,184,.12);color:var(--dim)}
+@keyframes breach-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+
 .item-user{
   font-size:11px;color:var(--sub);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -960,6 +969,10 @@ svg{display:block;flex-shrink:0}
     <div class="bar-actions">
       <!-- Language toggle -->
       <button class="import-btn" id="langToggle" onclick="setLang(_lang==='id'?'en':'id')" title="Switch language / Ganti bahasa" style="min-width:36px;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.5px">EN</button>
+      <!-- Breach check -->
+      <button class="icon-btn" id="breachCheckBtn" onclick="checkAllBreaches()" style="display:none" data-i18n-title="breach.btnTitle">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+      </button>
       <!-- Biometric toggle -->
       <button class="icon-btn" id="bioToggleBtn" onclick="toggleBiometric()" style="display:none">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg>
@@ -1431,6 +1444,19 @@ const LOCALES = {
     'bio.expired':'Sesi biometrik kedaluwarsa — masukkan password',
     'bio.unlocking':'Membuka dengan biometrik…',
     'bio.unsupported':'Perangkat tidak mendukung biometrik',
+    'breach.btnTitle':'Cek Password (HIBP)',
+    'breach.detailLabel':'Breach',
+    'breach.checking':'Mengecek…',
+    'breach.doneAll':'Semua password aman ✓',
+    'breach.done':'{breached} bocor, {safe} aman',
+    'breach.safe':'Aman ✓',
+    'breach.breached':'Bocor {n}x',
+    'breach.unchecked':'Belum dicek',
+    'breach.safeSingle':'Password aman ✓',
+    'breach.breachedSingle':'Password bocor! Ditemukan {n}x',
+    'breach.apiErr':'Gagal cek breach: {msg}',
+    'breach.offline':'Tidak ada koneksi internet',
+    'breach.checkSingle':'Cek password ini',
   },
   en: {
     'lock.subtitle':'Enter your master password to continue',
@@ -1586,6 +1612,19 @@ const LOCALES = {
     'bio.expired':'Biometric session expired — enter password',
     'bio.unlocking':'Unlocking with biometrics…',
     'bio.unsupported':'Device does not support biometrics',
+    'breach.btnTitle':'Check Passwords (HIBP)',
+    'breach.detailLabel':'Breach',
+    'breach.checking':'Checking…',
+    'breach.doneAll':'All passwords are safe ✓',
+    'breach.done':'{breached} breached, {safe} safe',
+    'breach.safe':'Safe ✓',
+    'breach.breached':'Breached {n}x',
+    'breach.unchecked':'Not checked',
+    'breach.safeSingle':'Password is safe ✓',
+    'breach.breachedSingle':'Password breached! Found {n}x',
+    'breach.apiErr':'Breach check failed: {msg}',
+    'breach.offline':'No internet connection',
+    'breach.checkSingle':'Check this password',
   }
 };
 
@@ -1644,7 +1683,7 @@ const SVG = {
 
 // ===== CONFIG =====
 const DB_NAME = 'VaultDB';
-const DB_VER = 2;
+const DB_VER = 3;
 const STORE = 'items';
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30000;
@@ -1955,7 +1994,9 @@ async function loadItems(){
         notes,
         color:row.color||0,
         category:row.category||'other',
-        favorite:row.favorite||false
+        favorite:row.favorite||false,
+        breachStatus: typeof row.breachStatus === 'number' ? row.breachStatus : undefined,
+        breachCheckedAt: row.breachCheckedAt || null,
       });
     }catch(e){
       failed.push(row.id);
@@ -1972,6 +2013,7 @@ function showApp(){
   document.getElementById('app').style.display='flex';
   document.getElementById('fab').style.display='flex';
   document.getElementById('masterPass').value='';
+  document.getElementById('breachCheckBtn').style.display='flex';
   loadSecretLocks();
   render();
   startIdleTimer();
@@ -1986,6 +2028,7 @@ function lockVault(){
   document.getElementById('lockScreen').style.display='flex';
   document.getElementById('app').style.display='none';
   document.getElementById('fab').style.display='none';
+  document.getElementById('breachCheckBtn').style.display='none';
   document.getElementById('masterPass').value='';
   document.getElementById('masterConfirm').value='';
   setMsg('','');
@@ -2191,6 +2234,15 @@ function renderCard(item, idx){
         <span class="detail-label">${t('detail.notes')}</span>
         <span class="detail-value">${esc(item.notes)}</span>
       </div>`:''}
+      <div class="detail-row">
+        <span class="detail-label">${t('breach.detailLabel')}</span>
+        <span class="detail-value" style="${_checkingBreachIds.has(item.id)?'color:var(--dim)':item.breachStatus===2?'color:#f87171':item.breachStatus===1?'color:#4ade80':'color:var(--dim)'}">
+          ${_checkingBreachIds.has(item.id)?t('breach.checking'):item.breachStatus===2?t('breach.breachedSingle',{n:'?'}):item.breachStatus===1?t('breach.safe'):t('breach.unchecked')}
+        </span>
+        <button class="detail-eye" onclick="checkSingleBreach(${item.id});event.stopPropagation()" title="${t('breach.checkSingle')}">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        </button>
+      </div>
     </div>
     <div class="item-actions">
       <button class="act-btn copy" onclick="copyPass(${item.id});event.stopPropagation()" id="copy-btn-${item.id}-pw">${SVG.copy} ${t('detail.copyPw')}</button>
@@ -2231,6 +2283,8 @@ function renderCard(item, idx){
           ${esc(item.title)}
           <span class="cat-badge ${cat.cls}">${cat.label}</span>
           ${isSecretLocked?`<span style="font-size:9px;font-family:var(--mono);color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:10px;flex-shrink:0;">${t('card.locked')}</span>`:''}
+          ${_checkingBreachIds.has(item.id)?`<span class="breach-badge breach-checking">${t('breach.checking')}</span>`:''}
+          ${!_checkingBreachIds.has(item.id)&&item.breachStatus===2?`<span class="breach-badge breach-pwned">${t('breach.breached',{n:'!'})}</span>`:''}
         </div>
         <div class="item-user">${esc(item.username)||'—'}</div>
       </div>
@@ -2400,11 +2454,18 @@ async function saveItem(){
   try{
     if(editId){
       const existing = _items.find(i=>i.id===editId);
-      const newPass = password ? await encrypt(password) : existing.password;
-      const obj = {id:editId, title:await encrypt(title), username:await encrypt(username), password:newPass, notes:notes?await encrypt(notes):'', color:existing.color, category, favorite:existing.favorite||false};
+      const passwordChanged = !!password;
+      const newPass = passwordChanged ? await encrypt(password) : existing.password;
+      const obj = {
+        id:editId, title:await encrypt(title), username:await encrypt(username),
+        password:newPass, notes:notes?await encrypt(notes):'',
+        color:existing.color, category, favorite:existing.favorite||false,
+        breachStatus: passwordChanged ? undefined : existing.breachStatus,
+        breachCheckedAt: passwordChanged ? null : existing.breachCheckedAt,
+      };
       await dbPut(obj);
       existing.title=title; existing.username=username;
-      if(password) existing.password=newPass;
+      if(passwordChanged){ existing.password=newPass; existing.breachStatus=undefined; existing.breachCheckedAt=null; }
       existing.notes=notes; existing.category=category;
       showToast(t('toast.saved'),'ok');
     } else {
@@ -2412,7 +2473,7 @@ async function saveItem(){
       const color = Math.floor(Math.random()*8);
       const obj = {title:await encrypt(title), username:await encrypt(username), password:await encrypt(password), notes:notes?await encrypt(notes):'', color, category, favorite:false};
       const id = await dbPut(obj);
-      _items.push({id, title, username, password:obj.password, notes, color, category, favorite:false});
+      _items.push({id, title, username, password:obj.password, notes, color, category, favorite:false, breachStatus:undefined, breachCheckedAt:null});
       showToast(t('toast.added'),'ok');
     }
     closeModal(); render();
@@ -2460,6 +2521,93 @@ function genPass(){
   document.getElementById('fPass').type='text';
   updateStrength(pw);
   showToast(t('toast.passGen'), 'ok');
+}
+
+// ===== HIBP BREACH CHECK =====
+// breachStatus: undefined=unchecked, 1=safe, 2=pwned
+const _checkingBreachIds = new Set();
+
+async function sha1hex(str){
+  const buf = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+
+async function dbUpdateBreach(id, status, checkedAt){
+  const raw = (await dbAll()).find(r=>r.id===id);
+  if(!raw) return;
+  raw.breachStatus = status;
+  raw.breachCheckedAt = checkedAt;
+  await dbPut(raw);
+  const item = _items.find(i=>i.id===id);
+  if(item){ item.breachStatus=status; item.breachCheckedAt=checkedAt; }
+}
+
+async function checkBreachForItem(item){
+  try{
+    const pw = await decrypt(item.password);
+    const hash = await sha1hex(pw);
+    const prefix = hash.slice(0,5);
+    const suffix = hash.slice(5);
+    const res = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`,{
+      headers:{'Add-Padding':'true'}
+    });
+    if(!res.ok) throw new Error(res.status);
+    const text = await res.text();
+    let count = 0;
+    const lines = text.split('\r\n');
+    for(const l of lines){
+      const [s,c] = l.split(':');
+      if(s===suffix){ count=parseInt(c,10)||0; break; }
+    }
+    return {status: count>0?2:1, count};
+  }catch(e){
+    if(!navigator.onLine) return {status:null, err:'offline'};
+    return {status:null, err:e.message};
+  }
+}
+
+async function checkAllBreaches(){
+  if(!_key || _checkingBreachIds.size>0) return;
+  const btn = document.getElementById('breachCheckBtn');
+  if(btn){ btn.disabled=true; }
+  showToast(t('breach.checking'),'warn');
+  let pwned=0, safe=0, errors=0;
+  for(let i=0; i<_items.length; i++){
+    const item = _items[i];
+    _checkingBreachIds.add(item.id);
+    render();
+    const {status, count, err} = await checkBreachForItem(item);
+    _checkingBreachIds.delete(item.id);
+    if(status!==null){
+      await dbUpdateBreach(item.id, status, new Date().toISOString());
+      if(status===2) pwned++; else safe++;
+    } else {
+      errors++;
+      if(err==='offline'){ showToast(t('breach.offline'),'err'); break; }
+    }
+    render();
+    if(i<_items.length-1) await new Promise(r=>setTimeout(r,700));
+  }
+  if(btn){ btn.disabled=false; }
+  if(pwned>0) showToast(t('breach.done',{breached:pwned,safe}),'err');
+  else if(safe>0) showToast(t('breach.doneAll'),'ok');
+}
+
+async function checkSingleBreach(id){
+  if(_checkingBreachIds.has(id)) return;
+  const item = _items.find(i=>i.id===id);
+  if(!item) return;
+  _checkingBreachIds.add(id);
+  render();
+  const {status, count, err} = await checkBreachForItem(item);
+  _checkingBreachIds.delete(id);
+  if(status!==null){
+    await dbUpdateBreach(id, status, new Date().toISOString());
+    showToast(status===2 ? t('breach.breachedSingle',{n:count}) : t('breach.safeSingle'), status===2?'err':'ok');
+  } else {
+    showToast(err==='offline' ? t('breach.offline') : t('breach.apiErr',{msg:err}),'err');
+  }
+  render();
 }
 
 // ===== TOGGLE EYE =====
