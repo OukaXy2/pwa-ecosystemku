@@ -148,6 +148,25 @@ svg{display:block;flex-shrink:0}
 .btn-primary:active{transform:scale(.98);opacity:.85}
 .btn-primary:disabled{opacity:.3;cursor:not-allowed}
 
+/* ===== BIOMETRIC BUTTON ===== */
+.btn-bio{
+  width:100%;padding:11px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:transparent;
+  color:var(--sub);
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  cursor:pointer;
+  margin-top:6px;
+  display:none;align-items:center;justify-content:center;gap:8px;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.btn-bio:hover{background:var(--surface);color:var(--text);border-color:var(--border-focus)}
+.btn-bio:active{transform:scale(.98)}
+.btn-bio:disabled{opacity:.4;pointer-events:none}
+.btn-bio.loading{pointer-events:none}
+.icon-btn.bio-active{color:var(--accent);border-color:var(--accent);background:var(--accent-glow)}
+
 /* ===== UNLOCK SPINNER ===== */
 .btn-primary.loading{
   display:flex;align-items:center;justify-content:center;gap:8px;
@@ -878,13 +897,13 @@ svg{display:block;flex-shrink:0}
     </svg>
   </div>
   <div class="lock-title">Secure Vault</div>
-  <div class="lock-sub" id="lockSub">Masukkan master password untuk melanjutkan</div>
+  <div class="lock-sub" id="lockSub" data-i18n="lock.subtitle">Masukkan master password untuk melanjutkan</div>
   <div class="lock-form">
 
     <div class="lock-field-group">
-      <div class="pw-field-label">Master Password Vault</div>
+      <div class="pw-field-label" data-i18n="lock.masterPwLabel">Master Password Vault</div>
       <div class="input-wrap">
-        <input type="password" id="masterPass" placeholder="Password untuk buka vault" autocomplete="current-password" oninput="updateLockStrength(this.value)"/>
+        <input type="password" id="masterPass" placeholder="Password untuk buka vault" data-i18n-ph="lock.masterPwPh" autocomplete="current-password" oninput="updateLockStrength(this.value)"/>
         <button class="eye-btn" onclick="toggleEye('masterPass',this)" type="button">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
@@ -902,9 +921,9 @@ svg{display:block;flex-shrink:0}
     </div>
 
     <div class="lock-field-group" id="confirmWrap" style="display:none">
-      <div class="pw-field-label">Konfirmasi Master Password</div>
+      <div class="pw-field-label" data-i18n="lock.confirmPwLabel">Konfirmasi Master Password</div>
       <div class="input-wrap">
-        <input type="password" id="masterConfirm" placeholder="Ulangi master password" autocomplete="new-password"/>
+        <input type="password" id="masterConfirm" placeholder="Ulangi master password" data-i18n-ph="lock.confirmPwPh" autocomplete="new-password"/>
         <button class="eye-btn" onclick="toggleEye('masterConfirm',this)" type="button">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
@@ -912,6 +931,10 @@ svg{display:block;flex-shrink:0}
     </div>
 
     <button class="btn-primary" id="unlockBtn" onclick="unlock()">Buka Vault</button>
+    <button class="btn-bio" id="bioBtn" onclick="unlockWithBiometric()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg>
+      <span data-i18n="bio.btnUnlock">Buka dengan Biometrik</span>
+    </button>
     <div class="attempt-dots" id="dots">
       <div class="dot" id="d0"></div>
       <div class="dot" id="d1"></div>
@@ -922,7 +945,7 @@ svg{display:block;flex-shrink:0}
     <div class="lock-msg" id="lockMsg"></div>
     <button class="reset-link" id="resetLink" onclick="showResetConfirm()" style="display:none">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-      Reset &amp; buat vault baru
+      <span data-i18n="lock.resetLink">Reset &amp; buat vault baru</span>
     </button>
   </div>
 </div>
@@ -935,21 +958,27 @@ svg{display:block;flex-shrink:0}
       <span class="count-badge" id="countBadge">0</span>
     </div>
     <div class="bar-actions">
+      <!-- Language toggle -->
+      <button class="import-btn" id="langToggle" onclick="setLang(_lang==='id'?'en':'id')" title="Switch language / Ganti bahasa" style="min-width:36px;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.5px">EN</button>
+      <!-- Biometric toggle -->
+      <button class="icon-btn" id="bioToggleBtn" onclick="toggleBiometric()" style="display:none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg>
+      </button>
       <!-- Import — labeled -->
-      <button class="import-btn" onclick="importTrigger()" title="Import backup">
+      <button class="import-btn" onclick="importTrigger()" data-i18n-title="app.importBtn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Import
+        <span data-i18n="app.importBtn">Import</span>
       </button>
       <!-- Export -->
-      <button class="icon-btn" onclick="exportData()" title="Backup / Export">
+      <button class="icon-btn" onclick="exportData()" data-i18n-title="app.exportTitle">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </button>
       <!-- Change password -->
-      <button class="icon-btn" onclick="openChangePw()" title="Ganti Master Password Vault">
+      <button class="icon-btn" onclick="openChangePw()" data-i18n-title="app.changePwTitle">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/></svg>
       </button>
       <!-- Lock -->
-      <button class="icon-btn" onclick="lockVault()" title="Kunci Vault">
+      <button class="icon-btn" onclick="lockVault()" data-i18n-title="app.lockTitle">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </button>
     </div>
@@ -959,14 +988,14 @@ svg{display:block;flex-shrink:0}
   <div class="filter-bar">
     <button class="filter-chip fav-chip" id="chip-fav" onclick="setFilter('fav')">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      Favorit
+      <span data-i18n="filter.fav">Favorit</span>
     </button>
-    <button class="filter-chip active" id="chip-all" onclick="setFilter('all')">Semua</button>
-    <button class="filter-chip" id="chip-social" onclick="setFilter('social')">Sosial</button>
-    <button class="filter-chip" id="chip-finance" onclick="setFilter('finance')">Keuangan</button>
-    <button class="filter-chip" id="chip-email" onclick="setFilter('email')">Email</button>
-    <button class="filter-chip" id="chip-work" onclick="setFilter('work')">Kerja</button>
-    <button class="filter-chip" id="chip-other" onclick="setFilter('other')">Lainnya</button>
+    <button class="filter-chip active" id="chip-all" onclick="setFilter('all')" data-i18n="filter.all">Semua</button>
+    <button class="filter-chip" id="chip-social" onclick="setFilter('social')" data-i18n="filter.social">Sosial</button>
+    <button class="filter-chip" id="chip-finance" onclick="setFilter('finance')" data-i18n="filter.finance">Keuangan</button>
+    <button class="filter-chip" id="chip-email" onclick="setFilter('email')" data-i18n="filter.email">Email</button>
+    <button class="filter-chip" id="chip-work" onclick="setFilter('work')" data-i18n="filter.work">Kerja</button>
+    <button class="filter-chip" id="chip-other" onclick="setFilter('other')" data-i18n="filter.other">Lainnya</button>
   </div>
 
   <div class="search-wrap">
@@ -974,7 +1003,7 @@ svg{display:block;flex-shrink:0}
       <span class="search-icon">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </span>
-      <input class="search-box" id="search" placeholder="Cari nama, username, atau catatan…" oninput="onSearch()"/>
+      <input class="search-box" id="search" placeholder="Cari nama, username, atau catatan…" data-i18n-ph="search.ph" oninput="onSearch()"/>
       <button class="search-clear" id="searchClear" onclick="clearSearch()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
@@ -997,14 +1026,14 @@ svg{display:block;flex-shrink:0}
   <div class="sheet-handle"></div>
   <div class="sheet-title" id="sheetTitle">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    Tambah Secret
+    <span data-i18n="sheet.addTitle">Tambah Secret</span>
   </div>
   <div class="field">
-    <div class="field-label">Nama / Layanan</div>
-    <input id="fTitle" placeholder="Gmail, Instagram, dll."/>
+    <div class="field-label" data-i18n="sheet.nameLabel">Nama / Layanan</div>
+    <input id="fTitle" placeholder="Gmail, Instagram, dll." data-i18n-ph="sheet.namePh"/>
   </div>
   <div class="field">
-    <div class="field-label">Kategori</div>
+    <div class="field-label" data-i18n="sheet.catLabel">Kategori</div>
     <select id="fCategory">
       <option value="other">Lainnya</option>
       <option value="social">Sosial Media</option>
@@ -1015,17 +1044,17 @@ svg{display:block;flex-shrink:0}
   </div>
   <div class="field">
     <div class="field-label">
-      <span>Username / Email</span>
+      <span data-i18n="sheet.userLabel">Username / Email</span>
     </div>
-    <input id="fUser" placeholder="user@email.com" autocomplete="off"/>
+    <input id="fUser" placeholder="user@email.com" data-i18n-ph="sheet.userPh" autocomplete="off"/>
   </div>
   <div class="field">
     <div class="field-label">
-      <span>Password Akun</span>
+      <span data-i18n="sheet.pwLabel">Password Akun</span>
       <span id="strengthLabel" class="form-strength-label"></span>
     </div>
     <div class="field-pw">
-      <input type="password" id="fPass" placeholder="Password akun ini" autocomplete="new-password" oninput="updateStrength(this.value)"/>
+      <input type="password" id="fPass" placeholder="Password akun ini" data-i18n-ph="sheet.pwPh" autocomplete="new-password" oninput="updateStrength(this.value)"/>
       <button class="pw-gen" onclick="genPass()" title="Generate password">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
       </button>
@@ -1043,12 +1072,12 @@ svg{display:block;flex-shrink:0}
     </div>
   </div>
   <div class="field">
-    <div class="field-label">Catatan (opsional)</div>
-    <textarea id="fNotes" rows="3" placeholder="Info tambahan, PIN, security question…"></textarea>
+    <div class="field-label" data-i18n="sheet.notesLabel">Catatan (opsional)</div>
+    <textarea id="fNotes" rows="3" placeholder="Info tambahan, PIN, security question…" data-i18n-ph="sheet.notesPh"></textarea>
   </div>
   <div class="sheet-actions">
-    <button class="btn-save" onclick="saveItem()">Simpan</button>
-    <button class="btn-cancel" onclick="closeModal()">Batal</button>
+    <button class="btn-save" onclick="saveItem()" data-i18n="sheet.saveBtn">Simpan</button>
+    <button class="btn-cancel" onclick="closeModal()" data-i18n="sheet.cancelBtn">Batal</button>
   </div>
 </div>
 
@@ -1060,33 +1089,33 @@ svg{display:block;flex-shrink:0}
   <div class="sheet-handle"></div>
   <div class="sheet-title">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-1a6 6 0 0 1 12 0v1"/></svg>
-    Ganti Master Password Vault
+    <span data-i18n="cpSheet.title">Ganti Master Password Vault</span>
   </div>
-  <div style="font-size:11px;color:var(--sub);background:var(--accent-dim);border:1px solid #3a2f7a;border-radius:8px;padding:8px 12px;margin-bottom:14px;line-height:1.5;">
+  <div id="cpWarnBox" style="font-size:11px;color:var(--sub);background:var(--accent-dim);border:1px solid #3a2f7a;border-radius:8px;padding:8px 12px;margin-bottom:14px;line-height:1.5;" data-i18n-html="cpSheet.warn">
     ⚠️ Ini adalah <strong style="color:var(--text)">master password vault</strong> — bukan password akun individual.
   </div>
   <div class="field">
-    <div class="field-label">Master Password Lama</div>
+    <div class="field-label" data-i18n="cpSheet.oldLabel">Master Password Lama</div>
     <div class="field-pw">
-      <input type="password" id="cpOld" placeholder="Master password vault saat ini" autocomplete="current-password"/>
+      <input type="password" id="cpOld" placeholder="Master password vault saat ini" data-i18n-ph="cpSheet.oldPh" autocomplete="current-password"/>
       <button class="pw-eye" onclick="toggleEye('cpOld',this)" type="button">
         <svg id="eyeIcon-cpOld" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
   </div>
   <div class="field">
-    <div class="field-label">Master Password Baru</div>
+    <div class="field-label" data-i18n="cpSheet.newLabel">Master Password Baru</div>
     <div class="field-pw">
-      <input type="password" id="cpNew" placeholder="Master password baru" autocomplete="new-password"/>
+      <input type="password" id="cpNew" placeholder="Master password baru" data-i18n-ph="cpSheet.newPh" autocomplete="new-password"/>
       <button class="pw-eye" onclick="toggleEye('cpNew',this)" type="button">
         <svg id="eyeIcon-cpNew" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
   </div>
   <div class="field">
-    <div class="field-label">Konfirmasi Master Password Baru</div>
+    <div class="field-label" data-i18n="cpSheet.confirmLabel">Konfirmasi Master Password Baru</div>
     <div class="field-pw">
-      <input type="password" id="cpConfirm" placeholder="Ulangi master password baru" autocomplete="new-password"/>
+      <input type="password" id="cpConfirm" placeholder="Ulangi master password baru" data-i18n-ph="cpSheet.confirmPh" autocomplete="new-password"/>
       <button class="pw-eye" onclick="toggleEye('cpConfirm',this)" type="button">
         <svg id="eyeIcon-cpConfirm" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
@@ -1094,8 +1123,8 @@ svg{display:block;flex-shrink:0}
   </div>
   <div id="cpMsg"></div>
   <div class="sheet-actions">
-    <button class="btn-save" onclick="doChangePw()">Simpan Password Baru</button>
-    <button class="btn-cancel" onclick="closeChangePw()">Batal</button>
+    <button class="btn-save" onclick="doChangePw()" data-i18n="cpSheet.saveBtn">Simpan Password Baru</button>
+    <button class="btn-cancel" onclick="closeChangePw()" data-i18n="cpSheet.cancelBtn">Batal</button>
   </div>
 </div>
 
@@ -1104,9 +1133,9 @@ svg{display:block;flex-shrink:0}
   <div class="modal-box">
     <div class="modal-title">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Import Backup
+      <span data-i18n="import.title">Import Backup</span>
     </div>
-    <div class="modal-desc" id="importDesc">
+    <div class="modal-desc" id="importDesc" data-i18n-html="import.desc">
       Ditemukan <strong id="importCount">0</strong> item dalam file backup ini. Pilih metode import:
     </div>
     <div class="modal-actions">
@@ -1115,8 +1144,8 @@ svg{display:block;flex-shrink:0}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="1" x2="17" y2="11"/><path d="M9 7L3 12l6 5"/><path d="M3 12h14a4 4 0 0 0 0-8h-1"/></svg>
         </div>
         <div>
-          <div>Gabungkan (Merge)</div>
-          <div class="merge-note">Tambahkan ke data yang ada</div>
+          <div data-i18n="import.mergeBtn">Gabungkan (Merge)</div>
+          <div class="merge-note" data-i18n="import.mergeNote">Tambahkan ke data yang ada</div>
         </div>
       </button>
       <button class="btn-replace" onclick="doImport('replace')">
@@ -1124,11 +1153,11 @@ svg{display:block;flex-shrink:0}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
         </div>
         <div>
-          <div>Ganti Semua</div>
-          <div class="merge-note" style="color:#ff4466">Data lama akan dihapus</div>
+          <div data-i18n="import.replaceBtn">Ganti Semua</div>
+          <div class="merge-note" style="color:#ff4466" data-i18n="import.replaceNote">Data lama akan dihapus</div>
         </div>
       </button>
-      <button class="btn-modal-cancel" onclick="cancelImport()">Batal</button>
+      <button class="btn-modal-cancel" onclick="cancelImport()" data-i18n="import.cancelBtn">Batal</button>
     </div>
   </div>
 </div>
@@ -1138,16 +1167,16 @@ svg{display:block;flex-shrink:0}
   <div class="modal-box">
     <div class="modal-title">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
-      Hapus Item
+      <span data-i18n="delete.title">Hapus Item</span>
     </div>
-    <div class="modal-desc">
+    <div class="modal-desc" id="deleteDesc" data-i18n-html="delete.desc">
       Yakin ingin menghapus <strong id="deleteConfirmName"></strong>? Tindakan ini tidak dapat dibatalkan.
     </div>
     <div class="modal-actions">
-      <button class="btn-replace" onclick="confirmDelete()" style="justify-content:center">
+      <button class="btn-replace" onclick="confirmDelete()" style="justify-content:center" data-i18n="delete.confirmBtn">
         Ya, Hapus
       </button>
-      <button class="btn-modal-cancel" onclick="cancelDelete()">Batal</button>
+      <button class="btn-modal-cancel" onclick="cancelDelete()" data-i18n="delete.cancelBtn">Batal</button>
     </div>
   </div>
 </div>
@@ -1157,58 +1186,58 @@ svg{display:block;flex-shrink:0}
   <div class="modal-box">
     <div class="modal-title">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Lock Secret
+      <span data-i18n="secretLock.title">Lock Secret</span>
     </div>
-    <div class="modal-desc">
+    <div class="modal-desc" id="secretLockDesc" data-i18n-html="secretLock.desc">
       Sembunyikan <strong id="secretLockItemName"></strong> sampai timer habis.
     </div>
     <!-- Preset cepat -->
     <div class="dur-presets">
-      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,0,5,0)">5 mnt</button>
-      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,0,30,0)">30 mnt</button>
-      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,1,0,0)">1 jam</button>
-      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,6,0,0)">6 jam</button>
-      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,1,0,0,0)">1 hari</button>
-      <button class="dur-preset-btn" onclick="applyPreset(0,0,1,0,0,0,0)">1 minggu</button>
+      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,0,5,0)" data-i18n="secretLock.p5m">5 mnt</button>
+      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,0,30,0)" data-i18n="secretLock.p30m">30 mnt</button>
+      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,1,0,0)" data-i18n="secretLock.p1h">1 jam</button>
+      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,0,6,0,0)" data-i18n="secretLock.p6h">6 jam</button>
+      <button class="dur-preset-btn" onclick="applyPreset(0,0,0,1,0,0,0)" data-i18n="secretLock.p1d">1 hari</button>
+      <button class="dur-preset-btn" onclick="applyPreset(0,0,1,0,0,0,0)" data-i18n="secretLock.p1w">1 minggu</button>
     </div>
     <!-- Input custom -->
     <div class="dur-custom-grid">
       <div class="dur-unit">
-        <div class="dur-unit-label">Tahun</div>
+        <div class="dur-unit-label" data-i18n="secretLock.year">Tahun</div>
         <input class="dur-unit-input" type="number" id="durY" min="0" max="99" value="0" oninput="onDurInput()"/>
       </div>
       <div class="dur-unit">
-        <div class="dur-unit-label">Bulan</div>
+        <div class="dur-unit-label" data-i18n="secretLock.month">Bulan</div>
         <input class="dur-unit-input" type="number" id="durMo" min="0" max="11" value="0" oninput="onDurInput()"/>
       </div>
       <div class="dur-unit">
-        <div class="dur-unit-label">Minggu</div>
+        <div class="dur-unit-label" data-i18n="secretLock.week">Minggu</div>
         <input class="dur-unit-input" type="number" id="durW" min="0" max="52" value="0" oninput="onDurInput()"/>
       </div>
       <div class="dur-unit">
-        <div class="dur-unit-label">Hari</div>
+        <div class="dur-unit-label" data-i18n="secretLock.day">Hari</div>
         <input class="dur-unit-input" type="number" id="durD" min="0" max="365" value="0" oninput="onDurInput()"/>
       </div>
       <div class="dur-unit">
-        <div class="dur-unit-label">Jam</div>
+        <div class="dur-unit-label" data-i18n="secretLock.hour">Jam</div>
         <input class="dur-unit-input" type="number" id="durH" min="0" max="23" value="0" oninput="onDurInput()"/>
       </div>
       <div class="dur-unit">
-        <div class="dur-unit-label">Menit</div>
+        <div class="dur-unit-label" data-i18n="secretLock.min">Menit</div>
         <input class="dur-unit-input" type="number" id="durMin" min="0" max="59" value="0" oninput="onDurInput()"/>
       </div>
       <div class="dur-unit">
-        <div class="dur-unit-label">Detik</div>
+        <div class="dur-unit-label" data-i18n="secretLock.sec">Detik</div>
         <input class="dur-unit-input" type="number" id="durS" min="0" max="59" value="0" oninput="onDurInput()"/>
       </div>
     </div>
-    <div class="dur-preview" id="durPreview">Pilih durasi</div>
+    <div class="dur-preview" id="durPreview" data-i18n="secretLock.chooseDur">Pilih durasi</div>
     <div class="modal-actions">
       <button class="btn-merge" id="secretLockConfirmBtn" onclick="confirmSecretLock()" style="justify-content:center;opacity:.4;pointer-events:none">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Kunci Sekarang
+        <span data-i18n="secretLock.lockBtn">Kunci Sekarang</span>
       </button>
-      <button class="btn-modal-cancel" onclick="closeSecretLockModal()">Batal</button>
+      <button class="btn-modal-cancel" onclick="closeSecretLockModal()" data-i18n="secretLock.cancelBtn">Batal</button>
     </div>
   </div>
 </div>
@@ -1218,13 +1247,13 @@ svg{display:block;flex-shrink:0}
   <div class="modal-box">
     <div class="modal-title">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Verifikasi Backup
+      <span data-i18n="importPw.title">Verifikasi Backup</span>
     </div>
-    <div class="modal-desc">
+    <div class="modal-desc" data-i18n-html="importPw.desc">
       Backup ini berasal dari vault/device berbeda. Masukkan <strong>master password vault asal</strong> untuk lanjutkan import.
     </div>
     <div style="position:relative;margin-bottom:10px">
-      <input type="password" id="importPwInput" placeholder="Master password vault asal" autocomplete="off"
+      <input type="password" id="importPwInput" placeholder="Master password vault asal" data-i18n-ph="importPw.ph" autocomplete="off"
         style="width:100%;padding:11px 44px 11px 13px;border-radius:var(--radius);border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px;font-family:var(--mono);outline:none;letter-spacing:1px;"
         oninput="document.getElementById('importPwInput').style.borderColor='var(--border)'"
         onkeydown="if(event.key==='Enter')confirmImportPw()"/>
@@ -1234,10 +1263,10 @@ svg{display:block;flex-shrink:0}
     </div>
     <div id="importPwMsg" style="font-size:11px;min-height:14px;margin-bottom:10px;font-family:var(--mono);color:var(--danger);"></div>
     <div class="modal-actions">
-      <button class="btn-merge" onclick="confirmImportPw()" style="justify-content:center">
+      <button class="btn-merge" onclick="confirmImportPw()" style="justify-content:center" data-i18n="importPw.confirmBtn">
         Verifikasi & Lanjutkan
       </button>
-      <button class="btn-modal-cancel" onclick="cancelImportPw()">Batal</button>
+      <button class="btn-modal-cancel" onclick="cancelImportPw()" data-i18n="importPw.cancelBtn">Batal</button>
     </div>
   </div>
 </div>
@@ -1246,6 +1275,358 @@ svg{display:block;flex-shrink:0}
 <div id="toast" class="toast"></div>
 
 <script>
+// ===== I18N =====
+const LOCALES = {
+  id: {
+    'lock.subtitle':'Masukkan master password untuk melanjutkan',
+    'lock.setupSubtitle':'Buat master password untuk vault baru',
+    'lock.masterPwLabel':'Master Password Vault',
+    'lock.masterPwPh':'Password untuk buka vault',
+    'lock.confirmPwLabel':'Konfirmasi Master Password',
+    'lock.confirmPwPh':'Ulangi master password',
+    'lock.unlockBtn':'Buka Vault',
+    'lock.createBtn':'Buat Vault',
+    'lock.openingBtn':'Membuka…',
+    'lock.creatingBtn':'Menyiapkan vault…',
+    'lock.resetLink':'Reset & buat vault baru',
+    'lock.enterPw':'Masukkan master password',
+    'lock.noConfirm':'Konfirmasi password dulu',
+    'lock.noMatch':'Password tidak cocok',
+    'lock.minLenWarn':'Master password minimal 12 karakter untuk keamanan optimal',
+    'lock.lockedFor':'Terkunci {s}s',
+    'lock.wrongPw':'Password salah — {n} percobaan tersisa',
+    'lock.resetConfirm':'Reset vault akan menghapus SEMUA data dan master password.\n\nLanjutkan?',
+    'lock.resetDone':'Vault direset. Buat master password baru.',
+    'filter.fav':'Favorit',
+    'filter.all':'Semua',
+    'filter.social':'Sosial',
+    'filter.finance':'Keuangan',
+    'filter.email':'Email',
+    'filter.work':'Kerja',
+    'filter.other':'Lainnya',
+    'search.ph':'Cari nama, username, atau catatan…',
+    'app.importBtn':'Import',
+    'app.exportTitle':'Backup / Export',
+    'app.changePwTitle':'Ganti Master Password Vault',
+    'app.lockTitle':'Kunci Vault',
+    'sheet.addTitle':'Tambah Secret',
+    'sheet.editTitle':'Edit Secret',
+    'sheet.nameLabel':'Nama / Layanan',
+    'sheet.namePh':'Gmail, Instagram, dll.',
+    'sheet.catLabel':'Kategori',
+    'sheet.userLabel':'Username / Email',
+    'sheet.userPh':'user@email.com',
+    'sheet.pwLabel':'Password Akun',
+    'sheet.pwPh':'Password akun ini',
+    'sheet.pwEditPh':'(kosongkan = tidak diubah)',
+    'sheet.notesLabel':'Catatan (opsional)',
+    'sheet.notesPh':'Info tambahan, PIN, security question…',
+    'sheet.saveBtn':'Simpan',
+    'sheet.cancelBtn':'Batal',
+    'cat.other':'Lainnya',
+    'cat.social':'Sosial Media',
+    'cat.finance':'Keuangan / Bank',
+    'cat.email':'Email',
+    'cat.work':'Kerja / Bisnis',
+    'cat.social.s':'Sosial',
+    'cat.finance.s':'Keuangan',
+    'cat.email.s':'Email',
+    'cat.work.s':'Kerja',
+    'cat.other.s':'Lainnya',
+    'cpSheet.title':'Ganti Master Password Vault',
+    'cpSheet.warn':'⚠️ Ini adalah <strong style="color:var(--text)">master password vault</strong> — bukan password akun individual.',
+    'cpSheet.oldLabel':'Master Password Lama',
+    'cpSheet.oldPh':'Master password vault saat ini',
+    'cpSheet.newLabel':'Master Password Baru',
+    'cpSheet.newPh':'Master password baru',
+    'cpSheet.confirmLabel':'Konfirmasi Master Password Baru',
+    'cpSheet.confirmPh':'Ulangi master password baru',
+    'cpSheet.saveBtn':'Simpan Password Baru',
+    'cpSheet.cancelBtn':'Batal',
+    'cp.allRequired':'Semua field wajib diisi',
+    'cp.noMatch':'Password baru tidak cocok',
+    'cp.minLen':'Master password minimal 12 karakter',
+    'cp.verifying':'Memverifikasi…',
+    'cp.reEncrypting':'Re-enkripsi data…',
+    'cp.wrongOld':'Master password lama salah',
+    'import.title':'Import Backup',
+    'import.desc':'Ditemukan <strong id="importCount">0</strong> item dalam file backup ini. Pilih metode import:',
+    'import.mergeBtn':'Gabungkan (Merge)',
+    'import.mergeNote':'Tambahkan ke data yang ada',
+    'import.replaceBtn':'Ganti Semua',
+    'import.replaceNote':'Data lama akan dihapus',
+    'import.cancelBtn':'Batal',
+    'delete.title':'Hapus Item',
+    'delete.desc':'Yakin ingin menghapus <strong id="deleteConfirmName"></strong>? Tindakan ini tidak dapat dibatalkan.',
+    'delete.confirmBtn':'Ya, Hapus',
+    'delete.cancelBtn':'Batal',
+    'secretLock.title':'Lock Secret',
+    'secretLock.desc':'Sembunyikan <strong id="secretLockItemName"></strong> sampai timer habis.',
+    'secretLock.p5m':'5 mnt','secretLock.p30m':'30 mnt','secretLock.p1h':'1 jam',
+    'secretLock.p6h':'6 jam','secretLock.p1d':'1 hari','secretLock.p1w':'1 minggu',
+    'secretLock.year':'Tahun','secretLock.month':'Bulan','secretLock.week':'Minggu',
+    'secretLock.day':'Hari','secretLock.hour':'Jam','secretLock.min':'Menit','secretLock.sec':'Detik',
+    'secretLock.chooseDur':'Pilih durasi',
+    'secretLock.lockBtn':'Kunci Sekarang',
+    'secretLock.cancelBtn':'Batal',
+    'importPw.title':'Verifikasi Backup',
+    'importPw.desc':'Backup ini berasal dari vault/device berbeda. Masukkan <strong>master password vault asal</strong> untuk lanjutkan import.',
+    'importPw.ph':'Master password vault asal',
+    'importPw.confirmBtn':'Verifikasi & Lanjutkan',
+    'importPw.cancelBtn':'Batal',
+    'importPw.enterPw':'Masukkan master password',
+    'importPw.verifying':'Memverifikasi…',
+    'importPw.wrongPw':'Password salah atau backup rusak',
+    'strength.weak':'Lemah','strength.fair':'Cukup','strength.strong':'Kuat','strength.veryStrong':'Sangat Kuat',
+    'strength.minLen':'{label} — minimal 8 karakter',
+    'detail.username':'Username','detail.password':'Password','detail.notes':'Catatan',
+    'detail.copyPw':'Salin PW','detail.fav':'Favorit','detail.unfav':'Unpin',
+    'detail.edit':'Edit','detail.delete':'Hapus',
+    'detail.lockSecret':'Kunci Sementara (Lock Secret)',
+    'detail.locked':'Terkunci',
+    'card.locked':'🔒 locked',
+    'section.favs':'★ Favorit','section.all':'Semua',
+    'empty.noResults':'Tidak ada hasil untuk “<strong>{q}</strong>”',
+    'empty.noFav':'Belum ada favorit.<br>Tap ⭐ pada item untuk pin.',
+    'empty.noItems':'Tidak ada item di kategori ini.',
+    'dur.lockFor':'Kunci selama {parts}',
+    'dur.year':'th','dur.month':'bln','dur.week':'mgg','dur.day':'hr',
+    'dur.hour':'j','dur.min':'mnt','dur.sec':'dtk',
+    'dur.chooseDur':'Pilih durasi',
+    'cd.day':'h','cd.hour':'j',
+    'toast.idleLock':'Vault dikunci otomatis (idle)',
+    'toast.tabLock':'Vault dikunci (tab tidak aktif)',
+    'toast.favAdded':'⭐ Ditambahkan ke favorit',
+    'toast.favRemoved':'Dihapus dari favorit',
+    'toast.saved':'Diperbarui','toast.added':'Tersimpan','toast.deleted':'Dihapus',
+    'toast.passGen':'Password dibuat',
+    'toast.backupSaved':'Backup disimpan',
+    'toast.copiedPw':'Password disalin — clipboard bersih dalam 30 detik',
+    'toast.copiedUser':'Username disalin',
+    'toast.secretExpired':'Lock secret berakhir: {name}',
+    'toast.secretCancelled':'Lock secret dibatalkan',
+    'toast.importCancelled':'Import dibatalkan',
+    'toast.importDone':'`{n}` item diimport ({mode})',
+    'toast.importMerge':'digabungkan','toast.importReplace':'diganti',
+    'toast.cpSuccess':'Master password berhasil diganti',
+    'toast.decryptFailed':'{n} item gagal didekripsi',
+    'toast.itemLocked':'Item terkunci — tunggu timer habis',
+    'toast.nameRequired':'Nama wajib diisi',
+    'toast.pwRequired':'Password akun wajib diisi',
+    'toast.importFail':'Import gagal: {msg}',
+    'toast.backupFail':'Gagal backup: {msg}',
+    'toast.copyFail':'Gagal copy: {msg}',
+    'toast.decryptErr':'Gagal dekripsi: {msg}',
+    'toast.importInvalid':'{n} item tidak valid (baris: {rows})',
+    'toast.vaultNotOpen':'Import gagal: vault tidak terbuka',
+    'feedback.copied':'Disalin',
+    'err.decryptFail':'Gagal dekripsi — password mungkin salah atau data rusak',
+    'bio.btnUnlock':'Buka dengan Biometrik',
+    'bio.btnSetup':'Aktifkan Login Biometrik',
+    'bio.btnDisable':'Nonaktifkan Biometrik',
+    'bio.enabled':'Login biometrik diaktifkan ✓',
+    'bio.disabled':'Login biometrik dinonaktifkan',
+    'bio.failed':'Autentikasi biometrik gagal',
+    'bio.setupFailed':'Gagal mengaktifkan biometrik',
+    'bio.expired':'Sesi biometrik kedaluwarsa — masukkan password',
+    'bio.unlocking':'Membuka dengan biometrik…',
+    'bio.unsupported':'Perangkat tidak mendukung biometrik',
+  },
+  en: {
+    'lock.subtitle':'Enter your master password to continue',
+    'lock.setupSubtitle':'Create a master password for your new vault',
+    'lock.masterPwLabel':'Vault Master Password',
+    'lock.masterPwPh':'Password to open vault',
+    'lock.confirmPwLabel':'Confirm Master Password',
+    'lock.confirmPwPh':'Repeat master password',
+    'lock.unlockBtn':'Unlock Vault',
+    'lock.createBtn':'Create Vault',
+    'lock.openingBtn':'Unlocking…',
+    'lock.creatingBtn':'Setting up vault…',
+    'lock.resetLink':'Reset & create new vault',
+    'lock.enterPw':'Enter master password',
+    'lock.noConfirm':'Please confirm your password',
+    'lock.noMatch':'Passwords do not match',
+    'lock.minLenWarn':'Master password must be at least 12 characters for optimal security',
+    'lock.lockedFor':'Locked for {s}s',
+    'lock.wrongPw':'Wrong password — {n} attempts left',
+    'lock.resetConfirm':'Resetting the vault will delete ALL data and your master password.\n\nContinue?',
+    'lock.resetDone':'Vault reset. Create a new master password.',
+    'filter.fav':'Favorites',
+    'filter.all':'All',
+    'filter.social':'Social',
+    'filter.finance':'Finance',
+    'filter.email':'Email',
+    'filter.work':'Work',
+    'filter.other':'Other',
+    'search.ph':'Search name, username, or notes…',
+    'app.importBtn':'Import',
+    'app.exportTitle':'Backup / Export',
+    'app.changePwTitle':'Change Vault Master Password',
+    'app.lockTitle':'Lock Vault',
+    'sheet.addTitle':'Add Secret',
+    'sheet.editTitle':'Edit Secret',
+    'sheet.nameLabel':'Name / Service',
+    'sheet.namePh':'Gmail, Instagram, etc.',
+    'sheet.catLabel':'Category',
+    'sheet.userLabel':'Username / Email',
+    'sheet.userPh':'user@email.com',
+    'sheet.pwLabel':'Account Password',
+    'sheet.pwPh':'Password for this account',
+    'sheet.pwEditPh':'(leave blank = unchanged)',
+    'sheet.notesLabel':'Notes (optional)',
+    'sheet.notesPh':'Extra info, PIN, security questions…',
+    'sheet.saveBtn':'Save',
+    'sheet.cancelBtn':'Cancel',
+    'cat.other':'Other',
+    'cat.social':'Social Media',
+    'cat.finance':'Finance / Banking',
+    'cat.email':'Email',
+    'cat.work':'Work / Business',
+    'cat.social.s':'Social',
+    'cat.finance.s':'Finance',
+    'cat.email.s':'Email',
+    'cat.work.s':'Work',
+    'cat.other.s':'Other',
+    'cpSheet.title':'Change Vault Master Password',
+    'cpSheet.warn':'⚠️ This is the <strong style="color:var(--text)">vault master password</strong> — not an individual account password.',
+    'cpSheet.oldLabel':'Old Master Password',
+    'cpSheet.oldPh':'Current vault master password',
+    'cpSheet.newLabel':'New Master Password',
+    'cpSheet.newPh':'New master password',
+    'cpSheet.confirmLabel':'Confirm New Master Password',
+    'cpSheet.confirmPh':'Repeat new master password',
+    'cpSheet.saveBtn':'Save New Password',
+    'cpSheet.cancelBtn':'Cancel',
+    'cp.allRequired':'All fields are required',
+    'cp.noMatch':'New passwords do not match',
+    'cp.minLen':'Master password must be at least 12 characters',
+    'cp.verifying':'Verifying…',
+    'cp.reEncrypting':'Re-encrypting data…',
+    'cp.wrongOld':'Old master password is incorrect',
+    'import.title':'Import Backup',
+    'import.desc':'Found <strong id="importCount">0</strong> items in this backup file. Choose an import mode:',
+    'import.mergeBtn':'Merge',
+    'import.mergeNote':'Add to existing data',
+    'import.replaceBtn':'Replace All',
+    'import.replaceNote':'Old data will be deleted',
+    'import.cancelBtn':'Cancel',
+    'delete.title':'Delete Item',
+    'delete.desc':'Are you sure you want to delete <strong id="deleteConfirmName"></strong>? This action cannot be undone.',
+    'delete.confirmBtn':'Yes, Delete',
+    'delete.cancelBtn':'Cancel',
+    'secretLock.title':'Lock Secret',
+    'secretLock.desc':'Hide <strong id="secretLockItemName"></strong> until the timer runs out.',
+    'secretLock.p5m':'5 min','secretLock.p30m':'30 min','secretLock.p1h':'1 hour',
+    'secretLock.p6h':'6 hours','secretLock.p1d':'1 day','secretLock.p1w':'1 week',
+    'secretLock.year':'Years','secretLock.month':'Months','secretLock.week':'Weeks',
+    'secretLock.day':'Days','secretLock.hour':'Hours','secretLock.min':'Minutes','secretLock.sec':'Seconds',
+    'secretLock.chooseDur':'Choose duration',
+    'secretLock.lockBtn':'Lock Now',
+    'secretLock.cancelBtn':'Cancel',
+    'importPw.title':'Verify Backup',
+    'importPw.desc':'This backup is from a different vault/device. Enter the <strong>original vault\'s master password</strong> to continue.',
+    'importPw.ph':'Original vault master password',
+    'importPw.confirmBtn':'Verify & Continue',
+    'importPw.cancelBtn':'Cancel',
+    'importPw.enterPw':'Enter master password',
+    'importPw.verifying':'Verifying…',
+    'importPw.wrongPw':'Wrong password or corrupt backup',
+    'strength.weak':'Weak','strength.fair':'Fair','strength.strong':'Strong','strength.veryStrong':'Very Strong',
+    'strength.minLen':'{label} — minimum 8 characters',
+    'detail.username':'Username','detail.password':'Password','detail.notes':'Notes',
+    'detail.copyPw':'Copy PW','detail.fav':'Favorite','detail.unfav':'Unpin',
+    'detail.edit':'Edit','detail.delete':'Delete',
+    'detail.lockSecret':'Temporary Lock (Lock Secret)',
+    'detail.locked':'Locked',
+    'card.locked':'🔒 locked',
+    'section.favs':'★ Favorites','section.all':'All',
+    'empty.noResults':'No results for “<strong>{q}</strong>”',
+    'empty.noFav':'No favorites yet.<br>Tap ⭐ on an item to pin it.',
+    'empty.noItems':'No items in this category.',
+    'dur.lockFor':'Lock for {parts}',
+    'dur.year':'yr','dur.month':'mo','dur.week':'wk','dur.day':'d',
+    'dur.hour':'h','dur.min':'min','dur.sec':'s',
+    'dur.chooseDur':'Choose duration',
+    'cd.day':'d','cd.hour':'h',
+    'toast.idleLock':'Vault locked automatically (idle)',
+    'toast.tabLock':'Vault locked (tab hidden)',
+    'toast.favAdded':'⭐ Added to favorites',
+    'toast.favRemoved':'Removed from favorites',
+    'toast.saved':'Updated','toast.added':'Saved','toast.deleted':'Deleted',
+    'toast.passGen':'Password generated',
+    'toast.backupSaved':'Backup saved',
+    'toast.copiedPw':'Password copied — clipboard clears in 30 seconds',
+    'toast.copiedUser':'Username copied',
+    'toast.secretExpired':'Lock secret expired: {name}',
+    'toast.secretCancelled':'Lock secret cancelled',
+    'toast.importCancelled':'Import cancelled',
+    'toast.importDone':'`{n}` items imported ({mode})',
+    'toast.importMerge':'merged','toast.importReplace':'replaced',
+    'toast.cpSuccess':'Master password changed successfully',
+    'toast.decryptFailed':'{n} items failed to decrypt',
+    'toast.itemLocked':'Item locked — wait for the timer',
+    'toast.nameRequired':'Name is required',
+    'toast.pwRequired':'Account password is required',
+    'toast.importFail':'Import failed: {msg}',
+    'toast.backupFail':'Backup failed: {msg}',
+    'toast.copyFail':'Failed to copy: {msg}',
+    'toast.decryptErr':'Decryption failed: {msg}',
+    'toast.importInvalid':'{n} invalid items (rows: {rows})',
+    'toast.vaultNotOpen':'Import failed: vault not open',
+    'feedback.copied':'Copied',
+    'err.decryptFail':'Decryption failed — wrong password or corrupted data',
+    'bio.btnUnlock':'Unlock with Biometrics',
+    'bio.btnSetup':'Enable Biometric Login',
+    'bio.btnDisable':'Disable Biometrics',
+    'bio.enabled':'Biometric login enabled ✓',
+    'bio.disabled':'Biometric login disabled',
+    'bio.failed':'Biometric authentication failed',
+    'bio.setupFailed':'Failed to enable biometrics',
+    'bio.expired':'Biometric session expired — enter password',
+    'bio.unlocking':'Unlocking with biometrics…',
+    'bio.unsupported':'Device does not support biometrics',
+  }
+};
+
+let _lang = (() => {
+  const saved = localStorage.getItem('vault_lang');
+  if (saved && LOCALES[saved]) return saved;
+  return (navigator.language || '').toLowerCase().startsWith('id') ? 'id' : 'en';
+})();
+
+function t(key, vars) {
+  const str = (LOCALES[_lang] && LOCALES[_lang][key]) || (LOCALES.id[key]) || key;
+  if (!vars) return str;
+  return str.replace(/\{(\w+)\}/g, (_, k) => vars[k] !== undefined ? vars[k] : '{' + k + '}');
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.getAttribute('data-i18n')); });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.getAttribute('data-i18n-html')); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.getAttribute('data-i18n-ph')); });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => { el.title = t(el.getAttribute('data-i18n-title')); });
+  const catSel = document.getElementById('fCategory');
+  if (catSel) {
+    catSel.options[0].textContent = t('cat.other');
+    catSel.options[1].textContent = t('cat.social');
+    catSel.options[2].textContent = t('cat.finance');
+    catSel.options[3].textContent = t('cat.email');
+    catSel.options[4].textContent = t('cat.work');
+  }
+  document.documentElement.lang = _lang;
+  const btn = document.getElementById('langToggle');
+  if (btn) btn.textContent = _lang === 'id' ? 'EN' : 'ID';
+  if (_key) render();
+  updateBioUI();
+}
+
+function setLang(lang) {
+  _lang = LOCALES[lang] ? lang : 'id';
+  localStorage.setItem('vault_lang', _lang);
+  applyI18n();
+}
+
 // ===== SVG ICON STRINGS =====
 const SVG = {
   eyeOpen: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
@@ -1269,13 +1650,15 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30000;
 const IDLE_LOCK_MS = 5 * 60 * 1000; // 5 menit idle → auto-lock
 
-const CATEGORIES = {
-  social: {label:'Sosial', cls:'cat-social'},
-  finance: {label:'Keuangan', cls:'cat-finance'},
-  email: {label:'Email', cls:'cat-email'},
-  work: {label:'Kerja', cls:'cat-work'},
-  other: {label:'Lainnya', cls:'cat-other'},
-};
+function getCategories() {
+  return {
+    social:  {label: t('cat.social.s'),  cls: 'cat-social'},
+    finance: {label: t('cat.finance.s'), cls: 'cat-finance'},
+    email:   {label: t('cat.email.s'),   cls: 'cat-email'},
+    work:    {label: t('cat.work.s'),    cls: 'cat-work'},
+    other:   {label: t('cat.other.s'),   cls: 'cat-other'},
+  };
+}
 
 // ===== STATE =====
 let db = null;
@@ -1387,7 +1770,7 @@ async function decrypt(b64){
     const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, _key, ct);
     return new TextDecoder().decode(pt);
   } catch(e) {
-    throw new Error('Gagal dekripsi — password mungkin salah atau data rusak');
+    throw new Error(t('err.decryptFail'));
   }
 }
 
@@ -1482,7 +1865,7 @@ function startLockoutTimer(){
   const tick = ()=>{
     const rem = Math.ceil((lockedUntil - Date.now())/1000);
     if(rem <= 0){btn.disabled=false;setMsg('','');resetAttempts();return;}
-    setMsg(`Terkunci ${rem}s`, 'warn');
+    setMsg(t('lock.lockedFor', {s: rem}), 'warn');
     setTimeout(tick, 1000);
   };
   tick();
@@ -1500,7 +1883,7 @@ function isFirstTime(){ return !localStorage.getItem('vault_ver'); }
 async function unlock(){
   if(lockedUntil > Date.now()) return;
   const pw = document.getElementById('masterPass').value.trim();
-  if(!pw){ setMsg('Masukkan master password','err'); return; }
+  if(!pw){ setMsg(t('lock.enterPw'),'err'); return; }
 
   const btn = document.getElementById('unlockBtn');
   const isSetup = isFirstTime();
@@ -1519,35 +1902,37 @@ async function unlock(){
     const salt = getSalt();
     if(isSetup){
       const conf = document.getElementById('masterConfirm').value;
-      if(!conf){ setMsg('Konfirmasi password dulu','err'); return; }
-      if(pw !== conf){ setMsg('Password tidak cocok','err'); document.getElementById('masterConfirm').value=''; return; }
-      if(pw.length < 12){ setMsg('Master password minimal 12 karakter untuk keamanan optimal','err'); return; }
-      setLoading('Menyiapkan vault…');
+      if(!conf){ setMsg(t('lock.noConfirm'),'err'); return; }
+      if(pw !== conf){ setMsg(t('lock.noMatch'),'err'); document.getElementById('masterConfirm').value=''; return; }
+      if(pw.length < 12){ setMsg(t('lock.minLenWarn'),'err'); return; }
+      setLoading(t('lock.creatingBtn'));
       await setVerifier(pw, salt);
       _key = await deriveKey(pw, salt);
       resetAttempts();
       db = await openDB();
       await loadItems();
+      if(isBiometricSupported()) await setBioSession(pw);
       showApp();
       return;
     }
-    setLoading('Membuka…');
+    setLoading(t('lock.openingBtn'));
     const ok = await checkVerifier(pw, salt);
     if(!ok){
-      clearLoading('Buka Vault');
+      clearLoading(t('lock.unlockBtn'));
       recordFail();
       const rem = MAX_ATTEMPTS - attempts;
-      setMsg(rem > 0 ? `Password salah — ${rem} percobaan tersisa` : '', 'err');
+      setMsg(rem > 0 ? t('lock.wrongPw', {n: rem}) : '', 'err');
       return;
     }
     _key = await deriveKey(pw, salt);
     resetAttempts();
     db = await openDB();
     await loadItems();
+    if(isBiometricSupported()) await setBioSession(pw);
     showApp();
   }catch(e){
     setMsg('Error: '+e.message,'err');
-    clearLoading(isSetup ? 'Buat Vault' : 'Buka Vault');
+    clearLoading(isSetup ? t('lock.createBtn') : t('lock.unlockBtn'));
   }
 }
 
@@ -1577,7 +1962,7 @@ async function loadItems(){
     }
   }
   if(failed.length){
-    showToast(`${failed.length} item gagal didekripsi`, 'err');
+    showToast(t('toast.decryptFailed', {n: failed.length}), 'err');
   }
 }
 
@@ -1589,6 +1974,7 @@ function showApp(){
   loadSecretLocks();
   render();
   startIdleTimer();
+  updateBioUI();
 }
 
 function lockVault(){
@@ -1606,8 +1992,9 @@ function lockVault(){
   const btn = document.getElementById('unlockBtn');
   btn.disabled = false;
   btn.classList.remove('loading');
-  btn.textContent = isFirstTime() ? 'Buat Vault' : 'Buka Vault';
+  btn.textContent = isFirstTime() ? t('lock.createBtn') : t('lock.unlockBtn');
   stopIdleTimer();
+  updateBioUI();
 }
 
 // ===== AUTO-LOCK (IDLE + TAB HIDDEN) =====
@@ -1619,7 +2006,7 @@ function startIdleTimer(){
     const importPwOpen = document.getElementById('importPwModal').classList.contains('show');
     const importOpen = document.getElementById('importModal').classList.contains('show');
     if(importPwOpen || importOpen || _importPending) return;
-    showToast('Vault dikunci otomatis (idle)','warn');
+    showToast(t('toast.idleLock'),'warn');
     lockVault();
   }, IDLE_LOCK_MS);
 }
@@ -1669,7 +2056,10 @@ function scorePassword(pw){
   return 4;
 }
 
-const STRENGTH_LABELS = ['','Lemah','Cukup','Kuat','Sangat Kuat'];
+function getStrengthLabel(score) {
+  const keys = ['','strength.weak','strength.fair','strength.strong','strength.veryStrong'];
+  return score ? t(keys[score]) : '';
+}
 
 // Strength meter untuk lock screen (hanya tampil saat setup vault baru)
 function updateLockStrength(pw){
@@ -1685,11 +2075,10 @@ function updateLockStrength(pw){
     seg.className = 'strength-seg' + (i < score ? ' '+cls : '');
   }
   const label = document.getElementById('lockStrengthLabel');
-  label.textContent = STRENGTH_LABELS[score];
+  label.textContent = getStrengthLabel(score);
   label.className = cls;
-  // Warn jika password < 8 karakter
   if(pw.length < 8){
-    label.textContent = `${STRENGTH_LABELS[score]} — minimal 8 karakter`;
+    label.textContent = t('strength.minLen', {label: getStrengthLabel(score)});
     label.style.color = 'var(--warn)';
   } else {
     label.style.color = '';
@@ -1704,7 +2093,7 @@ function updateStrength(pw){
     seg.className = 'form-strength-seg' + (pw && i < score ? ' '+cls : '');
   }
   const label = document.getElementById('strengthLabel');
-  label.textContent = pw ? STRENGTH_LABELS[score] : '';
+  label.textContent = pw ? getStrengthLabel(score) : '';
   label.className = 'form-strength-label' + (pw ? ' '+cls : '');
 }
 
@@ -1741,9 +2130,9 @@ function render(){
   if(!filtered.length){
     list.innerHTML = `<div class="empty-state">
       <div class="empty-icon">${q||_filter!=='all' ? SVG.searchEmpty : SVG.lockEmpty}</div>
-      <p>${q ? 'Tidak ada hasil untuk "<strong>'+esc(q)+'</strong>"' :
-           _filter==='fav' ? 'Belum ada favorit.<br>Tap ⭐ pada item untuk pin.' :
-           'Tidak ada item di kategori ini.'}</p>
+      <p>${q ? t('empty.noResults', {q: esc(q)}) :
+           _filter==='fav' ? t('empty.noFav') :
+           t('empty.noItems')}</p>
     </div>`;
     return;
   }
@@ -1756,9 +2145,9 @@ function render(){
   let html='';
 
   if(showGroups){
-    html += `<div class="section-label">★ Favorit</div>`;
+    html += `<div class="section-label">${t('section.favs')}</div>`;
     html += filtered.filter(i=>i.favorite).map((item,idx)=>renderCard(item,idx)).join('');
-    html += `<div class="section-label">Semua</div>`;
+    html += `<div class="section-label">${t('section.all')}</div>`;
     html += filtered.filter(i=>!i.favorite).map((item,idx)=>renderCard(item,idx)).join('');
   } else {
     html = filtered.map((item,idx)=>renderCard(item,idx)).join('');
@@ -1771,7 +2160,8 @@ function renderCard(item, idx){
   const letter = item.title.charAt(0).toUpperCase()||'?';
   const exp = _expanded.has(item.id);
   const rev = _revealed.has(item.id);
-  const cat = CATEGORIES[item.category]||CATEGORIES.other;
+  const CATS = getCategories();
+  const cat = CATS[item.category]||CATS.other;
   const isFav = item.favorite;
   const isSecretLocked = isItemSecretLocked(item.id);
 
@@ -1783,32 +2173,32 @@ function renderCard(item, idx){
     const pw = rev ? '(klik 👁 untuk tampilkan)' : '••••••••••';
     details = `<div class="item-details">
       <div class="detail-row">
-        <span class="detail-label">Username</span>
+        <span class="detail-label">${t('detail.username')}</span>
         <span class="detail-value">${esc(item.username)||'—'}</span>
-        <button class="detail-eye" onclick="copyUser(${item.id});event.stopPropagation()" id="copy-btn-${item.id}-user" title="Salin username">
+        <button class="detail-eye" onclick="copyUser(${item.id});event.stopPropagation()" id="copy-btn-${item.id}-user">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         </button>
       </div>
       <div class="detail-row">
-        <span class="detail-label">Password</span>
+        <span class="detail-label">${t('detail.password')}</span>
         <span class="detail-value${rev?' revealed':''}" id="pw-val-${item.id}">${rev?'(loading…)':'••••••••••'}</span>
-        <button class="detail-eye" onclick="toggleReveal(${item.id});event.stopPropagation()" title="${rev?'Sembunyikan':'Tampilkan'} password">
+        <button class="detail-eye" onclick="toggleReveal(${item.id});event.stopPropagation()">
           ${rev ? SVG.eyeOff : SVG.eyeOpen}
         </button>
       </div>
       ${item.notes?`<div class="detail-row">
-        <span class="detail-label">Catatan</span>
+        <span class="detail-label">${t('detail.notes')}</span>
         <span class="detail-value">${esc(item.notes)}</span>
       </div>`:''}
     </div>
     <div class="item-actions">
-      <button class="act-btn copy" onclick="copyPass(${item.id});event.stopPropagation()" id="copy-btn-${item.id}-pw">${SVG.copy} Salin PW</button>
-      <button class="act-btn fav${isFav?' active':''}" onclick="toggleFav(${item.id});event.stopPropagation()">${isFav?SVG.star:SVG.starOutline} ${isFav?'Unpin':'Favorit'}</button>
-      <button class="act-btn" onclick="openEdit(${item.id});event.stopPropagation()">${SVG.edit} Edit</button>
-      <button class="act-btn del" onclick="deleteItem(${item.id});event.stopPropagation()">${SVG.trash} Hapus</button>
-      <button class="act-btn" onclick="openSecretLockModal(${item.id});event.stopPropagation()" title="Lock Secret — sembunyikan item selama durasi tertentu" style="flex-basis:100%;justify-content:center;color:var(--accent);border-color:var(--accent-dim)">
+      <button class="act-btn copy" onclick="copyPass(${item.id});event.stopPropagation()" id="copy-btn-${item.id}-pw">${SVG.copy} ${t('detail.copyPw')}</button>
+      <button class="act-btn fav${isFav?' active':''}" onclick="toggleFav(${item.id});event.stopPropagation()">${isFav?SVG.star:SVG.starOutline} ${isFav?t('detail.unfav'):t('detail.fav')}</button>
+      <button class="act-btn" onclick="openEdit(${item.id});event.stopPropagation()">${SVG.edit} ${t('detail.edit')}</button>
+      <button class="act-btn del" onclick="deleteItem(${item.id});event.stopPropagation()">${SVG.trash} ${t('detail.delete')}</button>
+      <button class="act-btn" onclick="openSecretLockModal(${item.id});event.stopPropagation()" style="flex-basis:100%;justify-content:center;color:var(--accent);border-color:var(--accent-dim)">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Kunci Sementara (Lock Secret)
+        ${t('detail.lockSecret')}
       </button>
     </div>`;
   } else if(isSecretLocked){
@@ -1820,7 +2210,7 @@ function renderCard(item, idx){
     <div class="secret-lock-bar">
       <div class="secret-lock-info">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Terkunci
+        ${t('detail.locked')}
       </div>
       <span class="secret-lock-timer" id="slt-${item.id}">${fmtCountdown(remMs)}</span>
     </div>`;
@@ -1839,7 +2229,7 @@ function renderCard(item, idx){
         <div class="item-title">
           ${esc(item.title)}
           <span class="cat-badge ${cat.cls}">${cat.label}</span>
-          ${isSecretLocked?`<span style="font-size:9px;font-family:var(--mono);color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:10px;flex-shrink:0;">🔒 locked</span>`:''}
+          ${isSecretLocked?`<span style="font-size:9px;font-family:var(--mono);color:var(--accent);background:var(--accent-dim);padding:1px 6px;border-radius:10px;flex-shrink:0;">${t('card.locked')}</span>`:''}
         </div>
         <div class="item-user">${esc(item.username)||'—'}</div>
       </div>
@@ -1851,7 +2241,7 @@ function renderCard(item, idx){
 
 function toggleExpand(id){
   if(isItemSecretLocked(id)){
-    showToast('Item terkunci — tunggu timer habis','warn');
+    showToast(t('toast.itemLocked'),'warn');
     return;
   }
   if(_expanded.has(id)){
@@ -1885,9 +2275,9 @@ async function loadRevealedPw(id){
     const pw = await decrypt(item.password);
     el.textContent = pw;
   }catch(e){
-    el.textContent = '⚠ Dekripsi gagal';
+    el.textContent = '⚠ ' + t('err.decryptFail');
     el.style.color='var(--danger)';
-    showToast('Gagal dekripsi: '+e.message, 'err');
+    showToast(t('toast.decryptErr',{msg:e.message}), 'err');
   }
 }
 
@@ -1914,7 +2304,7 @@ function setCopyFeedback(id, field, label){
   const btn = document.getElementById(btnId);
   if(!btn) return;
   if(_copyTimers[btnId]) clearTimeout(_copyTimers[btnId]);
-  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Disalin`;
+  btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${t('feedback.copied')}`;
   btn.style.color='var(--green)'; btn.style.borderColor='var(--green)';
   _copyTimers[btnId] = setTimeout(()=>{
     btn.innerHTML = `${SVG.copy} ${label}`;
@@ -1930,8 +2320,8 @@ async function copyPass(id){
     await navigator.clipboard.writeText(pw);
     scheduleClipboardClear(); // auto-clear clipboard dalam 30 detik
     setCopyFeedback(id,'pw','Salin PW');
-    showToast('Password disalin — clipboard bersih dalam 30 detik', 'ok');
-  }catch(e){showToast('Gagal copy: '+e.message,'err')}
+    showToast(t('toast.copiedPw'), 'ok');
+  }catch(e){showToast(t('toast.copyFail',{msg:e.message}),'err')}
 }
 
 async function copyUser(id){
@@ -1940,8 +2330,8 @@ async function copyUser(id){
   try{
     await navigator.clipboard.writeText(item.username);
     setCopyFeedback(id,'user','');
-    showToast('Username disalin', 'ok');
-  }catch{showToast('Gagal copy','err')}
+    showToast(t('toast.copiedUser'), 'ok');
+  }catch{showToast(t('toast.copyFail',{msg:''}),'err')}
 }
 
 // ===== FAVORITE =====
@@ -1952,7 +2342,7 @@ async function toggleFav(id){
   // Update DB
   const raw = (await dbAll()).find(r=>r.id===id);
   if(raw){ raw.favorite = item.favorite; await dbPut(raw); }
-  showToast(item.favorite ? '⭐ Ditambahkan ke favorit' : 'Dihapus dari favorit');
+  showToast(item.favorite ? t('toast.favAdded') : t('toast.favRemoved'));
   render();
 }
 
@@ -1960,10 +2350,10 @@ async function toggleFav(id){
 function openModal(){
   editId=null;
   const title = document.getElementById('sheetTitle');
-  title.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Tambah Secret`;
+  title.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> ${t('sheet.addTitle')}`;
   ['fTitle','fUser','fPass','fNotes'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('fCategory').value='other';
-  document.getElementById('fPass').placeholder='Password akun ini';
+  document.getElementById('fPass').placeholder=t('sheet.pwPh');
   updateStrength('');
   showSheet();
 }
@@ -1973,12 +2363,12 @@ function openEdit(id){
   if(!item) return;
   editId=id;
   const title = document.getElementById('sheetTitle');
-  title.innerHTML = SVG.editTitle + ' Edit Secret';
+  title.innerHTML = SVG.editTitle + ' ' + t('sheet.editTitle');
   document.getElementById('fTitle').value=item.title;
   document.getElementById('fCategory').value=item.category||'other';
   document.getElementById('fUser').value=item.username;
   document.getElementById('fPass').value='';
-  document.getElementById('fPass').placeholder='(kosongkan = tidak diubah)';
+  document.getElementById('fPass').placeholder=t('sheet.pwEditPh');
   document.getElementById('fNotes').value=item.notes||'';
   updateStrength('');
   showSheet();
@@ -1992,7 +2382,7 @@ function showSheet(){
 function closeModal(){
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('sheet').classList.remove('show');
-  document.getElementById('fPass').placeholder='Password akun ini';
+  document.getElementById('fPass').placeholder=t('sheet.pwPh');
   updateStrength('');
   editId=null;
 }
@@ -2004,7 +2394,7 @@ async function saveItem(){
   const notes = document.getElementById('fNotes').value.trim();
   const category = document.getElementById('fCategory').value;
 
-  if(!title){ showToast('Nama wajib diisi','err'); return; }
+  if(!title){ showToast(t('toast.nameRequired'),'err'); return; }
 
   try{
     if(editId){
@@ -2015,17 +2405,17 @@ async function saveItem(){
       existing.title=title; existing.username=username;
       if(password) existing.password=newPass;
       existing.notes=notes; existing.category=category;
-      showToast('Diperbarui','ok');
+      showToast(t('toast.saved'),'ok');
     } else {
-      if(!password){ showToast('Password akun wajib diisi','err'); return; }
+      if(!password){ showToast(t('toast.pwRequired'),'err'); return; }
       const color = Math.floor(Math.random()*8);
       const obj = {title:await encrypt(title), username:await encrypt(username), password:await encrypt(password), notes:notes?await encrypt(notes):'', color, category, favorite:false};
       const id = await dbPut(obj);
       _items.push({id, title, username, password:obj.password, notes, color, category, favorite:false});
-      showToast('Tersimpan','ok');
+      showToast(t('toast.added'),'ok');
     }
     closeModal(); render();
-  }catch(e){ showToast('Error: '+e.message,'err'); }
+  }catch(e){ showToast(t('toast.importFail',{msg:e.message}),'err'); }
 }
 
 // ===== DELETE =====
@@ -2055,7 +2445,7 @@ async function confirmDelete(){
   _items = _items.filter(i=>i.id!==id);
   _expanded.delete(id);
   _revealed.delete(id);
-  showToast('Dihapus');
+  showToast(t('toast.deleted'));
   render();
 }
 
@@ -2068,7 +2458,7 @@ function genPass(){
   document.getElementById('fPass').value=pw;
   document.getElementById('fPass').type='text';
   updateStrength(pw);
-  showToast('Password dibuat', 'ok');
+  showToast(t('toast.passGen'), 'ok');
 }
 
 // ===== TOGGLE EYE =====
@@ -2090,8 +2480,8 @@ async function exportData(){
     const a = document.createElement('a');
     a.href=url; a.download='vault_backup_'+Date.now()+'.vault';
     a.click(); URL.revokeObjectURL(url);
-    showToast('Backup disimpan','ok');
-  }catch(e){showToast('Gagal backup: '+e.message,'err');}
+    showToast(t('toast.backupSaved'),'ok');
+  }catch(e){showToast(t('toast.backupFail',{msg:e.message}),'err');}
 }
 
 function importTrigger(){
@@ -2108,7 +2498,7 @@ async function importData(e){
   try{
     const text = await file.text();
     const json = JSON.parse(text);
-    if(!json.data || !Array.isArray(json.data)) throw new Error('Format tidak valid');
+    if(!json.data || !Array.isArray(json.data)) throw new Error('Invalid format');
 
     // ===== VALIDASI SCHEMA PER-ITEM =====
     const REQUIRED_FIELDS = ['title','username','password'];
@@ -2122,7 +2512,7 @@ async function importData(e){
     if(invalidItems.length){
       const sample = invalidItems.slice(0,5).join(', ');
       const more = invalidItems.length > 5 ? ` (+${invalidItems.length-5} lainnya)` : '';
-      throw new Error(`${invalidItems.length} item tidak valid (baris: ${sample}${more})`);
+      throw new Error(t('toast.importInvalid',{n:invalidItems.length, rows:sample+more}));
     }
 
     // ===== VERIFIKASI KOMPATIBILITAS BACKUP =====
@@ -2149,7 +2539,7 @@ async function importData(e){
     document.getElementById('importCount').textContent = json.data.length;
     document.getElementById('importModal').classList.add('show');
   }catch(err){
-    showToast('Import gagal: '+err.message,'err');
+    showToast(t('toast.importFail',{msg:err.message}),'err');
     _importPending = null;
   }
 }
@@ -2158,7 +2548,7 @@ function cancelImportPw(){
   document.getElementById('importPwModal').classList.remove('show');
   _importPending = null;
   _importSessionKey = null;
-  showToast('Import dibatalkan','warn');
+  showToast(t('toast.importCancelled'),'warn');
 }
 
 async function confirmImportPw(){
@@ -2166,8 +2556,8 @@ async function confirmImportPw(){
   if(!json) return;
   const pw = document.getElementById('importPwInput').value;
   const msgEl = document.getElementById('importPwMsg');
-  if(!pw){ msgEl.textContent='Masukkan master password'; return; }
-  msgEl.textContent='Memverifikasi…';
+  if(!pw){ msgEl.textContent=t('importPw.enterPw'); return; }
+  msgEl.textContent=t('importPw.verifying');
   try{
     const backupSalt = b64ToBuf(json.salt);
     const importKey = await deriveKey(pw, backupSalt);
@@ -2184,7 +2574,7 @@ async function confirmImportPw(){
     document.getElementById('importCount').textContent = json.data.length;
     document.getElementById('importModal').classList.add('show');
   }catch{
-    msgEl.textContent='Password salah atau backup rusak';
+    msgEl.textContent=t('importPw.wrongPw');
     document.getElementById('importPwInput').style.borderColor='var(--danger)';
   }
 }
@@ -2204,7 +2594,7 @@ async function doImport(mode){
   // Pakai _importSessionKey (disimpan saat klik Import, sebelum file picker)
   // Ini aman meskipun vault sudah ter-lock di tengah proses
   const currentKey = _importSessionKey || _key;
-  if(!currentKey){ showToast('Import gagal: vault tidak terbuka','err'); return; }
+  if(!currentKey){ showToast(t('toast.vaultNotOpen'),'err'); return; }
 
   try{
     if(mode === 'replace') await dbClear();
@@ -2253,32 +2643,34 @@ async function doImport(mode){
     if(document.getElementById('app').style.display !== 'none'){
       render();
     }
-    showToast(`${json.data.length} item diimport (${mode==='merge'?'digabungkan':'diganti'})`, 'ok');
+    showToast(`${json.data.length} item diimport (${mode==='merge'?t('toast.importMerge'):t('toast.importReplace')})`, 'ok');
   }catch(err){
     _importSessionKey = null;
-    showToast('Import gagal: '+err.message,'err');
+    showToast(t('toast.importFail',{msg:err.message}),'err');
   }
 }
 
 // ===== RESET VAULT =====
 function showResetConfirm(){
-  if(confirm('Reset vault akan menghapus SEMUA data dan master password.\n\nLanjutkan?')){
-    // Hapus salt lama DAN verifier → generate salt baru saat buat vault berikutnya
+  if(confirm(t('lock.resetConfirm'))){
     localStorage.removeItem('vault_salt');
     localStorage.removeItem('vault_ver');
+    localStorage.removeItem('vault_bio_cred_id');
+    localStorage.removeItem('vault_bio_enabled');
+    clearBioSession();
     // Pre-generate salt baru sekarang agar getSalt() tidak reuse yang lama
     const newSalt = crypto.getRandomValues(new Uint8Array(16));
     localStorage.setItem('vault_salt', bufToB64(newSalt));
     const req = indexedDB.deleteDatabase(DB_NAME);
     req.onsuccess = ()=>{
       document.getElementById('confirmWrap').style.display='block';
-      document.getElementById('unlockBtn').textContent='Buat Vault';
-      document.getElementById('lockSub').textContent='Buat master password untuk vault baru';
+      document.getElementById('unlockBtn').textContent=t('lock.createBtn');
+      document.getElementById('lockSub').textContent=t('lock.setupSubtitle');
       document.getElementById('resetLink').style.display='none';
       document.getElementById('masterPass').value='';
       document.getElementById('masterConfirm').value='';
       attempts=0; lockedUntil=0;
-      setMsg('Vault direset. Buat master password baru.','ok');
+      setMsg(t('lock.resetDone'),'ok');
       document.getElementById('unlockBtn').disabled=false;
     };
   }
@@ -2303,17 +2695,17 @@ async function doChangePw(){
   const confirmPw = document.getElementById('cpConfirm').value;
   const msgEl = document.getElementById('cpMsg');
 
-  if(!oldPw||!newPw||!confirmPw){ msgEl.style.color='var(--danger)'; msgEl.textContent='Semua field wajib diisi'; return; }
-  if(newPw !== confirmPw){ msgEl.style.color='var(--danger)'; msgEl.textContent='Password baru tidak cocok'; return; }
-  if(newPw.length < 12){ msgEl.style.color='var(--danger)'; msgEl.textContent='Master password minimal 12 karakter'; return; }
+  if(!oldPw||!newPw||!confirmPw){ msgEl.style.color='var(--danger)'; msgEl.textContent=t('cp.allRequired'); return; }
+  if(newPw !== confirmPw){ msgEl.style.color='var(--danger)'; msgEl.textContent=t('cp.noMatch'); return; }
+  if(newPw.length < 12){ msgEl.style.color='var(--danger)'; msgEl.textContent=t('cp.minLen'); return; }
 
-  msgEl.style.color='var(--sub)'; msgEl.textContent='Memverifikasi…';
+  msgEl.style.color='var(--sub)'; msgEl.textContent=t('cp.verifying');
 
   const salt = getSalt();
   const ok = await checkVerifier(oldPw, salt);
-  if(!ok){ msgEl.style.color='var(--danger)'; msgEl.textContent='Master password lama salah'; return; }
+  if(!ok){ msgEl.style.color='var(--danger)'; msgEl.textContent=t('cp.wrongOld'); return; }
 
-  msgEl.textContent='Re-enkripsi data…';
+  msgEl.textContent=t('cp.reEncrypting');
 
   try{
     const oldKey = _key;
@@ -2333,9 +2725,11 @@ async function doChangePw(){
 
     await setVerifier(newPw, salt);
     _key = newKey;
+    // Refresh bio session dengan password baru
+    if(isBiometricSupported()) await setBioSession(newPw);
     await loadItems(); render();
     closeChangePw();
-    showToast('Master password berhasil diganti','ok');
+    showToast(t('toast.cpSuccess'),'ok');
   }catch(e){
     msgEl.style.color='var(--danger)'; msgEl.textContent='Error: '+e.message;
     try{ _key = await deriveKey(oldPw, salt); }catch{}
@@ -2372,7 +2766,7 @@ function loadSecretLocks(){
         _secretLocks.delete(entry.id);
         _secretTimers.delete(entry.id);
         saveSecretLocks();
-        showToast('Lock secret berakhir: '+(_items.find(i=>i.id===entry.id)?.title||'item'), 'ok');
+        showToast(t('toast.secretExpired',{name:_items.find(i=>i.id===entry.id)?.title||'item'}), 'ok');
         render();
       }, remMs);
       _secretTimers.set(entry.id, timerId);
@@ -2413,8 +2807,8 @@ function fmtCountdown(ms){
   const h = Math.floor((totalSec % 86400) / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = totalSec % 60;
-  if(d > 0) return `${d}h ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-  if(h > 0) return `${h}j ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  if(d > 0) return `${d}${t('cd.day')} ${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  if(h > 0) return `${h}${t('cd.hour')} ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
   return `${m}:${s.toString().padStart(2,'0')}`;
 }
 
@@ -2430,7 +2824,7 @@ function getDurInputMs(){
 }
 
 function fmtDurPreview(ms){
-  if(ms <= 0) return 'Pilih durasi';
+  if(ms <= 0) return t('dur.chooseDur');
   const totalSec = Math.floor(ms/1000);
   const y  = Math.floor(totalSec/31536000);
   const mo = Math.floor((totalSec%31536000)/2592000);
@@ -2440,14 +2834,14 @@ function fmtDurPreview(ms){
   const m  = Math.floor((totalSec%3600)/60);
   const s  = totalSec%60;
   const parts=[];
-  if(y)  parts.push(y+'th');
-  if(mo) parts.push(mo+'bln');
-  if(w)  parts.push(w+'mgg');
-  if(d)  parts.push(d+'hr');
-  if(h)  parts.push(h+'j');
-  if(m)  parts.push(m+'mnt');
-  if(s)  parts.push(s+'dtk');
-  return '🔒 Kunci selama ' + parts.join(' ');
+  if(y)  parts.push(y+t('dur.year'));
+  if(mo) parts.push(mo+t('dur.month'));
+  if(w)  parts.push(w+t('dur.week'));
+  if(d)  parts.push(d+t('dur.day'));
+  if(h)  parts.push(h+t('dur.hour'));
+  if(m)  parts.push(m+t('dur.min'));
+  if(s)  parts.push(s+t('dur.sec'));
+  return '🔒 ' + t('dur.lockFor', {parts: parts.join(' ')});
 }
 
 function onDurInput(){
@@ -2480,7 +2874,7 @@ function openSecretLockModal(id){
   document.getElementById('secretLockItemName').textContent = item ? item.title : 'item ini';
   // Reset inputs
   ['durY','durMo','durW','durD','durH','durMin','durS'].forEach(id=>document.getElementById(id).value=0);
-  document.getElementById('durPreview').textContent = 'Pilih durasi';
+  document.getElementById('durPreview').textContent = t('secretLock.chooseDur');
   const confirmBtn = document.getElementById('secretLockConfirmBtn');
   confirmBtn.style.opacity='.4'; confirmBtn.style.pointerEvents='none';
   document.getElementById('secretLockModal').classList.add('show');
@@ -2511,7 +2905,7 @@ function confirmSecretLock(){
     _secretLocks.delete(id);
     _secretTimers.delete(id);
     saveSecretLocks();
-    showToast('Lock secret berakhir: '+(_items.find(i=>i.id===id)?.title||'item'), 'ok');
+    showToast(t('toast.secretExpired',{name:_items.find(i=>i.id===id)?.title||'item'}), 'ok');
     render();
   }, ms);
   _secretTimers.set(id, timerId);
@@ -2521,7 +2915,7 @@ function confirmSecretLock(){
 
   closeSecretLockModal();
   render();
-  showToast(fmtDurPreview(ms).replace('🔒 Kunci selama','Dikunci selama'), 'ok');
+  showToast(fmtDurPreview(ms), 'ok');
 }
 
 function startSecretCountdown(id){
@@ -2544,7 +2938,164 @@ function cancelSecretLock(id){
   _secretLocks.delete(id);
   _secretTimers.delete(id);
   render();
-  showToast('Lock secret dibatalkan', 'ok');
+  showToast(t('toast.secretCancelled'), 'ok');
+}
+
+// ===== BIOMETRIC AUTH (WebAuthn) =====
+const _BIO_RP_ID = location.hostname || 'localhost';
+const _BIO_RP_NAME = 'Secure Vault';
+
+function isBiometricSupported() {
+  return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
+}
+
+function isBiometricEnabled() {
+  return !!(localStorage.getItem('vault_bio_cred_id') && localStorage.getItem('vault_bio_enabled'));
+}
+
+function hasBioSession() {
+  return !!(sessionStorage.getItem('vault_bio_session') && sessionStorage.getItem('vault_bio_key'));
+}
+
+async function setBioSession(password) {
+  try {
+    const sessionKey = crypto.getRandomValues(new Uint8Array(32));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const aesKey = await crypto.subtle.importKey('raw', sessionKey, {name:'AES-GCM'}, false, ['encrypt']);
+    const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, new TextEncoder().encode(password));
+    const payload = new Uint8Array(iv.length + ct.byteLength);
+    payload.set(iv); payload.set(new Uint8Array(ct), iv.length);
+    sessionStorage.setItem('vault_bio_session', bufToB64(payload));
+    sessionStorage.setItem('vault_bio_key', bufToB64(sessionKey));
+  } catch(e) {}
+}
+
+async function getBioSession() {
+  const keyB64 = sessionStorage.getItem('vault_bio_key');
+  const encB64 = sessionStorage.getItem('vault_bio_session');
+  if (!keyB64 || !encB64) return null;
+  try {
+    const sessionKey = b64ToBuf(keyB64);
+    const payload = b64ToBuf(encB64);
+    const iv = payload.slice(0, 12); const ct = payload.slice(12);
+    const aesKey = await crypto.subtle.importKey('raw', sessionKey, {name:'AES-GCM'}, false, ['decrypt']);
+    const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, aesKey, ct);
+    return new TextDecoder().decode(pt);
+  } catch(e) { return null; }
+}
+
+function clearBioSession() {
+  sessionStorage.removeItem('vault_bio_session');
+  sessionStorage.removeItem('vault_bio_key');
+}
+
+async function registerBiometric() {
+  if (!isBiometricSupported()) { showToast(t('bio.unsupported'), 'err'); return; }
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = crypto.getRandomValues(new Uint8Array(16));
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { id: _BIO_RP_ID, name: _BIO_RP_NAME },
+        user: { id: userId, name: 'vault-user', displayName: 'Vault User' },
+        pubKeyCredParams: [
+          { type: 'public-key', alg: -7 },
+          { type: 'public-key', alg: -257 },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred',
+        },
+        timeout: 60000,
+      }
+    });
+    localStorage.setItem('vault_bio_cred_id', bufToB64(new Uint8Array(cred.rawId)));
+    localStorage.setItem('vault_bio_enabled', '1');
+    updateBioUI();
+    showToast(t('bio.enabled'), 'ok');
+  } catch(e) {
+    if (e.name !== 'NotAllowedError') showToast(t('bio.setupFailed'), 'err');
+  }
+}
+
+async function unlockWithBiometric() {
+  if (!isBiometricEnabled()) return;
+  if (!hasBioSession()) { showToast(t('bio.expired'), 'warn'); updateBioUI(); return; }
+  const btn = document.getElementById('bioBtn');
+  const svg = btn ? btn.querySelector('svg') : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.innerHTML = `<span class="spinner" style="border-top-color:var(--sub)"></span><span>${t('bio.unlocking')}</span>`;
+  }
+  try {
+    const credIdB64 = localStorage.getItem('vault_bio_cred_id');
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ id: b64ToBuf(credIdB64), type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000,
+      }
+    });
+    const password = await getBioSession();
+    if (!password) { showToast(t('bio.expired'), 'warn'); return; }
+    const salt = getSalt();
+    _key = await deriveKey(password, salt);
+    if (!db) db = await openDB();
+    await loadItems();
+    await setBioSession(password);
+    showApp();
+  } catch(e) {
+    if (e.name !== 'NotAllowedError') showToast(t('bio.failed'), 'err');
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg><span data-i18n="bio.btnUnlock">${t('bio.btnUnlock')}</span>`;
+    }
+  }
+}
+
+function disableBiometric() {
+  localStorage.removeItem('vault_bio_cred_id');
+  localStorage.removeItem('vault_bio_enabled');
+  clearBioSession();
+  updateBioUI();
+  showToast(t('bio.disabled'));
+}
+
+async function toggleBiometric() {
+  if (!_key) return;
+  if (isBiometricEnabled()) {
+    disableBiometric();
+  } else {
+    await registerBiometric();
+  }
+}
+
+function updateBioUI() {
+  const bioBtn = document.getElementById('bioBtn');
+  const bioToggle = document.getElementById('bioToggleBtn');
+  const supported = isBiometricSupported();
+  const enabled = isBiometricEnabled();
+  const hasSession = hasBioSession();
+
+  if (bioBtn) {
+    const show = enabled && hasSession;
+    bioBtn.style.display = show ? 'flex' : 'none';
+    if (show) {
+      bioBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg><span data-i18n="bio.btnUnlock">${t('bio.btnUnlock')}</span>`;
+    }
+  }
+
+  if (bioToggle) {
+    bioToggle.style.display = (supported && _key) ? 'flex' : 'none';
+    bioToggle.title = enabled ? t('bio.btnDisable') : t('bio.btnSetup');
+    bioToggle.classList.toggle('bio-active', enabled);
+  }
 }
 
 // ===== TOAST =====
@@ -2621,13 +3172,15 @@ window.addEventListener('message', async (e) => {
 
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', ()=>{
+  applyI18n();
+  updateBioUI();
   checkLockout();
   if(lockedUntil > Date.now()) startLockoutTimer();
 
   if(isFirstTime()){
     document.getElementById('confirmWrap').style.display='block';
-    document.getElementById('unlockBtn').textContent='Buat Vault';
-    document.getElementById('lockSub').textContent='Buat master password untuk vault baru';
+    document.getElementById('unlockBtn').textContent=t('lock.createBtn');
+    document.getElementById('lockSub').textContent=t('lock.setupSubtitle');
   } else {
     document.getElementById('resetLink').style.display='flex';
   }
@@ -2674,7 +3227,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const importPwOpen = document.getElementById('importPwModal').classList.contains('show');
       const importOpen = document.getElementById('importModal').classList.contains('show');
       if(importPwOpen || importOpen || _importPending) return;
-      showToast('Vault dikunci (tab tidak aktif)','warn');
+      showToast(t('toast.tabLock'),'warn');
       setTimeout(()=>{ if(_key) lockVault(); }, 300);
     } else if(!document.hidden && _key){
       resetIdleTimer();
