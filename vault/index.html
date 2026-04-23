@@ -148,6 +148,25 @@ svg{display:block;flex-shrink:0}
 .btn-primary:active{transform:scale(.98);opacity:.85}
 .btn-primary:disabled{opacity:.3;cursor:not-allowed}
 
+/* ===== BIOMETRIC BUTTON ===== */
+.btn-bio{
+  width:100%;padding:11px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:transparent;
+  color:var(--sub);
+  font-family:var(--sans);font-size:13px;font-weight:500;
+  cursor:pointer;
+  margin-top:6px;
+  display:none;align-items:center;justify-content:center;gap:8px;
+  transition:background .15s,border-color .15s,color .15s;
+}
+.btn-bio:hover{background:var(--surface);color:var(--text);border-color:var(--border-focus)}
+.btn-bio:active{transform:scale(.98)}
+.btn-bio:disabled{opacity:.4;pointer-events:none}
+.btn-bio.loading{pointer-events:none}
+.icon-btn.bio-active{color:var(--accent);border-color:var(--accent);background:var(--accent-glow)}
+
 /* ===== UNLOCK SPINNER ===== */
 .btn-primary.loading{
   display:flex;align-items:center;justify-content:center;gap:8px;
@@ -912,6 +931,10 @@ svg{display:block;flex-shrink:0}
     </div>
 
     <button class="btn-primary" id="unlockBtn" onclick="unlock()">Buka Vault</button>
+    <button class="btn-bio" id="bioBtn" onclick="unlockWithBiometric()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg>
+      <span data-i18n="bio.btnUnlock">Buka dengan Biometrik</span>
+    </button>
     <div class="attempt-dots" id="dots">
       <div class="dot" id="d0"></div>
       <div class="dot" id="d1"></div>
@@ -937,6 +960,10 @@ svg{display:block;flex-shrink:0}
     <div class="bar-actions">
       <!-- Language toggle -->
       <button class="import-btn" id="langToggle" onclick="setLang(_lang==='id'?'en':'id')" title="Switch language / Ganti bahasa" style="min-width:36px;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.5px">EN</button>
+      <!-- Biometric toggle -->
+      <button class="icon-btn" id="bioToggleBtn" onclick="toggleBiometric()" style="display:none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg>
+      </button>
       <!-- Import — labeled -->
       <button class="import-btn" onclick="importTrigger()" data-i18n-title="app.importBtn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1394,6 +1421,16 @@ const LOCALES = {
     'toast.vaultNotOpen':'Import gagal: vault tidak terbuka',
     'feedback.copied':'Disalin',
     'err.decryptFail':'Gagal dekripsi — password mungkin salah atau data rusak',
+    'bio.btnUnlock':'Buka dengan Biometrik',
+    'bio.btnSetup':'Aktifkan Login Biometrik',
+    'bio.btnDisable':'Nonaktifkan Biometrik',
+    'bio.enabled':'Login biometrik diaktifkan ✓',
+    'bio.disabled':'Login biometrik dinonaktifkan',
+    'bio.failed':'Autentikasi biometrik gagal',
+    'bio.setupFailed':'Gagal mengaktifkan biometrik',
+    'bio.expired':'Sesi biometrik kedaluwarsa — masukkan password',
+    'bio.unlocking':'Membuka dengan biometrik…',
+    'bio.unsupported':'Perangkat tidak mendukung biometrik',
   },
   en: {
     'lock.subtitle':'Enter your master password to continue',
@@ -1539,6 +1576,16 @@ const LOCALES = {
     'toast.vaultNotOpen':'Import failed: vault not open',
     'feedback.copied':'Copied',
     'err.decryptFail':'Decryption failed — wrong password or corrupted data',
+    'bio.btnUnlock':'Unlock with Biometrics',
+    'bio.btnSetup':'Enable Biometric Login',
+    'bio.btnDisable':'Disable Biometrics',
+    'bio.enabled':'Biometric login enabled ✓',
+    'bio.disabled':'Biometric login disabled',
+    'bio.failed':'Biometric authentication failed',
+    'bio.setupFailed':'Failed to enable biometrics',
+    'bio.expired':'Biometric session expired — enter password',
+    'bio.unlocking':'Unlocking with biometrics…',
+    'bio.unsupported':'Device does not support biometrics',
   }
 };
 
@@ -1571,6 +1618,7 @@ function applyI18n() {
   const btn = document.getElementById('langToggle');
   if (btn) btn.textContent = _lang === 'id' ? 'EN' : 'ID';
   if (_key) render();
+  updateBioUI();
 }
 
 function setLang(lang) {
@@ -1863,6 +1911,7 @@ async function unlock(){
       resetAttempts();
       db = await openDB();
       await loadItems();
+      if(isBiometricSupported()) await setBioSession(pw);
       showApp();
       return;
     }
@@ -1879,6 +1928,7 @@ async function unlock(){
     resetAttempts();
     db = await openDB();
     await loadItems();
+    if(isBiometricSupported()) await setBioSession(pw);
     showApp();
   }catch(e){
     setMsg('Error: '+e.message,'err');
@@ -1924,6 +1974,7 @@ function showApp(){
   loadSecretLocks();
   render();
   startIdleTimer();
+  updateBioUI();
 }
 
 function lockVault(){
@@ -1943,6 +1994,7 @@ function lockVault(){
   btn.classList.remove('loading');
   btn.textContent = isFirstTime() ? t('lock.createBtn') : t('lock.unlockBtn');
   stopIdleTimer();
+  updateBioUI();
 }
 
 // ===== AUTO-LOCK (IDLE + TAB HIDDEN) =====
@@ -2601,9 +2653,11 @@ async function doImport(mode){
 // ===== RESET VAULT =====
 function showResetConfirm(){
   if(confirm(t('lock.resetConfirm'))){
-    // Hapus salt lama DAN verifier → generate salt baru saat buat vault berikutnya
     localStorage.removeItem('vault_salt');
     localStorage.removeItem('vault_ver');
+    localStorage.removeItem('vault_bio_cred_id');
+    localStorage.removeItem('vault_bio_enabled');
+    clearBioSession();
     // Pre-generate salt baru sekarang agar getSalt() tidak reuse yang lama
     const newSalt = crypto.getRandomValues(new Uint8Array(16));
     localStorage.setItem('vault_salt', bufToB64(newSalt));
@@ -2671,6 +2725,8 @@ async function doChangePw(){
 
     await setVerifier(newPw, salt);
     _key = newKey;
+    // Refresh bio session dengan password baru
+    if(isBiometricSupported()) await setBioSession(newPw);
     await loadItems(); render();
     closeChangePw();
     showToast(t('toast.cpSuccess'),'ok');
@@ -2885,6 +2941,163 @@ function cancelSecretLock(id){
   showToast(t('toast.secretCancelled'), 'ok');
 }
 
+// ===== BIOMETRIC AUTH (WebAuthn) =====
+const _BIO_RP_ID = location.hostname || 'localhost';
+const _BIO_RP_NAME = 'Secure Vault';
+
+function isBiometricSupported() {
+  return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create);
+}
+
+function isBiometricEnabled() {
+  return !!(localStorage.getItem('vault_bio_cred_id') && localStorage.getItem('vault_bio_enabled'));
+}
+
+function hasBioSession() {
+  return !!(sessionStorage.getItem('vault_bio_session') && sessionStorage.getItem('vault_bio_key'));
+}
+
+async function setBioSession(password) {
+  try {
+    const sessionKey = crypto.getRandomValues(new Uint8Array(32));
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const aesKey = await crypto.subtle.importKey('raw', sessionKey, {name:'AES-GCM'}, false, ['encrypt']);
+    const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, aesKey, new TextEncoder().encode(password));
+    const payload = new Uint8Array(iv.length + ct.byteLength);
+    payload.set(iv); payload.set(new Uint8Array(ct), iv.length);
+    sessionStorage.setItem('vault_bio_session', bufToB64(payload));
+    sessionStorage.setItem('vault_bio_key', bufToB64(sessionKey));
+  } catch(e) {}
+}
+
+async function getBioSession() {
+  const keyB64 = sessionStorage.getItem('vault_bio_key');
+  const encB64 = sessionStorage.getItem('vault_bio_session');
+  if (!keyB64 || !encB64) return null;
+  try {
+    const sessionKey = b64ToBuf(keyB64);
+    const payload = b64ToBuf(encB64);
+    const iv = payload.slice(0, 12); const ct = payload.slice(12);
+    const aesKey = await crypto.subtle.importKey('raw', sessionKey, {name:'AES-GCM'}, false, ['decrypt']);
+    const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv}, aesKey, ct);
+    return new TextDecoder().decode(pt);
+  } catch(e) { return null; }
+}
+
+function clearBioSession() {
+  sessionStorage.removeItem('vault_bio_session');
+  sessionStorage.removeItem('vault_bio_key');
+}
+
+async function registerBiometric() {
+  if (!isBiometricSupported()) { showToast(t('bio.unsupported'), 'err'); return; }
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userId = crypto.getRandomValues(new Uint8Array(16));
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { id: _BIO_RP_ID, name: _BIO_RP_NAME },
+        user: { id: userId, name: 'vault-user', displayName: 'Vault User' },
+        pubKeyCredParams: [
+          { type: 'public-key', alg: -7 },
+          { type: 'public-key', alg: -257 },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'required',
+          residentKey: 'preferred',
+        },
+        timeout: 60000,
+      }
+    });
+    localStorage.setItem('vault_bio_cred_id', bufToB64(new Uint8Array(cred.rawId)));
+    localStorage.setItem('vault_bio_enabled', '1');
+    updateBioUI();
+    showToast(t('bio.enabled'), 'ok');
+  } catch(e) {
+    if (e.name !== 'NotAllowedError') showToast(t('bio.setupFailed'), 'err');
+  }
+}
+
+async function unlockWithBiometric() {
+  if (!isBiometricEnabled()) return;
+  if (!hasBioSession()) { showToast(t('bio.expired'), 'warn'); updateBioUI(); return; }
+  const btn = document.getElementById('bioBtn');
+  const svg = btn ? btn.querySelector('svg') : null;
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.innerHTML = `<span class="spinner" style="border-top-color:var(--sub)"></span><span>${t('bio.unlocking')}</span>`;
+  }
+  try {
+    const credIdB64 = localStorage.getItem('vault_bio_cred_id');
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ id: b64ToBuf(credIdB64), type: 'public-key' }],
+        userVerification: 'required',
+        timeout: 60000,
+      }
+    });
+    const password = await getBioSession();
+    if (!password) { showToast(t('bio.expired'), 'warn'); return; }
+    const salt = getSalt();
+    _key = await deriveKey(password, salt);
+    if (!db) db = await openDB();
+    await loadItems();
+    await setBioSession(password);
+    showApp();
+  } catch(e) {
+    if (e.name !== 'NotAllowedError') showToast(t('bio.failed'), 'err');
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg><span data-i18n="bio.btnUnlock">${t('bio.btnUnlock')}</span>`;
+    }
+  }
+}
+
+function disableBiometric() {
+  localStorage.removeItem('vault_bio_cred_id');
+  localStorage.removeItem('vault_bio_enabled');
+  clearBioSession();
+  updateBioUI();
+  showToast(t('bio.disabled'));
+}
+
+async function toggleBiometric() {
+  if (!_key) return;
+  if (isBiometricEnabled()) {
+    disableBiometric();
+  } else {
+    await registerBiometric();
+  }
+}
+
+function updateBioUI() {
+  const bioBtn = document.getElementById('bioBtn');
+  const bioToggle = document.getElementById('bioToggleBtn');
+  const supported = isBiometricSupported();
+  const enabled = isBiometricEnabled();
+  const hasSession = hasBioSession();
+
+  if (bioBtn) {
+    const show = enabled && hasSession;
+    bioBtn.style.display = show ? 'flex' : 'none';
+    if (show) {
+      bioBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"/><path d="M14 13.12c0 2.38 0 6.38-1 8.88"/><path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"/><path d="M2 12a10 10 0 0 1 18-6"/><path d="M2 17c1 .5 2.5 1.5 5 1.5"/><path d="M6 10c.98-.97 2.41-2 4-2 .83 0 2.6.6 3.4 1.32"/><path d="M9.17 21C8.5 18 8 15 8 12"/><path d="M13.1 7.5c1.59.78 2.9 2.2 2.9 4.5 0 .82-.07 1.62-.2 2.4"/><path d="M21 12c0 2.5-.5 4.5-1.5 6.5"/></svg><span data-i18n="bio.btnUnlock">${t('bio.btnUnlock')}</span>`;
+    }
+  }
+
+  if (bioToggle) {
+    bioToggle.style.display = (supported && _key) ? 'flex' : 'none';
+    bioToggle.title = enabled ? t('bio.btnDisable') : t('bio.btnSetup');
+    bioToggle.classList.toggle('bio-active', enabled);
+  }
+}
+
 // ===== TOAST =====
 let _toastTimer=null;
 function showToast(msg, type=''){
@@ -2960,6 +3173,7 @@ window.addEventListener('message', async (e) => {
 // ===== INIT =====
 document.addEventListener('DOMContentLoaded', ()=>{
   applyI18n();
+  updateBioUI();
   checkLockout();
   if(lockedUntil > Date.now()) startLockoutTimer();
 
